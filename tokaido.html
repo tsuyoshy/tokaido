@@ -1926,6 +1926,7 @@ function openCargo() {
     state.timeSlot === 'yoru'
       ? '宗吉は帳場へ向かった。宿の主人に声をかけてみることにした。'
       : '宗吉は荷を広げた。';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // 所持品一覧を生成（ボタンなし）
   const panel = document.getElementById('cargo-panel');
