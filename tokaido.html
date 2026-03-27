@@ -2477,6 +2477,7 @@ function switchTab(tab) {
     const tabs = ['stamp', 'shobai', 'hito', 'michi', 'miyage'];
     el.classList.toggle('active', tabs[i] === tab);
   });
+  if (tab !== 'stamp') closeStampPopup();
   renderMemo();
 }
 
