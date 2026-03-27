@@ -1269,10 +1269,17 @@ function callCustomer() {
     }
     if (matches.length > 0) break;
   }
-  // それでもマッチしない場合はavailableから選ぶ
-  targetItem = matches && matches.length > 0
-    ? matches[Math.floor(Math.random() * matches.length)]
-    : available[Math.floor(Math.random() * available.length)];
+  // マッチしない場合は客が立ち去る
+  if (!matches || matches.length === 0) {
+    document.getElementById('cargo-panel').style.display = 'none';
+    document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
+    recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
+    showChoices([
+      { label: '', fn: '', action: () => showStageChoices() },
+    ]);
+    return;
+  }
+  targetItem = matches[Math.floor(Math.random() * matches.length)];
 
   const itemIdx = state.cargo.indexOf(targetItem);
   const request = ITEM_REQUEST[targetItem.name] || `「${targetItem.name}はあるかね」`;
