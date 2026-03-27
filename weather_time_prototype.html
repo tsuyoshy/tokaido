@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>天候×時間帯×宿場 プロトタイプ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  background:#0a0900; color:#e8d880;
+  font-family:'Noto Serif JP',serif;
+  display:flex; flex-direction:column; align-items:center;
+  min-height:100vh; padding:24px 16px 40px;
+}
+h1 { font-size:11px; letter-spacing:.22em; color:rgba(232,200,64,.35); margin-bottom:16px; }
+
+.illus-wrap {
+  position:relative; width:480px; height:220px;
+  overflow:hidden; border-radius:2px; background:#1a1500;
+}
+.illus-wrap img {
+  width:100%; height:100%;
+  object-fit:cover; object-position:top; display:block;
+  transition:filter .8s ease, opacity .4s ease;
+}
+.illus-wrap img.loading { opacity:.3; }
+
+/* 空ゾーン（multiply）*/
+.sky-band {
+  position:absolute; top:0; left:0; right:0; height:65%;
+  pointer-events:none;
+  transition:opacity .8s ease, background .8s ease;
+  mix-blend-mode:multiply;
+}
+/* 時間帯カラーオーバーレイ（normal blend） */
+.time-layer {
+  position:absolute; inset:0;
+  pointer-events:none; opacity:0;
+  transition:opacity .8s ease;
+}
+/* 全体トーン */
+.tone-layer {
+  position:absolute; inset:0;
+  pointer-events:none; opacity:0;
+  transition:opacity .8s ease;
+}
+#rain-canvas, #snow-canvas {
+  position:absolute; inset:0;
+  pointer-events:none; opacity:0;
+  transition:opacity .8s ease;
+}
+
+/* ── ステージバー ── */
+.stage-bar {
+  width:480px; display:flex; align-items:baseline;
+  justify-content:space-between; padding:8px 2px 0;
+}
+.stage-name { font-size:18px; font-weight:700; letter-spacing:.2em; color:#e8c040; }
+.stage-yomi { font-size:10px; letter-spacing:.15em; color:rgba(232,200,64,.45); margin-left:8px; }
+.stage-scene { font-size:10px; letter-spacing:.08em; color:rgba(232,216,128,.4); }
+.stage-num { font-size:10px; letter-spacing:.12em; color:rgba(232,200,64,.3); }
+
+/* ── コントロール共通 ── */
+.ctrl-row {
+  display:flex; gap:8px; margin-top:12px; align-items:center;
+}
+.ctrl-label {
+  font-size:10px; letter-spacing:.15em; color:rgba(232,200,64,.4);
+  width:36px; flex-shrink:0;
+}
+.wbtn {
+  background:none; border:1px solid rgba(200,160,40,.28);
+  color:#e8d880; font-family:'Noto Serif JP',serif;
+  font-size:11px; letter-spacing:.10em;
+  padding:5px 12px; cursor:pointer; border-radius:2px;
+  transition:background .2s, border-color .2s, color .2s;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.wbtn .icon { font-size:13px; }
+.wbtn:hover { background:rgba(200,160,40,.08); border-color:rgba(200,160,40,.5); }
+.wbtn.active { background:rgba(200,160,40,.14); border-color:rgba(200,160,40,.75); color:#e8c040; }
+
+
+/* ── 宿場セレクター ── */
+.stage-selector {
+  display:flex; align-items:center; margin-top:14px; width:480px;
+}
+.arrow-btn {
+  background:none; border:1px solid rgba(200,160,40,.28);
+  color:#e8d880; font-size:16px;
+  width:36px; height:36px; cursor:pointer; border-radius:2px;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .2s; flex-shrink:0;
+}
+.arrow-btn:hover { background:rgba(200,160,40,.1); }
+.arrow-btn:disabled { opacity:.2; cursor:default; }
+.stage-list { flex:1; display:flex; overflow:hidden; }
+.stage-thumb {
+  flex:0 0 calc((480px - 72px)/7); height:36px;
+  position:relative; cursor:pointer;
+  border:1px solid rgba(200,160,40,.1); overflow:hidden;
+  transition:border-color .15s;
+}
+.stage-thumb:hover { border-color:rgba(200,160,40,.45); }
+.stage-thumb.active { border-color:rgba(200,160,40,.85); }
+.stage-thumb img {
+  width:100%; height:100%; object-fit:cover; object-position:top; display:block;
+  filter:brightness(.7) saturate(.6); transition:filter .2s;
+}
+.stage-thumb:hover img,.stage-thumb.active img { filter:brightness(.9) saturate(.9); }
+.stage-thumb .tlabel {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; color:rgba(232,216,128,.9);
+  text-shadow:0 1px 3px rgba(0,0,0,.9); background:rgba(0,0,0,.15);
+}
+.stage-thumb.active .tlabel { color:#e8c040; }
+.scroll-indicator {
+  display:flex; gap:3px; margin-top:7px; justify-content:center;
+}
+.scroll-dot {
+  width:4px; height:4px; border-radius:50%;
+  background:rgba(200,160,40,.2); cursor:pointer; transition:background .2s;
+}
+.scroll-dot.active { background:rgba(200,160,40,.7); }
+</style>
+</head>
+<body>
+<h1>天候 × 時間帯 × 宿場　プロトタイプ</h1>
+
+<div class="illus-wrap" id="main-wrap">
+  <img id="illus-img" src="">
+  <div class="sky-band"   id="main-sky"></div>
+  <div class="time-layer" id="main-time"></div>
+  <div class="tone-layer" id="main-tone"></div>
+  <canvas id="rain-canvas" width="480" height="220"></canvas>
+  <canvas id="snow-canvas" width="480" height="220"></canvas>
+</div>
+
+<div class="stage-bar">
+  <div>
+    <span class="stage-name" id="sname"></span>
+    <span class="stage-yomi" id="syomi"></span>
+  </div>
+  <span class="stage-scene" id="sscene"></span>
+  <span class="stage-num"   id="snum"></span>
+</div>
+
+<!-- 天候 -->
+<div class="ctrl-row">
+  <span class="ctrl-label">天候</span>
+  <button class="wbtn active" id="wbtn-sunny"  onclick="setWeather('sunny')"><span class="icon">☀</span>晴れ</button>
+  <button class="wbtn"        id="wbtn-cloudy" onclick="setWeather('cloudy')"><span class="icon">☁</span>曇り</button>
+  <button class="wbtn"        id="wbtn-rain"   onclick="setWeather('rain')"><span class="icon">☂</span>雨</button>
+  <button class="wbtn"        id="wbtn-snow"   onclick="setWeather('snow')"><span class="icon">❄</span>雪</button>
+</div>
+
+<!-- 時間帯 -->
+<div class="ctrl-row">
+  <span class="ctrl-label">時間帯</span>
+  <button class="wbtn active" id="tbtn-asa"  onclick="setTime('asa')"><span class="icon">🌅</span>朝</button>
+  <button class="wbtn"        id="tbtn-hiru" onclick="setTime('hiru')"><span class="icon">🌞</span>昼</button>
+  <button class="wbtn"        id="tbtn-yuu"  onclick="setTime('yuu')"><span class="icon">🌇</span>夕</button>
+  <button class="wbtn"        id="tbtn-yoru" onclick="setTime('yoru')"><span class="icon">🌙</span>夜</button>
+</div>
+
+<div class="stage-selector">
+  <button class="arrow-btn" id="btn-prev" onclick="scrollStages(-1)">‹</button>
+  <div class="stage-list" id="stage-list"></div>
+  <button class="arrow-btn" id="btn-next" onclick="scrollStages(1)">›</button>
+</div>
+<div class="scroll-indicator" id="scroll-dots"></div>
+
+<script>
+const STAGES = [
+  {num:1,name:"品川",yomi:"しながわ",scene:"品川湊の帆船",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/01_shinagawa.png"},
+  {num:2,name:"川崎",yomi:"かわさき",scene:"多摩川の渡し船",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/02_kawasaki.png"},
+  {num:3,name:"神奈川",yomi:"かながわ",scene:"神奈川湊の廻船と碇",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/03_kanagawa.png"},
+  {num:4,name:"保土ヶ谷",yomi:"ほどがや",scene:"街道脇の松並木と起伏のある道",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/04_hodogaya.png"},
+  {num:5,name:"戸塚",yomi:"とつか",scene:"柏尾川沿いの宿場",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/05_totsuka.png"},
+  {num:6,name:"藤沢",yomi:"ふじさわ",scene:"遊行寺の大山門と参道の松",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/06_fujisawa.png"},
+  {num:7,name:"平塚",yomi:"ひらつか",scene:"馬入川（相模川下流）の渡し場",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/07_hiratsuka.png"},
+  {num:8,name:"大磯",yomi:"おおいそ",scene:"相模湾の浜",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/08_oiso.png"},
+  {num:9,name:"小田原",yomi:"おだわら",scene:"小田原城の天守と石垣",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/09_odawara.png"},
+  {num:10,name:"箱根",yomi:"はこね",scene:"峠から見える富士",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/10_hakone.png"},
+  {num:11,name:"三島",yomi:"みしま",scene:"三嶋大社の大鳥居",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/11_mishima.png"},
+  {num:12,name:"沼津",yomi:"ぬまづ",scene:"富士山を背にした平野と川の流れ",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/12_numazu.png"},
+  {num:13,name:"原",yomi:"はら",scene:"千本松原越しに見える富士山",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/13_hara.png"},
+  {num:14,name:"吉原",yomi:"よしわら",scene:"田子の浦に映る富士",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/14_yoshiwara.png"},
+  {num:15,name:"蒲原",yomi:"かんばら",scene:"海沿いの低地に建つ家並み",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/15_kanbara.png"},
+  {num:16,name:"由比",yomi:"ゆい",scene:"薩埵峠の断崖と眼下の駿河湾。富士山・海・街道が重なる眺望",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/16_yui.png"},
+  {num:17,name:"興津",yomi:"おきつ",scene:"興津川の川越え場と清見寺",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/17_okitsu.png"},
+  {num:18,name:"江尻",yomi:"えじり",scene:"三保の松原と富士",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/18_ejiri.png"},
+  {num:19,name:"府中",yomi:"ふちゅう",scene:"安倍川の川越え場と駿府城の石垣",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/19_fuchu.png"},
+  {num:20,name:"丸子",yomi:"まりこ",scene:"宇津ノ谷峠の茶屋",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/20_mariko.png"},
+  {num:21,name:"岡部",yomi:"おかべ",scene:"宇津ノ谷峠の切り通しと岩盤の山道",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/21_okabe.png"},
+  {num:22,name:"藤枝",yomi:"ふじえだ",scene:"藤枝宿の問屋場と街道沿いの町並み",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/22_fujieda.png"},
+  {num:23,name:"島田",yomi:"しまだ",scene:"大井川の川越え場",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/23_shimada.png"},
+  {num:24,name:"金谷",yomi:"かなや",scene:"茶畑と富士",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/24_kanaya.png"},
+  {num:25,name:"日坂",yomi:"にっさか",scene:"中山の急峻な坂道",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/25_nissaka.png"},
+  {num:26,name:"掛川",yomi:"かけがわ",scene:"掛川城の天守",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/26_kakegawa.png"},
+  {num:27,name:"袋井",yomi:"ふくろい",scene:"袋井宿の茶屋",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/27_fukuroi.png"},
+  {num:28,name:"見付",yomi:"みつけ",scene:"天竜川の渡し場",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/28_mitsuke.png"},
+  {num:29,name:"浜松",yomi:"はままつ",scene:"浜松城の天守台",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/29_hamamatsu.png"},
+  {num:30,name:"舞阪",yomi:"まいさか",scene:"浜名湖のほとり",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/30_maisaka.png"},
+  {num:31,name:"新居",yomi:"あらい",scene:"今切の渡し場",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/31_arai.png"},
+  {num:32,name:"白須賀",yomi:"しらすか",scene:"汐見坂の急坂と眼下に広がる遠州灘",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/32_shirasuka.png"},
+  {num:33,name:"二川",yomi:"ふたがわ",scene:"二川宿の松並木",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/33_futagawa.png"},
+  {num:34,name:"吉田",yomi:"よしだ",scene:"豊川に架かる吉田橋と吉田城の天守",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/34_yoshida.png"},
+  {num:35,name:"御油",yomi:"ごゆ",scene:"御油の松並木",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/35_goyu.png"},
+  {num:36,name:"赤坂",yomi:"あかさか",scene:"赤坂宿の街道沿いの旅籠",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/36_akasaka.png"},
+  {num:37,name:"藤川",yomi:"ふじかわ",scene:"松並木",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/37_fujikawa.png"},
+  {num:38,name:"岡崎",yomi:"おかざき",scene:"矢作川に架かる矢作橋の長い橋桁と岡崎城の天守",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/38_okazaki.png"},
+  {num:39,name:"池鯉鮒",yomi:"ちりゅう",scene:"馬市の広場",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/39_chiryu.png"},
+  {num:40,name:"鳴海",yomi:"なるみ",scene:"有松村の絞り染め",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/40_narumi.png"},
+  {num:41,name:"宮",yomi:"みや",scene:"熱田神宮の大鳥居",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/41_miya.png"},
+  {num:42,name:"桑名",yomi:"くわな",scene:"桑名湊の渡し",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/42_kuwana.png"},
+  {num:43,name:"四日市",yomi:"よっかいち",scene:"十里の渡し",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/43_yokkaichi.png"},
+  {num:44,name:"石薬師",yomi:"いしやくし",scene:"雲助",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/44_ishiyakushi.png"},
+  {num:45,name:"庄野",yomi:"しょうの",scene:"庄野宿周辺の丘陵",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/45_shono.png"},
+  {num:46,name:"亀山",yomi:"かめやま",scene:"亀山城",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/46_kameyama.png"},
+  {num:47,name:"関",yomi:"せき",scene:"関宿の商家が連なる町並み",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/47_seki.png"},
+  {num:48,name:"坂下",yomi:"さかした",scene:"鈴鹿峠の坂下側の谷間と山道",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/48_sakashita.png"},
+  {num:49,name:"土山",yomi:"つちやま",scene:"名物のお六櫛",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/49_tsuchiyama.png"},
+  {num:50,name:"水口",yomi:"みなくち",scene:"名物のかんぴょう",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/50_minakuchi.png"},
+  {num:51,name:"石部",yomi:"いしべ",scene:"石部宿の田園の中の街道。野洲川沿いの平野と遠くの比叡の山並み",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/51_ishibe.png"},
+  {num:52,name:"草津",yomi:"くさつ",scene:"東海道と中山道が合流する分岐点",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/52_kusatsu.png"},
+  {num:53,name:"大津",yomi:"おおつ",scene:"大津の湊と琵琶湖の広い湖面",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/53_otsu.png"},
+  {num:54,name:"京",yomi:"きょう",scene:"三条大橋と鴨川",img:"https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/54_kyo.png"},
+];
+
+/*
+  エフェクト設計
+  ─────────────────────────────────────────────
+  天候（WEATHER）× 時間帯（TIME）の2軸を掛け算
+  
+  imgFilter = 天候フィルター × 時間帯フィルターを合成
+  sky-band  = 天候の空色（multiply）
+  time-layer= 時間帯の色かぶり（normal blend）
+              朝：オレンジ薄く上部から
+              昼：なし
+              夕：オレンジ〜赤を全体に
+              夜：暗い青を全体に
+  tone-layer= 天候の暗さ調整
+*/
+
+const WEATHER = {
+  sunny:  { skyBg:'linear-gradient(to bottom,rgba(40,140,230,.92) 0%,rgba(80,178,250,.72) 15%,rgba(130,212,255,.35) 30%,rgba(170,230,255,.08) 45%,transparent 100%)', skyOp:'1', wFilter:'brightness(1.04) contrast(1.04) saturate(1.06)', toneBg:'none', toneOp:'0' },
+  cloudy: { skyBg:'linear-gradient(to bottom,rgba(85,90,105,.85) 0%,rgba(100,105,120,.60) 20%,rgba(120,125,138,.25) 40%,transparent 100%)',                           skyOp:'1', wFilter:'brightness(0.90) contrast(0.95) saturate(0.62)', toneBg:'rgba(20,22,30,.10)', toneOp:'1' },
+  rain:   { skyBg:'linear-gradient(to bottom,rgba(35,45,70,.70) 0%,rgba(50,60,85,.45) 20%,rgba(65,75,95,.18) 38%,transparent 100%)',                                   skyOp:'1', wFilter:'brightness(0.88) contrast(1.01) saturate(0.72) hue-rotate(6deg)', toneBg:'rgba(15,22,38,.18)', toneOp:'1' },
+  snow:   { skyBg:'linear-gradient(to bottom,rgba(190,205,228,.80) 0%,rgba(205,218,238,.55) 20%,rgba(218,228,245,.25) 40%,transparent 100%)',                           skyOp:'1', wFilter:'brightness(0.94) contrast(0.90) saturate(0.28)', toneBg:'rgba(200,215,235,.08)', toneOp:'1' },
+};
+
+/*
+  時間帯：晴れのときだけ有効。曇り・雨・雪は天候エフェクトのみ。
+  朝・昼 = 同じ（フィルターなし、sky-bandは天候のまま）
+  夕     = 夕焼け。sky-bandをオレンジ〜赤に差し替え
+  夜     = 曇り相当。sky-bandをグレーに、全体を少し暗く
+*/
+const TIME = {
+  asa: {
+    label:'朝',
+    // 朝：爽やかな水色。hue-rotateで青みを足す
+    tFilter:'brightness(1.04) contrast(1.02) saturate(1.05) hue-rotate(5deg)',
+    timeBg:'none', timeOp:'0',
+    skyOverride: {
+      skyBg:'linear-gradient(to bottom,rgba(100,195,255,.90) 0%,rgba(140,215,255,.70) 15%,rgba(175,230,255,.35) 30%,rgba(200,240,255,.08) 45%,transparent 100%)',
+      skyOp:'1',
+    },
+  },
+  hiru: {
+    label:'昼',
+    tFilter:'', timeBg:'none', timeOp:'0',
+    skyOverride: null,
+  },
+  yuu: {
+    label:'夕',
+    tFilter:'brightness(0.97) contrast(1.05) saturate(1.10) sepia(0.08) hue-rotate(-6deg)',
+    timeBg:'linear-gradient(to bottom,rgba(200,90,10,.14) 0%,rgba(180,80,10,.08) 50%,transparent 100%)',
+    timeOp:'1',
+    skyOverride: {
+      skyBg:'linear-gradient(to bottom,rgba(210,100,20,.65) 0%,rgba(225,140,40,.42) 20%,rgba(235,175,70,.22) 35%,rgba(238,195,85,.10) 50%,rgba(240,210,100,.03) 65%,transparent 100%)',
+      skyOp:'1',
+    },
+  },
+  yoru: {
+    label:'夜',
+    tFilter:'brightness(0.88) contrast(0.95) saturate(0.60)',
+    timeBg:'rgba(18,20,30,.18)', timeOp:'1',
+    skyOverride: {
+      skyBg:'linear-gradient(to bottom,rgba(85,90,105,.85) 0%,rgba(100,105,120,.60) 20%,rgba(120,125,138,.25) 40%,transparent 100%)',
+      skyOp:'1',
+    },
+  },
+};
+
+let currentStage   = 0;
+let currentWeather = 'sunny';
+let currentTime    = 'asa';
+let thumbOffset    = 0;
+const THUMB_COUNT  = 7;
+
+// ── 雨Canvas ──
+function drawRainCanvas() {
+  const canvas = document.getElementById('rain-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  let seed = 42;
+  function rand() { seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+  for (let i=0;i<300;i++) {
+    const x=rand()*W, y=rand()*H, len=4+rand()*14;
+    const dx=len*Math.sin(0.18), dy=len*Math.cos(0.18);
+    const alpha=0.12+rand()*0.22, width=0.4+rand()*0.6;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+dx,y+dy);
+    ctx.strokeStyle=`rgba(170,195,225,${alpha.toFixed(2)})`; ctx.lineWidth=width; ctx.stroke();
+  }
+}
+
+// ── 雪Canvas ──
+function drawSnowCanvas() {
+  const canvas = document.getElementById('snow-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  let seed = 137;
+  function rand() { seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+  [[60,0.5,0.9,0.45,0.45,'225,235,248'],[100,0.3,0.5,0.25,0.35,'215,228,245'],[140,0.2,0.3,0.15,0.20,'205,220,240']].forEach(([n,rMin,rRng,aMin,aRng,rgb])=>{
+    for (let i=0;i<n;i++) {
+      const x=rand()*W, y=rand()*H, r=rMin+rand()*rRng, alpha=aMin+rand()*aRng;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${rgb},${alpha.toFixed(2)})`; ctx.fill();
+    }
+  });
+}
+
+// ── エフェクト適用 ──
+function applyEffect() {
+  const w = WEATHER[currentWeather];
+  const t = TIME[currentTime];
+  const isSunny = currentWeather === 'sunny';
+
+  // imgFilter：晴れのみ時間帯フィルターを掛け算、他は天候だけ
+  const combined = isSunny && t.tFilter ? w.wFilter + ' ' + t.tFilter : w.wFilter;
+  document.getElementById('illus-img').style.filter = combined;
+
+  // sky-band：晴れ×夕/夜のときはskyOverrideで差し替え
+  const sky = document.getElementById('main-sky');
+  const skyDef = (isSunny && t.skyOverride) ? t.skyOverride : w;
+  sky.style.background = skyDef.skyBg;
+  sky.style.opacity    = skyDef.skyOp;
+
+  // time-layer：晴れのみ有効
+  const tl = document.getElementById('main-time');
+  tl.style.background = (isSunny && t.timeBg !== 'none') ? t.timeBg : 'none';
+  tl.style.opacity    = (isSunny) ? t.timeOp : '0';
+
+  // tone-layer（天候の暗さ）
+  const tone = document.getElementById('main-tone');
+  tone.style.background = w.toneBg;
+  tone.style.opacity    = w.toneOp;
+
+  // rain/snow canvas
+  document.getElementById('rain-canvas').style.opacity = currentWeather==='rain' ? '1':'0';
+  document.getElementById('snow-canvas').style.opacity = currentWeather==='snow' ? '1':'0';
+}
+
+function setWeather(w) {
+  currentWeather = w;
+  applyEffect();
+  ['sunny','cloudy','rain','snow'].forEach(k=>
+    document.getElementById('wbtn-'+k).classList.toggle('active',k===w)
+  );
+}
+
+function setTime(t) {
+  currentTime = t;
+  applyEffect();
+  ['asa','hiru','yuu','yoru'].forEach(k=>
+    document.getElementById('tbtn-'+k).classList.toggle('active',k===t)
+  );
+}
+
+function selectStage(idx) {
+  currentStage = idx;
+  const s = STAGES[idx];
+  const img = document.getElementById('illus-img');
+  img.classList.add('loading');
+  img.onload = ()=>img.classList.remove('loading');
+  img.src = s.img;
+  document.getElementById('sname').textContent  = s.name;
+  document.getElementById('syomi').textContent  = s.yomi;
+  document.getElementById('sscene').textContent = s.scene;
+  const numLabel = s.num <= 53 ? '第'+s.num+'次' : '終着';
+  document.getElementById('snum').textContent   = numLabel;
+  applyEffect();
+  document.querySelectorAll('.stage-thumb').forEach((el,i)=>
+    el.classList.toggle('active',(i+thumbOffset)===idx)
+  );
+}
+
+function renderThumbs() {
+  const list = document.getElementById('stage-list');
+  list.innerHTML = '';
+  STAGES.slice(thumbOffset,thumbOffset+THUMB_COUNT).forEach((s,i)=>{
+    const idx=thumbOffset+i;
+    const div=document.createElement('div');
+    div.className='stage-thumb'+(idx===currentStage?' active':'');
+    div.onclick=()=>selectStage(idx);
+    div.innerHTML=`<img src="${s.img}" loading="lazy"><div class="tlabel">${s.name}</div>`;
+    list.appendChild(div);
+  });
+  const dots=document.getElementById('scroll-dots');
+  const pages=Math.ceil(STAGES.length/THUMB_COUNT);
+  dots.innerHTML='';
+  for(let p=0;p<pages;p++){
+    const d=document.createElement('div');
+    d.className='scroll-dot'+(Math.floor(thumbOffset/THUMB_COUNT)===p?' active':'');
+    d.onclick=()=>{thumbOffset=p*THUMB_COUNT;renderThumbs();};
+    dots.appendChild(d);
+  }
+  document.getElementById('btn-prev').disabled=thumbOffset===0;
+  document.getElementById('btn-next').disabled=thumbOffset+THUMB_COUNT>=STAGES.length;
+}
+
+function scrollStages(dir) {
+  thumbOffset=Math.max(0,Math.min(STAGES.length-THUMB_COUNT,thumbOffset+dir*THUMB_COUNT));
+  renderThumbs();
+}
+
+renderThumbs();
+drawRainCanvas();
+drawSnowCanvas();
+selectStage(currentStage);
+setTime('asa');
+</script>
+</body>
+</html>
