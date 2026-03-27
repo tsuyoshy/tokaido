@@ -212,6 +212,7 @@
     font-size: 15px;
     line-height: 2;
     letter-spacing: 0.05em;
+    transition: opacity 0.15s ease;
   }
 
   #scene-text .highlight {
@@ -932,6 +933,19 @@ const TIME_EFFECTS = {
   },
 };
 
+// ── scene-text フラッシュなし書き換え ──
+function setSceneText(html) {
+  const el = document.getElementById('scene-text');
+  if (!el) return;
+  el.style.transition = 'none';
+  el.style.opacity = '0';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    el.innerHTML = html;
+    el.style.transition = 'opacity 0.15s ease';
+    el.style.opacity = '1';
+  }));
+}
+
 // ── 雨をCanvasに描画 ──
 function drawRainCanvas() {
   const canvas = document.getElementById('illus-rain-canvas');
@@ -1217,7 +1231,7 @@ function callCustomer() {
   // 所持品で売れるものを確認
   const available = state.cargo.filter(item => item.qty > 0);
   if (available.length === 0) {
-    document.getElementById('scene-text').innerHTML = '宗吉は荷を広げた。<br><br>しかし、誰も足を止めなかった。';
+    setSceneText('宗吉は荷を広げた。<br><br>しかし、誰も足を止めなかった。');
     showChoices([
       { label: '', fn: '', action: () => { document.getElementById("cargo-panel").style.display="none"; showStageChoices(); }},
     ]);
@@ -1249,7 +1263,7 @@ function callCustomer() {
   // 客が来るか確率判定
   if (Math.random() > customerPct()) {
     document.getElementById('cargo-panel').style.display = 'none';
-    document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
+    setSceneText('しばらく待ったが、誰も足を止めなかった。');
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
     showChoices([
       { label: '', fn: '', action: () => showStageChoices() },
@@ -1272,7 +1286,7 @@ function callCustomer() {
   // マッチしない場合は客が立ち去る
   if (!matches || matches.length === 0) {
     document.getElementById('cargo-panel').style.display = 'none';
-    document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
+    setSceneText('しばらく待ったが、誰も足を止めなかった。');
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
     showChoices([
       { label: '', fn: '', action: () => showStageChoices() },
@@ -1780,14 +1794,14 @@ function showChoices(choices) {
   window.__choices = choices;
 }
 
-function updateHeader() {
+function updateHeader(skipWeather) {
   document.getElementById('stat-days').textContent  = state.days + '日';
   document.getElementById('stat-money').textContent = state.money.toLocaleString() + '文';
   document.getElementById('stat-time').textContent  = timeLabels[state.timeSlot];
   document.getElementById('weather-icon').textContent = weatherIcons[state.weather];
   const rem = Math.max(0, 53 - state.currentStage);
   document.getElementById('stage-remaining').textContent = rem > 0 ? 'あと' + rem + '次' : '終点';
-  applyWeatherEffect(state.weather);
+  if (!skipWeather) applyWeatherEffect(state.weather);
 }
 
 // ── 京都エンディング ──
@@ -1839,7 +1853,7 @@ function triggerEnding() {
     `通過した宿場 ${stagesCleared} 次　残り日数 ${state.days} 日　手元金 ${state.money.toLocaleString()} 文　商売 ${totalSold} 件` +
     `</span>`;
 
-  document.getElementById('scene-text').innerHTML = endText;
+  setSceneText(endText);
   document.getElementById('choices').classList.add('hidden');
 }
 
@@ -1899,8 +1913,7 @@ function selectInn() {
   const innCost = sd.innCost || 35;
   // 品川（第一次）は旅籠のみ
   if (state.currentStage === 1) {
-    document.getElementById('scene-text').innerHTML =
-      '今夜は旅籠に泊まることにした。<br><br>品川宿の旅籠・橘屋。一泊' + innCost + '文。';
+    setSceneText('今夜は旅籠に泊まることにした。<br><br>品川宿の旅籠・橘屋。一泊' + innCost + '文。');
     showChoices([
       { label: '旅籠に泊まる（' + innCost + '文）', fn: '', action: () => goToInn(innCost) },
       { label: 'やめる', fn: '', action: () => showStageChoices() },
@@ -1908,8 +1921,7 @@ function selectInn() {
     return;
   }
   const cheapCost = 20;
-  document.getElementById('scene-text').innerHTML =
-    '今夜の宿をどうするか。';
+  setSceneText('今夜の宿をどうするか。');
   showChoices([
     { label: '旅籠に泊まる（' + innCost + '文）　ゆっくり休める', fn: '', action: () => goToInn(innCost) },
     { label: '木賃宿にする（' + cheapCost + '文）　安いが狭い', fn: '', action: () => goToInn(cheapCost) },
@@ -1932,10 +1944,9 @@ function openCargo() {
   document.getElementById('choices').classList.add('hidden');
 
   // テキストを更新（夜は主人に話しかける演出）
-  document.getElementById('scene-text').innerHTML =
-    state.timeSlot === 'yoru'
+  setSceneText(state.timeSlot === 'yoru'
       ? '宗吉は帳場へ向かった。宿の主人に声をかけてみることにした。'
-      : '宗吉は荷を広げた。';
+      : '宗吉は荷を広げた。');
 
   // 所持品一覧を生成（ボタンなし）
   const panel = document.getElementById('cargo-panel');
@@ -2003,13 +2014,11 @@ function startSell(idx, customer) {
     const sellNow = currentSellPrice(item);
     const priceHint = `<span style="font-size:11px;opacity:0.6;">（仕入れ${avgBuy}文　相場${sellNow}文）</span>`;
     if (state.currentStage === 1 && !customer) {
-      document.getElementById('scene-text').innerHTML =
-        '品のいい五十がらみの女だ。<br><br>' +
+      setSceneText('品のいい五十がらみの女だ。<br><br>' +
         '「ちょうど針を探していたんだよ」<br><br>' +
-        `値段をどうするか。　${priceHint}`;
+        `値段をどうするか。　${priceHint}`);
     } else {
-      document.getElementById('scene-text').innerHTML =
-        `${item.name}が欲しいという。<br><br>値段をどうするか。　${priceHint}`;
+      setSceneText(`${item.name}が欲しいという。<br><br>値段をどうするか。　${priceHint}`);
     }
 
     const priceLow  = Math.max(1, Math.round(sellNow * 0.80));
@@ -2030,8 +2039,7 @@ function doSell(idx, price, customer) {
   // 品川女将：強気価格の場合は値引き交渉へ
   if (state.currentStage === 1 && !customer && price > item.sell) {
     fadeTransition(() => {
-      document.getElementById('scene-text').innerHTML =
-        `「少し高いねえ」と女将は眉をひそめた。「${item.sell}文にしてもらえないかい」`;
+      setSceneText(`「少し高いねえ」と女将は眉をひそめた。「${item.sell}文にしてもらえないかい」`);
       showChoices([
         { label: `${item.sell}文に下げる`, fn: '', action: () => doSell(idx, item.sell, null) },
         { label: `${price}文のままで`,     fn: '', action: () => doSellFirm(idx, price) },
@@ -2086,7 +2094,7 @@ function doSell(idx, price, customer) {
   }
 
   fadeTransition(() => {
-    document.getElementById('scene-text').innerHTML = result;
+    setSceneText(result);
     // 品川・女将（customer===null）・売れた場合のみ伝言イベントへ
     if (state.currentStage === 1 && !customer && bought && !state.flags.kamiDone) {
       showChoices([{ label: '', fn: '', action: () => showKamiMessage() }]);
@@ -2111,8 +2119,7 @@ function doSellFirm(idx, price) {
   showNotify('旅の手帳に記録された');
 
   fadeTransition(() => {
-    document.getElementById('scene-text').innerHTML =
-      `女将は少し考えてから、「じゃあ三本だけ」と言った。${income}文。<br><br>もう少し下げればよかったか、と宗吉は思った。`;
+    setSceneText(`女将は少し考えてから、「じゃあ三本だけ」と言った。${income}文。<br><br>もう少し下げればよかったか、と宗吉は思った。`);
     if (state.currentStage === 1 && !state.flags.kamiDone) {
       showChoices([{ label: '', fn: '', action: () => showKamiMessage() }]);
     } else {
@@ -2135,12 +2142,11 @@ function afterSell() {
 // ── 品川：女将の伝言シーンへ ──
 function showKamiMessage() {
   fadeTransition(() => {
-    document.getElementById('scene-text').innerHTML =
-      '銭を受け取ろうとすると、女将が思い出したように言った。<br><br>' +
+    setSceneText('銭を受け取ろうとすると、女将が思い出したように言った。<br><br>' +
       '「そういえばあんた、京まで行くのかい。ちょうどよかった」<br><br>' +
       '女将は少し声を低くした。<br><br>' +
       '「あたしは品川屋のおきく。神奈川の升屋・庄兵衛さんとは古い付き合いでね。口伝てで頼みごとがあるんだよ」<br><br>' +
-      '「干し貝柱の仕入れについて、今年は品薄だから早めに押さえてほしいって伝えてほしいんだ。升屋の庄兵衛さんといえばわかるから」';
+      '「干し貝柱の仕入れについて、今年は品薄だから早めに押さえてほしいって伝えてほしいんだ。升屋の庄兵衛さんといえばわかるから」');
     showChoices([
       { label: '引き受ける', fn: '', action: () => acceptMessage() },
       { label: '断る',       fn: '', action: () => refuseMessage() },
@@ -2156,11 +2162,10 @@ function acceptMessage() {
   recordVisit(1, '品川屋おきくから伝言を預かった。');
   showNotify('旅の手帳に記録された');
   fadeTransition(() => {
-    document.getElementById('scene-text').innerHTML =
-      '「ありがとうよ。よろしく頼むね」<br><br>' +
+    setSceneText('「ありがとうよ。よろしく頼むね」<br><br>' +
       '女将は嬉しそうに笑った。<br><br>' +
       '伝言を預かった。神奈川の升屋・庄兵衛。干し貝柱の仕入れについて。<br><br>' +
-      '（引き受けたはいいが——届けたところで何の得にもならない。それでも断れなかった）';
+      '（引き受けたはいいが——届けたところで何の得にもならない。それでも断れなかった）');
     showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
   });
 }
@@ -2169,10 +2174,9 @@ function acceptMessage() {
 function refuseMessage() {
   state.flags.kamiDone = true;
   fadeTransition(() => {
-    document.getElementById('scene-text').innerHTML =
-      '「すみません、急ぎの旅で」<br><br>' +
+    setSceneText('「すみません、急ぎの旅で」<br><br>' +
       '女将は少し残念そうな顔をしたが、すぐに笑顔に戻った。<br><br>' +
-      '「そうかい。道中気をつけてね」';
+      '「そうかい。道中気をつけてね」');
     showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
   });
 }
@@ -2188,8 +2192,7 @@ function openBuy() {
     if (!items || items.length === 0) {
       // 仕入れ品なし
       const stageMsg = 'この宿場では仕入れられるものがなかった。';
-      document.getElementById('scene-text').innerHTML =
-        '宗吉は宿場の問屋を見て回った。<br><br>' + stageMsg;
+      setSceneText('宗吉は宿場の問屋を見て回った。<br><br>' + stageMsg);
       showChoices([
         { label: '荷を広げ、通行人に声をかける', fn: '', action: () => openCargo() },
         { label: '先を急ぐ', fn: '', action: () => goNext() },
@@ -2201,9 +2204,8 @@ function openBuy() {
     const free = freeVol();
     const volInfo = free > 0 ? `荷の空き：${free}` : '<span style="color:#e85040;">荷が満杯だ</span>';
 
-    document.getElementById('scene-text').innerHTML =
-      '宗吉は問屋を見て回った。気になるものがあった。<br><br>' +
-      `<span style="font-size:11px;opacity:0.6;">${volInfo}</span>`;
+    setSceneText('宗吉は問屋を見て回った。気になるものがあった。<br><br>' +
+      `<span style="font-size:11px;opacity:0.6;">${volInfo}</span>`);
 
     // 仕入れ品ボタンを生成
     const buyPanel = document.getElementById('cargo-panel');
@@ -2251,10 +2253,9 @@ function doBuy(itemIdx) {
     document.getElementById('cargo-panel').style.display = 'none';
     const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
     const discountNote = isDiscount ? '　<span style="color:#e8c040;font-size:11px;">産地値引き</span>' : '';
-    document.getElementById('scene-text').innerHTML =
-      `${item.name}　${buyPrice}文/${item.unit}${discountNote}<br><br>` +
+    setSceneText(`${item.name}　${buyPrice}文/${item.unit}${discountNote}<br><br>` +
       `所持金：${state.money.toLocaleString()}文　荷の空き：${freeVol()}<br><br>` +
-      `何${item.unit}仕入れますか？`;
+      `何${item.unit}仕入れますか？`);
 
     // 1〜maxQtyの選択肢を生成（最大3択＋やめる）
     const steps = maxQty <= 3
@@ -2296,9 +2297,8 @@ function confirmBuy(itemIdx, qty) {
   showNotify(`仕入れた　${item.name} ${qty}${item.unit}`);
 
   fadeTransition(() => {
-    document.getElementById('scene-text').innerHTML =
-      `${item.name}を${qty}${item.unit}仕入れた。${total}文。<br><br>` +
-      `荷の容量：${currentVol()} / ${state.maxVol}`;
+    setSceneText(`${item.name}を${qty}${item.unit}仕入れた。${total}文。<br><br>` +
+      `荷の容量：${currentVol()} / ${state.maxVol}`);
     showChoices([
       { label: 'さらに仕入れる', fn: '', action: () => openBuy() },
       { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } },
@@ -2317,7 +2317,7 @@ function goNext() {
   fadeTransition(() => {
     const sd = currentStageData();
     document.getElementById('choices').classList.add('hidden');
-    document.getElementById('scene-text').innerHTML = sd.travelText || '宗吉は足早に宿場を通り抜けた。';
+    setSceneText(sd.travelText || '宗吉は足早に宿場を通り抜けた。');
     const nextSd = STAGE_DATA[state.currentStage + 1];
     const isLastStage = state.currentStage === 53;
     const nextLabel = isLastStage ? '逢坂山を越え、京へ向かう' : (nextSd ? nextSd.name + 'へ向かう' : '先へ進む');
@@ -2396,7 +2396,7 @@ function goToInn(selectedCost) {
 
     document.getElementById('night-text').innerHTML = monologue;
     document.getElementById('inn-days').textContent = '藪入りまで残り ' + state.days + ' 日';
-    document.getElementById('scene-text').innerHTML = '';
+    setSceneText('');
     document.getElementById('inn-area').classList.remove('hidden');
   });
 }
@@ -2425,27 +2425,34 @@ function nextStage() {
     document.getElementById('inn-area').classList.add('hidden');
     document.getElementById('cargo-panel').style.display = 'none';
 
-    // 挿絵を更新（フェードアウト→差し替え→フェードイン）
+    // 挿絵＋エフェクトレイヤーを一括更新
     const stageNum = String(state.currentStage).padStart(2, '0');
     const stageKey = STAGE_FILENAMES[state.currentStage];
     if (stageKey) {
       const illustImg = document.getElementById('illus-img');
       const newSrc = `https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/${stageNum}_${stageKey}.png`;
-      illustImg.style.transition = 'none';
-      illustImg.style.opacity = '0';
+      // 画像＋全エフェクトレイヤーを即座に非表示
+      const layerIds = ['illus-img', 'illus-sky-band', 'illus-rain-canvas', 'illus-snow-canvas', 'illus-tone-layer', 'illus-time-layer'];
+      layerIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.transition = 'none'; el.style.opacity = '0'; }
+      });
       // opacity=0 が描画フレームに反映されてから src を差し替える
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        illustImg.style.transition = 'opacity 0.4s ease';
-        const onLoad = () => {
+        const revealAll = () => {
+          // 天候エフェクトを適用（各レイヤーのopacity/背景が確定する）
+          applyWeatherEffect(state.weather);
+          // transition を戻してフェードイン
+          layerIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.style.transition = 'opacity 0.4s ease'; }
+          });
           illustImg.style.opacity = '0.9';
-          illustImg.removeEventListener('load', onLoad);
+          illustImg.removeEventListener('load', revealAll);
+          illustImg.removeEventListener('error', revealAll);
         };
-        const onError = () => {
-          illustImg.style.opacity = '0.9';
-          illustImg.removeEventListener('error', onError);
-        };
-        illustImg.addEventListener('load', onLoad);
-        illustImg.addEventListener('error', onError);
+        illustImg.addEventListener('load', revealAll);
+        illustImg.addEventListener('error', revealAll);
         illustImg.src = newSrc;
       }));
     }
@@ -2463,9 +2470,9 @@ function nextStage() {
     if (state.timeSlot === 'yoru') {
       arrive += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
     }
-    document.getElementById('scene-text').innerHTML = arrive;
+    setSceneText(arrive);
 
-    updateHeader();
+    updateHeader(true);  // 天候エフェクトは画像onLoad後に一括適用
     showStageChoices();
   });
 }
@@ -2485,7 +2492,7 @@ function wakeUpMorning() {
     const morningText = sd.morningText ||
       `夜が明けた。<br><br>宗吉は荷を背負い直した。さて、今日もひと仕事だ。`;
 
-    document.getElementById('scene-text').innerHTML = morningText;
+    setSceneText(morningText);
 
     updateHeader();
     showStageChoices();
@@ -3277,7 +3284,7 @@ drawSnowCanvas();
   const sd = currentStageData();
   document.getElementById('stage-name').textContent = sd.name;
   document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
-  document.getElementById('scene-text').innerHTML = sd.arriveText;
+  setSceneText(sd.arriveText);
 })();
 showStageChoices();
 </script>
