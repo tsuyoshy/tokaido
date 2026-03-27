@@ -1911,6 +1911,7 @@ function selectInn() {
 
 // ── 荷を広げる → 所持品一覧表示 ──
 function openCargo() {
+  window.scrollTo({ top: 0, behavior: 'instant' });
   // 回数制限チェック
   if (state.cargoOpenCount >= 3) {
     showNotify(state.timeSlot === 'yoru' ? '今夜はもう話しかけられない' : '今日はもう荷を広げられない');
@@ -1926,7 +1927,6 @@ function openCargo() {
     state.timeSlot === 'yoru'
       ? '宗吉は帳場へ向かった。宿の主人に声をかけてみることにした。'
       : '宗吉は荷を広げた。';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // 所持品一覧を生成（ボタンなし）
   const panel = document.getElementById('cargo-panel');
