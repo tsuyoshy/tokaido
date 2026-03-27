@@ -2431,13 +2431,23 @@ function nextStage() {
     if (stageKey) {
       const illustImg = document.getElementById('illus-img');
       const newSrc = `https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/${stageNum}_${stageKey}.png`;
+      illustImg.style.transition = 'none';
       illustImg.style.opacity = '0';
-      const onLoad = () => {
-        illustImg.style.opacity = '0.9';
-        illustImg.removeEventListener('load', onLoad);
-      };
-      illustImg.addEventListener('load', onLoad);
-      illustImg.src = newSrc;
+      // opacity=0 が描画フレームに反映されてから src を差し替える
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        illustImg.style.transition = 'opacity 0.4s ease';
+        const onLoad = () => {
+          illustImg.style.opacity = '0.9';
+          illustImg.removeEventListener('load', onLoad);
+        };
+        const onError = () => {
+          illustImg.style.opacity = '0.9';
+          illustImg.removeEventListener('error', onError);
+        };
+        illustImg.addEventListener('load', onLoad);
+        illustImg.addEventListener('error', onError);
+        illustImg.src = newSrc;
+      }));
     }
 
     // 到着テキストを表示
