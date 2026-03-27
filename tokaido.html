@@ -934,9 +934,16 @@ const TIME_EFFECTS = {
 };
 
 // ── scene-text フラッシュなし書き換え ──
-function setSceneText(html) {
+// sync=true: fadeTransition内など、すでに画面が隠れている状態での即時書き換え
+function setSceneText(html, sync) {
   const el = document.getElementById('scene-text');
   if (!el) return;
+  if (sync) {
+    el.style.transition = 'none';
+    el.style.opacity = '1';
+    el.innerHTML = html;
+    return;
+  }
   el.style.transition = 'none';
   el.style.opacity = '0';
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -2016,9 +2023,9 @@ function startSell(idx, customer) {
     if (state.currentStage === 1 && !customer) {
       setSceneText('品のいい五十がらみの女だ。<br><br>' +
         '「ちょうど針を探していたんだよ」<br><br>' +
-        `値段をどうするか。　${priceHint}`);
+        `値段をどうするか。　${priceHint}`, true);
     } else {
-      setSceneText(`${item.name}が欲しいという。<br><br>値段をどうするか。　${priceHint}`);
+      setSceneText(`${item.name}が欲しいという。<br><br>値段をどうするか。　${priceHint}`, true);
     }
 
     const priceLow  = Math.max(1, Math.round(sellNow * 0.80));
@@ -2039,7 +2046,7 @@ function doSell(idx, price, customer) {
   // 品川女将：強気価格の場合は値引き交渉へ
   if (state.currentStage === 1 && !customer && price > item.sell) {
     fadeTransition(() => {
-      setSceneText(`「少し高いねえ」と女将は眉をひそめた。「${item.sell}文にしてもらえないかい」`);
+      setSceneText(`「少し高いねえ」と女将は眉をひそめた。「${item.sell}文にしてもらえないかい」`, true);
       showChoices([
         { label: `${item.sell}文に下げる`, fn: '', action: () => doSell(idx, item.sell, null) },
         { label: `${price}文のままで`,     fn: '', action: () => doSellFirm(idx, price) },
@@ -2094,7 +2101,7 @@ function doSell(idx, price, customer) {
   }
 
   fadeTransition(() => {
-    setSceneText(result);
+    setSceneText(result, true);
     // 品川・女将（customer===null）・売れた場合のみ伝言イベントへ
     if (state.currentStage === 1 && !customer && bought && !state.flags.kamiDone) {
       showChoices([{ label: '', fn: '', action: () => showKamiMessage() }]);
@@ -2119,7 +2126,7 @@ function doSellFirm(idx, price) {
   showNotify('旅の手帳に記録された');
 
   fadeTransition(() => {
-    setSceneText(`女将は少し考えてから、「じゃあ三本だけ」と言った。${income}文。<br><br>もう少し下げればよかったか、と宗吉は思った。`);
+    setSceneText(`女将は少し考えてから、「じゃあ三本だけ」と言った。${income}文。<br><br>もう少し下げればよかったか、と宗吉は思った。`, true);
     if (state.currentStage === 1 && !state.flags.kamiDone) {
       showChoices([{ label: '', fn: '', action: () => showKamiMessage() }]);
     } else {
@@ -2146,7 +2153,7 @@ function showKamiMessage() {
       '「そういえばあんた、京まで行くのかい。ちょうどよかった」<br><br>' +
       '女将は少し声を低くした。<br><br>' +
       '「あたしは品川屋のおきく。神奈川の升屋・庄兵衛さんとは古い付き合いでね。口伝てで頼みごとがあるんだよ」<br><br>' +
-      '「干し貝柱の仕入れについて、今年は品薄だから早めに押さえてほしいって伝えてほしいんだ。升屋の庄兵衛さんといえばわかるから」');
+      '「干し貝柱の仕入れについて、今年は品薄だから早めに押さえてほしいって伝えてほしいんだ。升屋の庄兵衛さんといえばわかるから」', true);
     showChoices([
       { label: '引き受ける', fn: '', action: () => acceptMessage() },
       { label: '断る',       fn: '', action: () => refuseMessage() },
@@ -2165,7 +2172,7 @@ function acceptMessage() {
     setSceneText('「ありがとうよ。よろしく頼むね」<br><br>' +
       '女将は嬉しそうに笑った。<br><br>' +
       '伝言を預かった。神奈川の升屋・庄兵衛。干し貝柱の仕入れについて。<br><br>' +
-      '（引き受けたはいいが——届けたところで何の得にもならない。それでも断れなかった）');
+      '（引き受けたはいいが——届けたところで何の得にもならない。それでも断れなかった）', true);
     showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
   });
 }
@@ -2176,7 +2183,7 @@ function refuseMessage() {
   fadeTransition(() => {
     setSceneText('「すみません、急ぎの旅で」<br><br>' +
       '女将は少し残念そうな顔をしたが、すぐに笑顔に戻った。<br><br>' +
-      '「そうかい。道中気をつけてね」');
+      '「そうかい。道中気をつけてね」', true);
     showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
   });
 }
@@ -2192,7 +2199,7 @@ function openBuy() {
     if (!items || items.length === 0) {
       // 仕入れ品なし
       const stageMsg = 'この宿場では仕入れられるものがなかった。';
-      setSceneText('宗吉は宿場の問屋を見て回った。<br><br>' + stageMsg);
+      setSceneText('宗吉は宿場の問屋を見て回った。<br><br>' + stageMsg, true);
       showChoices([
         { label: '荷を広げ、通行人に声をかける', fn: '', action: () => openCargo() },
         { label: '先を急ぐ', fn: '', action: () => goNext() },
@@ -2205,7 +2212,7 @@ function openBuy() {
     const volInfo = free > 0 ? `荷の空き：${free}` : '<span style="color:#e85040;">荷が満杯だ</span>';
 
     setSceneText('宗吉は問屋を見て回った。気になるものがあった。<br><br>' +
-      `<span style="font-size:11px;opacity:0.6;">${volInfo}</span>`);
+      `<span style="font-size:11px;opacity:0.6;">${volInfo}</span>`, true);
 
     // 仕入れ品ボタンを生成
     const buyPanel = document.getElementById('cargo-panel');
@@ -2255,7 +2262,7 @@ function doBuy(itemIdx) {
     const discountNote = isDiscount ? '　<span style="color:#e8c040;font-size:11px;">産地値引き</span>' : '';
     setSceneText(`${item.name}　${buyPrice}文/${item.unit}${discountNote}<br><br>` +
       `所持金：${state.money.toLocaleString()}文　荷の空き：${freeVol()}<br><br>` +
-      `何${item.unit}仕入れますか？`);
+      `何${item.unit}仕入れますか？`, true);
 
     // 1〜maxQtyの選択肢を生成（最大3択＋やめる）
     const steps = maxQty <= 3
@@ -2298,7 +2305,7 @@ function confirmBuy(itemIdx, qty) {
 
   fadeTransition(() => {
     setSceneText(`${item.name}を${qty}${item.unit}仕入れた。${total}文。<br><br>` +
-      `荷の容量：${currentVol()} / ${state.maxVol}`);
+      `荷の容量：${currentVol()} / ${state.maxVol}`, true);
     showChoices([
       { label: 'さらに仕入れる', fn: '', action: () => openBuy() },
       { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } },
@@ -2317,7 +2324,7 @@ function goNext() {
   fadeTransition(() => {
     const sd = currentStageData();
     document.getElementById('choices').classList.add('hidden');
-    setSceneText(sd.travelText || '宗吉は足早に宿場を通り抜けた。');
+    setSceneText(sd.travelText || '宗吉は足早に宿場を通り抜けた。', true);
     const nextSd = STAGE_DATA[state.currentStage + 1];
     const isLastStage = state.currentStage === 53;
     const nextLabel = isLastStage ? '逢坂山を越え、京へ向かう' : (nextSd ? nextSd.name + 'へ向かう' : '先へ進む');
@@ -2396,7 +2403,7 @@ function goToInn(selectedCost) {
 
     document.getElementById('night-text').innerHTML = monologue;
     document.getElementById('inn-days').textContent = '藪入りまで残り ' + state.days + ' 日';
-    setSceneText('');
+    setSceneText('', true);
     document.getElementById('inn-area').classList.remove('hidden');
   });
 }
@@ -2470,7 +2477,7 @@ function nextStage() {
     if (state.timeSlot === 'yoru') {
       arrive += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
     }
-    setSceneText(arrive);
+    setSceneText(arrive, true);
 
     updateHeader(true);  // 天候エフェクトは画像onLoad後に一括適用
     showStageChoices();
@@ -2492,7 +2499,7 @@ function wakeUpMorning() {
     const morningText = sd.morningText ||
       `夜が明けた。<br><br>宗吉は荷を背負い直した。さて、今日もひと仕事だ。`;
 
-    setSceneText(morningText);
+    setSceneText(morningText, true);
 
     updateHeader();
     showStageChoices();
