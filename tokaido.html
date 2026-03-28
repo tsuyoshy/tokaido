@@ -291,6 +291,52 @@
   .cargo-sell-btn:hover { background: rgba(200,160,40,.15); }
   .cargo-sell-btn:disabled { opacity: 0.3; cursor: default; }
 
+  /* ── 仕入れパネル ── */
+  #purchase-panel {
+    display: none;
+    margin: 0 16px 8px;
+    border: 1px solid rgba(200,160,40,.28);
+    background: rgba(200,160,40,.05);
+    border-radius: 2px;
+  }
+
+  #purchase-panel-title {
+    padding: 8px 14px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid rgba(200,160,40,.28);
+    color: #e8c040;
+  }
+
+  #purchase-panel .cargo-sell-item {
+    border-bottom-color: rgba(200,160,40,.1);
+  }
+
+  #purchase-panel .cargo-sell-btn {
+    background: rgba(200,160,40,.06);
+    border-color: rgba(200,160,40,.28);
+    color: #e8d880;
+  }
+
+  #purchase-panel .cargo-sell-btn:hover { background: rgba(200,160,40,.15); }
+  #purchase-panel .cargo-sell-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .purchase-row {
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .purchase-row:hover, .purchase-row:active { background: rgba(200,160,40,.12); }
+  .purchase-row--disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .purchase-row--disabled:hover, .purchase-row--disabled:active { background: none; }
+  .purchase-row--close {
+    justify-content: center;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
   /* ── 宿泊パート ── */
   #inn-area {
     margin: 0 16px 16px;
@@ -679,6 +725,7 @@
   </div>
   <div id="header-icons">
     <button class="icon-btn" onclick="openMemo()">手帳</button>
+    <button class="icon-btn" id="save-btn" onclick="saveGame(true)" title="この宿場の状態を記録する">記録</button>
   </div>
 </div>
 
@@ -723,6 +770,12 @@
 <div id="cargo-panel" style="display:none;">
   <div id="cargo-panel-title">◆ 所持品</div>
   <div id="cargo-sell-list"></div>
+</div>
+
+<!-- 仕入れ品一覧（問屋で仕入れる時に表示） -->
+<div id="purchase-panel" style="display:none;">
+  <div id="purchase-panel-title">◆ 仕入れ品</div>
+  <div id="purchase-list"></div>
 </div>
 
 <!-- 選択肢（商売完了後に表示） -->
@@ -1205,7 +1258,7 @@ function callCustomer() {
   if (available.length === 0) {
     document.getElementById('scene-text').innerHTML = '宗吉は荷を広げた。<br><br>しかし、誰も足を止めなかった。';
     showChoices([
-      { label: '', fn: '', action: () => { document.getElementById("cargo-panel").style.display="none"; showStageChoices(); }},
+      { label: '', fn: '', action: () => { hidePanels(); showStageChoices(); }},
     ]);
     return;
   }
@@ -1234,7 +1287,7 @@ function callCustomer() {
 
   // 客が来るか確率判定
   if (Math.random() > customerPct()) {
-    document.getElementById('cargo-panel').style.display = 'none';
+    hidePanels();
     document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
     showChoices([
@@ -1257,7 +1310,7 @@ function callCustomer() {
   }
   // マッチしない場合は客が立ち去る
   if (!matches || matches.length === 0) {
-    document.getElementById('cargo-panel').style.display = 'none';
+    hidePanels();
     document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
     showChoices([
@@ -1801,9 +1854,9 @@ function triggerEnding() {
   state.timeSlot = 'hiru';
   updateHeader();
 
-  // inn-area / cargo-panel を隠す
+  // inn-area / panels を隠す
   document.getElementById('inn-area').classList.add('hidden');
-  document.getElementById('cargo-panel').style.display = 'none';
+  hidePanels();
   document.getElementById('tap-hint').style.display = 'none';
   document.body.onclick = null;
 
@@ -1835,6 +1888,12 @@ function showNotify(msg) {
   el.textContent = msg;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── パネル類をすべて隠す ──
+function hidePanels() {
+  document.getElementById('cargo-panel').style.display = 'none';
+  document.getElementById('purchase-panel').style.display = 'none';
 }
 
 // ── 宿場の共通選択肢を表示 ──
@@ -1954,7 +2013,7 @@ function openCargo() {
 
 // ── 所持品を閉じる ──
 function closeCargo() {
-  document.getElementById('cargo-panel').style.display = 'none';
+  hidePanels();
   if (state.innMode) {
     returnToInnChoices();
     return;
@@ -1973,7 +2032,7 @@ function startSell(idx, customer) {
   const customerName = customer ? customer.name : '女将';
 
   fadeTransition(() => {
-    document.getElementById('cargo-panel').style.display = 'none';
+    hidePanels();
     document.getElementById('scene-text').innerHTML = '';
 
     // 登場テキストは callCustomer / openCargo で表示済み
@@ -2049,7 +2108,7 @@ function doSell(idx, price, customer) {
       if (price < item.sell) {
         result = `「安いねえ」と女将は笑い、${sold}本買ってくれた。${income}文。<br><br>悪くない出だしだ——そう思いながら、宗吉は少しだけ損をした気がした。`;
       } else if (price === item.sell) {
-        result = `「ちょうどよかった」と女将は言って、${sold}本買ってくれた。${income}文。<br><br>最初の商売だった。`;
+        result = `「ちょうどよかった」と女将は言って、${sold}本買ってくれた。${income}文。`;
       } else {
         result = `「少し高いねえ」と女将は眉をひそめた。${income}文。<br><br>もう少し下げればよかったか、と宗吉は思った。`;
       }
@@ -2079,7 +2138,7 @@ function doSell(idx, price, customer) {
   }
 
   fadeTransition(() => {
-    if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+    if (state.innMode) hidePanels();
     document.getElementById('scene-text').innerHTML = result;
     // 品川・女将（customer===null）・売れた場合のみ伝言イベントへ
     if (state.currentStage === 1 && !customer && bought && !state.flags.kamiDone) {
@@ -2087,7 +2146,7 @@ function doSell(idx, price, customer) {
     } else if (state.innMode) {
       showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
     } else {
-      showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+      showChoices([{ label: '', fn: '', action: () => { hidePanels(); showStageChoices(); } }]);
     }
   });
 }
@@ -2119,7 +2178,7 @@ function doSellFirm(idx, price) {
 
 // ── 売買後の分岐 ──
 function afterSell() {
-  document.getElementById('cargo-panel').style.display = 'none';
+  hidePanels();
   document.getElementById('choices').classList.add('hidden');
   if (state.currentStage === 1 && !state.flags.kamiDone) {
     showKamiMessage();
@@ -2201,9 +2260,9 @@ function openBuy() {
       '宗吉は問屋を見て回った。気になるものがあった。<br><br>' +
       `<span style="font-size:11px;opacity:0.6;">${volInfo}</span>`;
 
-    // 仕入れ品ボタンを生成
-    const buyPanel = document.getElementById('cargo-panel');
-    const buyList  = document.getElementById('cargo-sell-list');
+    // 仕入れ品リストを生成（行タップで選択）
+    const buyPanel = document.getElementById('purchase-panel');
+    const buyList  = document.getElementById('purchase-list');
     buyList.innerHTML = items.map((item, i) => {
       const buyPrice = currentBuyPrice(item);
       const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
@@ -2211,14 +2270,11 @@ function openBuy() {
         ? `仕入<span style="color:#e8c040;">${buyPrice}文</span><span style="font-size:10px;opacity:0.6;">（産地値引）</span>`
         : `仕入${buyPrice}文`;
       const canBuy = state.money >= buyPrice && (item.vol === 0 || freeVol() >= item.vol);
-      return `<div class="cargo-sell-item">
+      return `<div class="cargo-sell-item purchase-row${canBuy ? '' : ' purchase-row--disabled'}" ${canBuy ? `onclick="doBuy(${i})"` : ''}>
         <span>${item.name}　${priceLabel}${item.vol > 0 ? `　体積${item.vol}` : ''}</span>
-        <button class="cargo-sell-btn" ${canBuy ? '' : 'disabled'} onclick="doBuy(${i})">仕入れる</button>
       </div>`;
     }).join('') +
-    `<div class="cargo-sell-item" style="justify-content:center;">
-       <button class="cargo-sell-btn" onclick="closeBuyPanel()">閉じる</button>
-     </div>`;
+    `<div class="cargo-sell-item purchase-row purchase-row--close" onclick="closeBuyPanel()">閉じる</div>`;
 
     // STAGE_ITEMSをwindowに保存（doBuyで参照）
     window.__buyItems = items;
@@ -2244,7 +2300,7 @@ function doBuy(itemIdx) {
 
   // 数量選択UIを表示
   fadeTransition(() => {
-    document.getElementById('cargo-panel').style.display = 'none';
+    document.getElementById('purchase-panel').style.display = 'none';
     const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
     const discountNote = isDiscount ? '　<span style="color:#e8c040;font-size:11px;">産地値引き</span>' : '';
     document.getElementById('scene-text').innerHTML =
@@ -2297,14 +2353,14 @@ function confirmBuy(itemIdx, qty) {
       `荷の容量：${currentVol()} / ${state.maxVol}`;
     showChoices([
       { label: 'さらに仕入れる', fn: '', action: () => openBuy() },
-      { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } },
+      { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('purchase-panel').style.display='none'; showStageChoices(); } },
     ]);
   });
 }
 
 // ── 仕入れパネルを閉じる ──
 function closeBuyPanel() {
-  document.getElementById('cargo-panel').style.display = 'none';
+  document.getElementById('purchase-panel').style.display = 'none';
   showStageChoices();
 }
 
@@ -2346,7 +2402,7 @@ function goToInn(selectedCost) {
   state.justArrived = false;
   fadeTransition(() => {
     document.getElementById('choices').classList.add('hidden');
-    document.getElementById('cargo-panel').style.display = 'none';
+    hidePanels();
     document.getElementById('tap-hint').style.display = 'none';
     document.body.onclick = null;
 
@@ -2561,7 +2617,7 @@ function nextStage() {
     const sd = currentStageData();
     document.getElementById('stage-name').textContent = sd.name;
     document.getElementById('inn-area').classList.add('hidden');
-    document.getElementById('cargo-panel').style.display = 'none';
+    hidePanels();
 
     // 挿絵を更新
     const stageNum = String(state.currentStage).padStart(2, '0');
@@ -2607,7 +2663,7 @@ function wakeUpMorning() {
     state.innTradeCount = 0;
 
     document.getElementById('inn-area').classList.add('hidden');
-    document.getElementById('cargo-panel').style.display = 'none';
+    hidePanels();
 
     const sd = currentStageData();
 
@@ -3506,7 +3562,59 @@ function currentStageData() {
     cheapCost: 42,
   };
 }
+// ── セーブ・ロード ──
+const SAVE_KEY = 'tokaido_save_v1';
+
+function saveGame(notify) {
+  const snapshot = {
+    money:         state.money,
+    days:          state.days,
+    timeSlot:      state.timeSlot,
+    currentStage:  state.currentStage,
+    weather:       state.weather,
+    cargo:         JSON.parse(JSON.stringify(state.cargo)),
+    maxVol:        state.maxVol,
+    memos:         JSON.parse(JSON.stringify(state.memos)),
+    flags:         JSON.parse(JSON.stringify(state.flags)),
+    visited:       JSON.parse(JSON.stringify(state.visited)),
+    innLog:        JSON.parse(JSON.stringify(state.innLog)),
+    commerceDone:  state.commerceDone,
+    cargoOpenCount:state.cargoOpenCount,
+    innTradeCount: state.innTradeCount,
+    innMode:       state.innMode,
+    justArrived:   state.justArrived,
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
+    if (notify) showNotify('旅の記録を残した');
+  } catch(e) {
+    if (notify) showNotify('記録に失敗した');
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const snap = JSON.parse(raw);
+    Object.assign(state, snap);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function hasSaveData() {
+  try { return !!localStorage.getItem(SAVE_KEY); } catch(e) { return false; }
+}
+
 // ── 初期化 ──
+(function() {
+  if (hasSaveData()) {
+    const ok = confirm('前回の旅の記録があります。続きから始めますか？\n（「キャンセル」で最初から）');
+    if (ok) loadGame();
+  }
+})();
 updateHeader();
 drawRainCanvas();
 drawSnowCanvas();
