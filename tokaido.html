@@ -886,7 +886,7 @@
 
 <!-- 所持品一覧（荷を広げた時に表示） -->
 <div id="cargo-panel" style="display:none;">
-  <div id="cargo-panel-title">◆ 所持品</div>
+  <div id="cargo-panel-title">◆ 荷</div>
   <div id="cargo-sell-list"></div>
 </div>
 
@@ -1565,6 +1565,7 @@ const STAGE_ITEMS = {
   ],
   3:  [ // 神奈川
     { name: '干し貝柱', origin: [3], unit: '個', buy: 12, sell: 18, vol: 3, cat: '食料' },
+    { name: '干物',     origin: [3], unit: '個', buy: 7,  sell: 10, vol: 4, cat: '食料' },
     { name: '昆布', origin: [3],     unit: '束', buy: 8,  sell: 11, vol: 4, cat: '食料' },
     { name: '塩',       unit: '包', buy: 3,  sell: 5,  vol: 2, cat: '調味料' },
     { name: '干しエビ', origin: [3], unit: '包', buy: 5,  sell: 8,  vol: 2, cat: '食料' },
@@ -1980,7 +1981,7 @@ function triggerEnding() {
   illusImgKyo.style.opacity = '0';
   illusImgKyo.onload = () => { illusImgKyo.style.opacity = '0.9'; };
   illusImgKyo.onerror = () => { illusImgKyo.style.opacity = '0.9'; };
-  illusImgKyo.src = 'https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/54_kyo.png';
+  illusImgKyo.src = `${SHUKUBA_BASE}54_kyo.png`;
 
   // ステージバーを更新
   document.getElementById('stage-name').textContent = '京';
@@ -2037,6 +2038,13 @@ function showStageChoices() {
       choices.push({ label: `荷を広げ、通行人に声をかける（あと${remaining}回）`, fn: '', action: () => openCargo() });
     }
     choices.push({ label: '仕入れを探す', fn: '', action: () => openBuy() });
+    // 神奈川：伝言を持っている＆まだ庄兵衛に会っていない
+    if (state.currentStage === 3 && state.flags.kamiDone && !state.flags.shobeeDone) {
+      const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
+      if (hasMessage) {
+        choices.push({ label: '升屋・庄兵衛を訪ねる', fn: '', action: () => showShobeeScene() });
+      }
+    }
     choices.push({ label: '宿を取る', fn: '', action: () => selectInn() });
     choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
   } else {
@@ -2102,6 +2110,7 @@ function openCargo() {
       : '宗吉は荷を広げた。';
 
   // 所持品一覧を生成（ボタンなし）
+  document.getElementById('cargo-panel-title').textContent = '◆ 所持品';
   const panel = document.getElementById('cargo-panel');
   const list  = document.getElementById('cargo-sell-list');
   const volUsed = currentVol();
@@ -2363,6 +2372,49 @@ function refuseMessage() {
   });
 }
 
+// ── 神奈川：升屋・庄兵衛を訪ねる ──
+function showShobeeScene() {
+  fadeTransition(() => {
+    document.getElementById('scene-text').innerHTML =
+      '廻船問屋の蔵が並ぶ通りを少し入ると、「升屋」の看板が見えた。<br><br>' +
+      '店先に出てきたのは、六十がらみの恰幅のいい男だった。<br><br>' +
+      '「升屋の庄兵衛さんですか。品川屋のおきくさんから伝言を預かってきました」<br><br>' +
+      '庄兵衛は少し目を細め、宗吉の顔をじっと見た。それから、うなずいた。<br><br>' +
+      '「おきくが……そうか。入りな」';
+    showChoices([{ label: '', fn: '', action: () => showShobeeMessage() }]);
+  });
+}
+
+function showShobeeMessage() {
+  fadeTransition(() => {
+    document.getElementById('scene-text').innerHTML =
+      '伝言を伝えると、庄兵衛は満足そうに頷いた。<br><br>' +
+      '「ありがとうよ。おきくも元気でやってるか」<br><br>' +
+      '礼を言いながら、庄兵衛は宗吉をじろりと見た。<br><br>' +
+      '「……あんた、何を売りながら来た」<br><br>' +
+      '宗吉が荷の中身を答えると、庄兵衛は少し考えてから言った。<br><br>' +
+      '「一つ教えよう。海で干物を買って、山で売れ。山の人間は魚に飢えている。値が出る」<br><br>' +
+      '言いたいことだけ言って、奥へ引っ込もうとした。宗吉が礼を言うと、振り返りもせずに、<br><br>' +
+      '「おきくに礼を言え。あたしじゃない」';
+    showChoices([{ label: '', fn: '', action: () => acceptShobee() }]);
+  });
+}
+
+function acceptShobee() {
+  state.flags.shobeeDone = true;
+  state.memos.shobai.push({ stage: '神奈川宿', text: '升屋・庄兵衛から助言。海で干物を買い、山で売れ——山の人間は魚に飢えている。値が出る。' });
+  state.memos.hito.push({ stage: '神奈川宿', text: '升屋の庄兵衛。廻船問屋。六十がらみ。おきくの古い知り合い。「おきくに礼を言え」と言った。' });
+  recordVisit(state.currentStage, '升屋・庄兵衛に伝言を届けた。');
+  showNotify('旅の手帳に記録された');
+  fadeTransition(() => {
+    document.getElementById('scene-text').innerHTML =
+      '伝言を届けた。<br><br>' +
+      '（届けたところで何の得にもならないと思っていた。それでも、庄兵衛の言葉は残った）<br><br>' +
+      '海で干物を買って、山で売る。——試してみる価値はある。';
+    showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
+  });
+}
+
 // ── 仕入れを探す ──
 function openBuy() {
   fadeTransition(() => {
@@ -2392,6 +2444,7 @@ function openBuy() {
       `<span style="font-size:11px;opacity:0.6;">${volInfo}</span>`;
 
     // 仕入れ品ボタンを生成
+    document.getElementById('cargo-panel-title').textContent = '◆ 仕入れ';
     const buyPanel = document.getElementById('cargo-panel');
     const buyList  = document.getElementById('cargo-sell-list');
     buyList.innerHTML = items.map((item, i) => {
@@ -2500,6 +2553,11 @@ function closeBuyPanel() {
 
 // ── 先を急ぐ / 次の宿場へ ──
 function goNext() {
+  // 川崎（Stage 2）：渡し選択を挟む
+  if (state.currentStage === 1 && !state.flags.tamaRiverDone) {
+    showTamaRiverChoice();
+    return;
+  }
   fadeTransition(() => {
     const sd = currentStageData();
     document.getElementById('choices').classList.add('hidden');
@@ -2509,6 +2567,115 @@ function goNext() {
     const nextLabel = isLastStage ? '逢坂山を越え、京へ向かう' : (nextSd ? nextSd.name + 'へ向かう' : '先へ進む');
     showChoices([{ label: nextLabel, fn: '', action: () => nextStage() }]);
     document.getElementById('choices').classList.remove('hidden');
+  });
+}
+
+// ── 多摩川・渡し選択 ──
+function showTamaRiverChoice() {
+  // 六郷の渡し画像に切り替え
+  const illusImg = document.getElementById('illus-img');
+  illusImg.style.opacity = '0';
+  illusImg.onload = () => { illusImg.style.opacity = '0.9'; };
+  illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
+  illusImg.src = `${SHUKUBA_BASE}01_rokugo.png`;
+  fadeTransition(() => {
+    document.getElementById('scene-text').innerHTML =
+      '多摩川の渡し場に来た。<br><br>' +
+      '川幅は思ったより広い。冬枯れの色をした水が、ゆっくりと流れている。<br><br>' +
+      '渡し船が岸につないである。船頭が「渡るかい」と声をかけてきた。<br><br>' +
+      '渡し賃は一人十文。';
+    const choices = [];
+    if (state.money >= 10) {
+      choices.push({ label: '渡し船に乗る（10文）', fn: '', action: () => takeFerry() });
+    }
+    choices.push({ label: '商品を見せる', fn: '', action: () => showFerryBarter() });
+    showChoices(choices);
+  });
+}
+
+function takeFerry() {
+  state.money -= 10;
+  state.flags.tamaRiverDone = true;
+  updateHeader();
+  fadeTransition(() => {
+    document.getElementById('scene-text').innerHTML =
+      '十文を渡すと、船頭は無言でうなずいた。<br><br>' +
+      '船は静かに川に出た。冬の川面は灰色で、風が冷たかった。<br><br>' +
+      '対岸が近づいた頃、船頭がぽつりと言った。<br><br>' +
+      '「ここにゃ昔、橋があってな」<br><br>' +
+      'どこか遠くを見るような目だった。<br><br>' +
+      '「十三年前の大水で流れた。それからずっとこうだ」<br><br>' +
+      '宗吉には、橋のある多摩川を知らない。<br><br>' +
+      '船が岸につき、宗吉は川崎側に降り立った。';
+    showChoices([{ label: '', fn: '', action: () => afterTamaRiver() }]);
+  });
+}
+
+// ── 物々交換：船頭が油紙を指定 ──
+function showFerryBarter() {
+  const oilpaper = state.cargo.find(item => item.name === '油紙' && item.qty > 0);
+  fadeTransition(() => {
+    if (!oilpaper) {
+      // 油紙なし・金も足りない→渡れない
+      document.getElementById('scene-text').innerHTML =
+        '荷を広げてみせると、船頭はひととおり眺めて首を振った。<br><br>' +
+        '「油紙があれば一枚でいいんだがな。ないなら十文もらわんと」<br><br>' +
+        '宗吉は困った。十文もなく、油紙もない。<br><br>' +
+        '「……明日また来な」と船頭は言って、背を向けた。<br><br>' +
+        '今日はここで一泊するしかなかった。';
+      // 強制的に品川に留まらせる（選択肢は宿取るのみ）
+      const sd = currentStageData();
+      const innCost = sd.innCost || 200;
+      showChoices([
+        { label: '旅籠に泊まる（' + innCost + '文）', fn: '', action: () => goToInn(innCost) },
+      ]);
+      return;
+    }
+    // 油紙あり
+    document.getElementById('scene-text').innerHTML =
+      '荷を広げてみせると、船頭は油紙に目を止めた。<br><br>' +
+      '「その油紙、一枚くれるなら渡してやるよ」<br><br>' +
+      '油紙一枚。渡し賃十文のかわり。<br><br>' +
+      '——渡すか。';
+    showChoices([
+      { label: '油紙を一枚渡す', fn: '', action: () => payWithOilpaper() },
+      { label: 'やめる', fn: '', action: () => showTamaRiverChoice() },
+    ]);
+  });
+}
+
+function payWithOilpaper() {
+  const idx = state.cargo.findIndex(item => item.name === '油紙' && item.qty > 0);
+  if (idx >= 0) state.cargo[idx].qty -= 1;
+  state.flags.tamaRiverDone = true;
+  state.memos.shobai.push({ stage: '品川宿', text: '多摩川の渡し——油紙一枚で渡し賃のかわりにした。十文の節約。' });
+  showNotify('旅の手帳に記録された');
+  fadeTransition(() => {
+    document.getElementById('scene-text').innerHTML =
+      '油紙を一枚渡すと、船頭はひょいと受け取って懐にしまった。<br><br>' +
+      '「乗りな」<br><br>' +
+      '船は静かに川に出た。冬の川面は灰色で、風が冷たかった。<br><br>' +
+      '十文は手元に残った。しかし油紙が一枚減った。<br><br>' +
+      '得したのか損したのか、宗吉にはよくわからなかった。';
+    showChoices([{ label: '', fn: '', action: () => afterTamaRiver() }]);
+  });
+}
+
+function afterTamaRiver() {
+  fadeTransition(() => {
+    document.getElementById('scene-text').innerHTML =
+      '対岸に降り立った。<br><br>' +
+      '川崎宿はすぐそこだ。';
+    const nextSd = STAGE_DATA[state.currentStage + 1];
+    showChoices([{ label: nextSd ? nextSd.name + 'へ向かう' : '先へ進む', fn: '', action: () => {
+      // 川崎へ向かう瞬間に画像を切り替え
+      const illusImg = document.getElementById('illus-img');
+      illusImg.style.opacity = '0';
+      illusImg.onload = () => { illusImg.style.opacity = '0.9'; };
+      illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
+      illusImg.src = `${SHUKUBA_BASE}02_kawasaki.png`;
+      nextStage();
+    }}]);
   });
 }
 
@@ -2560,6 +2727,9 @@ function goToInn(selectedCost) {
     state.timeSlot = 'yoru';
 
     updateHeader();
+
+    // 旅籠か木賃宿かを記録（morningTextの出し分けに使用）
+    state.lastInnType = isInn ? 'inn' : 'cheap';
 
     if (isInn) {
       // ── 旅籠：まず「暖かい」テキスト＋選択肢。帳面は眠る時に表示 ──
@@ -2754,16 +2924,16 @@ function nextStage() {
     document.getElementById('cargo-panel').style.display = 'none';
 
     // 挿絵を更新
-    const stageNum = String(state.currentStage).padStart(2, '0');
     const stageKey = STAGE_FILENAMES[state.currentStage];
     if (stageKey) {
       const illusImg = document.getElementById('illus-img');
       illusImg.style.opacity = '0';
       illusImg.onload = () => { illusImg.style.opacity = '0.9'; };
       illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
-      illusImg.src =
-        `https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/${stageNum}_${stageKey}.png`;
+      illusImg.src = shukubaUrl(state.currentStage, stageKey);
     }
+    // 次の宿場画像をバックグラウンドでプリロード
+    preloadNextImages(state.currentStage);
 
     // 到着テキストを表示
     let arrive = sd.arriveText || (sd.name + '宿に着いた。');
@@ -2780,8 +2950,8 @@ function nextStage() {
       state.justArrived = true;
     }
     document.getElementById('scene-text').innerHTML = arrive;
-
     updateHeader();
+
     showStageChoices();
   });
 }
@@ -2801,9 +2971,19 @@ function wakeUpMorning() {
 
     const sd = currentStageData();
 
-    // 朝の出発テキスト
-    const morningText = sd.morningText ||
-      `夜が明けた。<br><br>宗吉は荷を背負い直した。さて、今日もひと仕事だ。`;
+    // 朝の出発テキスト（旅籠/木賃宿で出し分け）
+    let morningText;
+    if (sd.morningTextInn && state.lastInnType === 'inn') {
+      morningText = sd.morningTextInn;
+    } else if (sd.morningTextCheap && state.lastInnType === 'cheap') {
+      morningText = sd.morningTextCheap;
+    } else if (sd.morningText) {
+      morningText = sd.morningText;
+    } else if (state.lastInnType === 'inn') {
+      morningText = `夜が明けた。<br><br>旅籠の布団はあたたかかった。宗吉は荷を背負い直した。さて、今日もひと仕事だ。`;
+    } else {
+      morningText = `夜が明けた。<br><br>宗吉は荷を背負い直した。さて、今日もひと仕事だ。`;
+    }
 
     document.getElementById('scene-text').innerHTML = morningText;
 
@@ -2858,6 +3038,26 @@ function renderMemo() {
   `).join('');
 }
 
+// ── 画像ベースURL ──
+const SHUKUBA_BASE = 'https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/';
+const STAMPS_BASE  = 'https://raw.githubusercontent.com/tsuyoshy/tokaido/main/stamps/';
+
+// ── 宿場挿絵URLを返す ──
+function shukubaUrl(stageNum, key) {
+  return `${SHUKUBA_BASE}${String(stageNum).padStart(2,'0')}_${key}.png`;
+}
+
+// ── 次の宿場画像をプリロード（現在+1, +2）──
+function preloadNextImages(currentStage) {
+  [1, 2].forEach(offset => {
+    const next = currentStage + offset;
+    const key = STAGE_FILENAMES[next];
+    if (!key) return;
+    const img = new Image();
+    img.src = shukubaUrl(next, key);
+  });
+}
+
 // ── 宿場ファイル名マッピング（shukuba挿絵・stamps道中印共通） ──
 const STAGE_FILENAMES = {
   1: 'shinagawa',   2: 'kawasaki',    3: 'kanagawa',    4: 'hodogaya',
@@ -2880,7 +3080,7 @@ const STAGE_FILENAMES = {
 const STAMP_IMAGES = Object.fromEntries(
   Object.entries(STAGE_FILENAMES).map(([id, name]) => [
     Number(id),
-    `https://raw.githubusercontent.com/tsuyoshy/tokaido/main/stamps/${String(id).padStart(2,'0')}_${name}.png`
+    `${STAMPS_BASE}${String(id).padStart(2,'0')}_${name}.png`
   ])
 );
 
@@ -3157,17 +3357,18 @@ const STAGE_DATA = {
     morningText: `夜が明けた。<br><br>橘屋の女将に礼を言い、宗吉は外へ出た。<br><br>冷えた朝の空気が頬を刺す。街道はもう賑わい始めている。さて——今日は川崎まで進もうか、それとももう一日品川で稼ぐか。`,
     travelText: `品川宿を後にした。<br><br>川崎まで三里ほど。冬の街道を黙々と歩いた。人の波が薄くなり、やがて田畑が広がり始めた。<br><br>多摩川の渡し場が見えてきた。`,
     innTextInn: `旅籠・橘屋の夜は静かだった。<br><br>帳面を広げて、今日の収支を書き付けた。おみつは今頃、何をしているだろう。`,
-    innTextCheap: `木賃宿の板の間は冷えた。<br><br>帳面を広げて、今日の収支を書き付けた。おみつは今頃、何をしているだろう。`,
+    innTextCheap: `木賃宿の板の間は冷えた。<br><br>隣の男が夜中に起き出して、がさがさと荷をまさぐる音がした。盗みではなかったが、しばらく眠れなかった。`,
     innCost: 200,
   },
   2: {
     name: '川崎', ji: '第二次', yomi: 'かわさき',
     next: '神奈川', nextJi: '第三次',
-    arriveText: `多摩川の渡し場に着いた。<br><br>川幅は思ったより広い。渡し船を待つ旅人が、岸に数人たむろしていた。冬の川風が、頬を刺した。<br><br>川崎宿は、渡し場のすぐそばにある小さな宿場だ。`,
-    morningText: `夜が明けた。<br><br>木賃宿の板の間から立ち上がると、体中が冷えていた。<br><br>隣で眠っていた旅人はもう出発したようだ。宗吉は荷を確かめ、外へ出た。多摩川の川霧が街道を覆っている。`,
-    travelText: `多摩川を渡り、川崎宿を過ぎた。<br><br>神奈川まで二里ほど。海沿いの道は風が強かった。`,
+    arriveText: `川崎宿に入った。<br><br>小さな宿場だ。茶屋が数軒、旅籠が数軒。渡しを行き来する旅人で、それなりの賑わいがある。<br><br>大師河原の平間寺へ詣でる者も混じっているのか、数珠を手にした男女がちらほら歩いていた。`,
+    morningTextInn: `夜が明けた。<br><br>旅籠の布団の温もりが、まだ体に残っている。宗吉は荷を確かめ、外へ出た。多摩川の川霧が街道を覆っている。`,
+    morningTextCheap: `夜が明けた。<br><br>木賃宿の板の間から立ち上がると、体中が冷えていた。隣で眠っていた旅人はもう出発したようだ。宗吉は荷を確かめ、外へ出た。多摩川の川霧が街道を覆っている。`,
+    travelText: `川崎宿を後にした。<br><br>神奈川まで二里ほど。海沿いの道に出ると、風が強くなった。`,
     innTextInn: `川崎の旅籠に泊まった。<br><br>夕餉が出た。久しぶりにまともな飯を食った気がした。`,
-    innTextCheap: `川崎の木賃宿に泊まった。<br><br>隣の旅人の鼾が酷かったが、疲れていたのでいつの間にか眠っていた。`,
+    innTextCheap: `川崎の木賃宿に泊まった。<br><br>相部屋の男が酒くさかった。夜中に寝言を言い続けた。内容は聞き取れなかったが、怒鳴り声に近かった。`,
     innCost: 80,
     cheapCost: 35,
   },
@@ -3177,7 +3378,7 @@ const STAGE_DATA = {
     arriveText: `神奈川宿は港町だ。<br><br>湊には廻船が何艘も碇を下ろしており、廻船問屋の蔵が軒を連ねている。荷揚げをする人夫の掛け声が、潮の香りとともに響いてきた。`,
     travelText: `神奈川宿を後にした。<br><br>保土ヶ谷へは丘を越えていく。街道が少しずつ上り坂になってきた。`,
     innTextInn: `神奈川の旅籠に泊まった。<br><br>港の音が遠くに聞こえた。明日は保土ヶ谷まで進もう。`,
-    innTextCheap: `神奈川の木賃宿に泊まった。<br><br>港の音が遠くに聞こえた。板の間は冷えたが、疲れていた。`,
+    innTextCheap: `神奈川の木賃宿に泊まった。<br><br>板の間の節穴から、夜風が入ってくる。藁を詰めた布団は湿っていて、体が温まらなかった。`,
     innCost: 85,
     cheapCost: 36,
   },
@@ -3187,7 +3388,7 @@ const STAGE_DATA = {
     arriveText: `丘を越えると、保土ヶ谷宿が見えてきた。<br><br>小さな宿場だ。茶屋が数軒、旅籠が数軒。それだけだった。<br><br>足が少し痛む。昨日からずっと歩きっぱなしだ。`,
     travelText: `保土ヶ谷宿を出た。<br><br>戸塚まで二里ほど。柏尾川沿いの道を歩いた。`,
     innTextInn: `保土ヶ谷の旅籠に泊まった。<br><br>足の裏が熱を持っている。湯を借りて足を浸した。`,
-    innTextCheap: `保土ヶ谷の木賃宿に泊まった。<br><br>足の裏が熱を持っている。明日も歩けるだろうか。`,
+    innTextCheap: `保土ヶ谷の木賃宿に泊まった。<br><br>足の裏が熱を持っている。隣の老人が一晩中咳をしていた。うつるものでなければいいが、と思いながら横になっていた。`,
     innCost: 70,
     cheapCost: 30,
   },
@@ -3197,7 +3398,7 @@ const STAGE_DATA = {
     arriveText: `戸塚宿に着いた頃、雨が降り始めた。<br><br>柏尾川が増水している。渡し場の船頭が「今日は渡れない」と言った。足止めだ。<br><br>同じ宿に泊まることになった旅人たちと、狭い部屋で雨音を聞いた。`,
     travelText: `雨が上がった翌朝、戸塚を出た。<br><br>藤沢まで二里余り。街道はぬかるんでいた。`,
     innTextInn: `雨の戸塚で足止めになった。<br><br>旅籠の囲炉裏で体を温めながら、帳面を開いた。`,
-    innTextCheap: `雨の戸塚で足止めになった。<br><br>木賃宿は冷える。仕方がない。帳面を開いて、明日の算段をした。`,
+    innTextCheap: `雨の戸塚で足止めになった。<br><br>木賃宿に旅人が溢れ、廊下まで人が寝ていた。夜中に誰かが自分の荷を枕にして眠っていて、起こすに起こせなかった。`,
     innCost: 68,
     cheapCost: 30,
   },
@@ -3207,7 +3408,7 @@ const STAGE_DATA = {
     arriveText: `藤沢宿は遊行寺の門前町だ。<br><br>大きな山門が見える。参拝客の姿もあった。托鉢の僧が数人、街道沿いに立っていた。`,
     travelText: `藤沢宿を後にした。<br><br>平塚まで四里ほど。馬入川の渡しがある。`,
     innTextInn: `藤沢の旅籠に泊まった。<br><br>遊行寺の鐘の音が遠くに聞こえた。`,
-    innTextCheap: `藤沢の木賃宿に泊まった。<br><br>遊行寺の鐘の音が遠くに聞こえた。`,
+    innTextCheap: `藤沢の木賃宿に泊まった。<br><br>夜中に鼠が走り回る音がした。荷の上を踏んでいくのがわかって、目が覚めた。何も食われていなかったが、気分がよくなかった。`,
     innCost: 75,
     cheapCost: 32,
   },
@@ -3217,7 +3418,7 @@ const STAGE_DATA = {
     arriveText: `馬入川の渡しは雨だった。<br><br>小さな渡し船に、旅人が肩を寄せ合って乗った。対岸に着くと、平塚宿はすぐそこだった。`,
     travelText: `平塚宿を後にした。<br><br>大磯まで三里ほど。海沿いの道は風が強かった。`,
     innTextInn: `平塚の旅籠に泊まった。<br><br>雨の渡しで濡れた着物を囲炉裏の近くに干した。`,
-    innTextCheap: `平塚の木賃宿に泊まった。<br><br>雨の渡しで濡れた着物がまだ乾かない。`,
+    innTextCheap: `平塚の木賃宿に泊まった。<br><br>濡れた着物を干したかったが、囲炉裏の場所を先客に取られていた。仕方なく、湿ったまま横になった。`,
     innCost: 75,
     cheapCost: 32,
   },
@@ -3227,7 +3428,7 @@ const STAGE_DATA = {
     arriveText: `大磯は漁村だ。<br><br>浜に干物が並んでいる。潮の匂いが強い。漁師たちが網を繕っていた。<br><br>干物は安く仕入れられそうだ。`,
     travelText: `大磯宿を出た。<br><br>小田原まで三里余り。海沿いの道を歩いた。富士山が少しずつ大きくなってくる。`,
     innTextInn: `大磯の旅籠に泊まった。<br><br>潮の匂いが染みついている土地だった。`,
-    innTextCheap: `大磯の木賃宿に泊まった。<br><br>潮の匂いが染みついている宿だった。`,
+    innTextCheap: `大磯の木賃宿に泊まった。<br><br>潮と魚の匂いが壁に染みついていた。慣れようとしたが、夜中に何度も目が覚めた。`,
     innCost: 72,
     cheapCost: 30,
   },
@@ -3237,7 +3438,7 @@ const STAGE_DATA = {
     arriveText: `小田原は城下町だ。<br><br>宿場の規模が違う。店が多く、人が多く、値段交渉も厳しい。大きな市が立っていた。<br><br>箱根越えの前に、ここで準備を整えておく必要がある。`,
     travelText: `小田原宿を出た。<br><br>いよいよ箱根だ。街道が急に険しくなり始めた。`,
     innTextInn: `小田原の旅籠に泊まった。<br><br>明日は箱根越えだ。早めに寝ることにした。`,
-    innTextCheap: `小田原の木賃宿に泊まった。<br><br>明日は箱根越えだ。体を休めておかないと。`,
+    innTextCheap: `小田原の木賃宿に泊まった。<br><br>隣の部屋から博打の声がずっと聞こえていた。明日は箱根越えだというのに、なかなか寝付けなかった。`,
     innCost: 95,
     cheapCost: 40,
   },
@@ -3247,7 +3448,7 @@ const STAGE_DATA = {
     arriveText: `箱根の山道は険しかった。<br><br>関所を越えると、視界が開けた。頂上近くの茶屋で一息ついた。老人が富士の方角を指した。<br><br>宗吉は初めて立ち止まって、富士山を見た。`,
     travelText: `箱根を下り始めた。<br><br>三島まで四里ほど。下り坂は足に来る。`,
     innTextInn: `箱根の旅籠に泊まった。<br><br>峠の夜は冷えた。薬草の匂いがする宿だった。`,
-    innTextCheap: `箱根の木賃宿に泊まった。<br><br>峠の夜風が隙間から入ってくる。体が冷えた。`,
+    innTextCheap: `箱根の木賃宿に泊まった。<br><br>峠の夜風が板壁の隙間から容赦なく入ってくる。布団を頭まで被っても、耳の先が痛かった。`,
     innCost: 150,
     cheapCost: 60,
   },
@@ -3257,7 +3458,7 @@ const STAGE_DATA = {
     arriveText: `三島宿は三嶋大社の門前町だ。<br><br>祭礼の日だったのか、人が多かった。人混みの中で、宗吉はひとり立っていた。それが嫌ではなかった。`,
     travelText: `三島宿を出た。<br><br>沼津まで二里ほど。富士山がよく見える道だった。`,
     innTextInn: `三島の旅籠に泊まった。<br><br>祭りの賑わいが嘘のように、夜は静かだった。`,
-    innTextCheap: `三島の木賃宿に泊まった。<br><br>祭りの賑わいが嘘のように、夜は静かだった。`,
+    innTextCheap: `三島の木賃宿に泊まった。<br><br>祭りの夜は旅人が多く、見知らぬ男と肩が触れるほど詰めて寝た。相手の体温が妙に不快だった。`,
     innCost: 85,
     cheapCost: 35,
   },
@@ -3267,7 +3468,7 @@ const STAGE_DATA = {
     arriveText: `沼津は魚問屋の町だ。<br><br>活気がある。同い年くらいの若旦那が、自信たっぷりに値段交渉をしていた。宗吉は少し羨ましかった。`,
     travelText: `沼津宿を後にした。<br><br>原まで二里ほど。富士山が正面に見える道だった。`,
     innTextInn: `沼津の旅籠に泊まった。<br><br>若旦那の姿が頭から離れなかった。`,
-    innTextCheap: `沼津の木賃宿に泊まった。<br><br>若旦那の姿が頭から離れなかった。`,
+    innTextCheap: `沼津の木賃宿に泊まった。<br><br>宿の主人に「荷物は土間に置け」と言われた。断れなかった。一晩中、荷が気になって熟睡できなかった。`,
     innCost: 80,
     cheapCost: 34,
   },
@@ -3277,7 +3478,7 @@ const STAGE_DATA = {
     arriveText: `原宿は小さな宿場だ。<br><br>道端で絵を描いている男がいた。富士山を写生していた。「美しいと思ったことを商売にしてみな」と男は言った。`,
     travelText: `原宿を出た。<br><br>吉原まで三里ほど。田畑の広がる平坦な道だった。`,
     innTextInn: `原の旅籠に泊まった。<br><br>絵師の言葉が、なんとなく頭に残っていた。`,
-    innTextCheap: `原の木賃宿に泊まった。<br><br>絵師の言葉が、なんとなく頭に残っていた。`,
+    innTextCheap: `原の木賃宿に泊まった。<br><br>小さな宿で、夕飯が出なかった。持ち合わせの煮干しを一本食べて横になった。腹が鳴って、眠れなかった。`,
     innCost: 65,
     cheapCost: 28,
   },
@@ -3287,7 +3488,7 @@ const STAGE_DATA = {
     arriveText: `吉原は塩魚の産地だ。<br><br>塩鯛が安く手に入る。漁師が気持ちよく値段を教えてくれた。後味の悪くない商売だった。`,
     travelText: `吉原宿を出た。<br><br>蒲原まで三里ほど。富士川が近づいてきた。`,
     innTextInn: `吉原の旅籠に泊まった。<br><br>今日は悪くない商売ができた気がした。`,
-    innTextCheap: `吉原の木賃宿に泊まった。<br><br>今日は悪くない商売ができた気がした。`,
+    innTextCheap: `吉原の木賃宿に泊まった。<br><br>枕代わりにした荷が固くて、首が痛かった。何度も寝返りを打ったが、朝まで解決しなかった。`,
     innCost: 68,
     cheapCost: 28,
   },
@@ -3307,7 +3508,7 @@ const STAGE_DATA = {
     arriveText: `薩埵峠の断崖道を越えた。<br><br>右手は絶壁、左は駿河湾。富士山が正面に見える。宗吉は思わず立ち止まった。<br><br>桜えびの産地だ。浜に作業場が見える。`,
     travelText: `由比を後にした。<br><br>興津まで一里余り。海沿いの街道を歩いた。`,
     innTextInn: `由比の旅籠に泊まった。<br><br>今日は薩埵峠を越えた。足が痛い。`,
-    innTextCheap: `由比の木賃宿に泊まった。<br><br>今日は薩埵峠を越えた。足が痛い。`,
+    innTextCheap: `由比の木賃宿に泊まった。<br><br>薩埵峠で消耗した体には、板の間が石のように感じた。それでも気を失うように眠った。`,
     innCost: 68,
     cheapCost: 28,
   },
@@ -3317,7 +3518,7 @@ const STAGE_DATA = {
     arriveText: `興津川の川越え場に着いた。<br><br>川越え人足に肩を借りて、冷たい水の中を渡った。足がかじかんだ。清見寺の五重塔が川向こうに見えた。`,
     travelText: `興津を後にした。<br><br>江尻まで一里ほど。清水湊の風景が広がる。`,
     innTextInn: `興津の旅籠に泊まった。<br><br>川越えで濡れた足袋を囲炉裏の近くで干した。`,
-    innTextCheap: `興津の木賃宿に泊まった。<br><br>川越えで濡れた足袋を干した。なかなか乾かない。`,
+    innTextCheap: `興津の木賃宿に泊まった。<br><br>濡れた足袋を囲炉裏の端に干したら、朝には焦げていた。宿の主人は知らぬ顔をしていた。`,
     innCost: 70,
     cheapCost: 30,
   },
@@ -3327,7 +3528,7 @@ const STAGE_DATA = {
     arriveText: `江尻は清水湊の門前町だ。<br><br>廻船問屋が並んでいる。三保の松原が遠くに白く霞んでいた。削り節の工場から、いい匂いがする。`,
     travelText: `江尻を後にした。<br><br>府中まで三里ほど。安倍川の川越えがある。`,
     innTextInn: `江尻の旅籠に泊まった。<br><br>廻船の灯りが湊に揺れていた。`,
-    innTextCheap: `江尻の木賃宿に泊まった。<br><br>廻船の灯りが湊に揺れていた。`,
+    innTextCheap: `江尻の木賃宿に泊まった。<br><br>湊に近いせいか、夜中まで人の声と荷車の音が続いた。壁が薄く、何もかもが筒抜けだった。`,
     innCost: 90,
     cheapCost: 38,
   },
@@ -3337,7 +3538,7 @@ const STAGE_DATA = {
     arriveText: `府中は駿河の大都市だ。<br><br>駿府城の城下。街道がにぎわっている。安倍川の川越えを終えた旅人が、安倍川餅の茶屋に群がっていた。`,
     travelText: `府中を後にした。<br><br>丸子まで一里半。宇津ノ谷峠への道に入る。`,
     innTextInn: `府中の旅籠に泊まった。<br><br>大きな城下町だった。旅籠も立派だった。`,
-    innTextCheap: `府中の木賃宿に泊まった。<br><br>大きな城下町だった。`,
+    innTextCheap: `府中の木賃宿に泊まった。<br><br>大きな城下町のせいか、相部屋に見知らぬ旅人が七人いた。誰も口を利かなかった。その静けさが、妙に落ち着かなかった。`,
     innCost: 95,
     cheapCost: 40,
   },
@@ -3347,7 +3548,7 @@ const STAGE_DATA = {
     arriveText: `丸子宿はとろろ汁で知られる。<br><br>宇津ノ谷峠の手前の小さな宿場。茶屋の縁台で、旅人が麦飯にとろろをかけていた。`,
     travelText: `丸子を後にした。<br><br>岡部まで宇津ノ谷峠を越える。山道が急だ。`,
     innTextInn: `丸子の旅籠に泊まった。<br><br>明日は峠越えだ。早く寝ることにした。`,
-    innTextCheap: `丸子の木賃宿に泊まった。<br><br>明日は峠越えだ。体を休めておかないと。`,
+    innTextCheap: `丸子の木賃宿に泊まった。<br><br>明日の峠越えが頭から離れなかった。布団に入っても目が冴えて、結局いつ眠ったかわからなかった。`,
     innCost: 65,
     cheapCost: 28,
   },
@@ -3357,7 +3558,7 @@ const STAGE_DATA = {
     arriveText: `宇津ノ谷峠を越えた。<br><br>岡部宿は峠の向こうの静かな宿場だ。峠を越えると空気が変わる気がした。宇津の茶の産地だ。`,
     travelText: `岡部を後にした。<br><br>藤枝まで二里ほど。なだらかな道になった。`,
     innTextInn: `岡部の旅籠に泊まった。<br><br>峠を越えた安堵感がある。`,
-    innTextCheap: `岡部の木賃宿に泊まった。<br><br>峠を越えた安堵感がある。`,
+    innTextCheap: `岡部の木賃宿に泊まった。<br><br>峠越えの疲れで早々に横になったが、板の間の堅さが骨に響いた。体のあちこちが痛んで、何度も寝返りを打った。`,
     innCost: 65,
     cheapCost: 28,
   },
@@ -3367,7 +3568,7 @@ const STAGE_DATA = {
     arriveText: `藤枝宿は中くらいの宿場だ。<br><br>問屋場が賑わっている。藍染めの布が軒先に干してある。染め物屋が多い町だ。`,
     travelText: `藤枝を後にした。<br><br>島田まで二里。大井川が近づいてくる。`,
     innTextInn: `藤枝の旅籠に泊まった。<br><br>今日はよく歩いた。`,
-    innTextCheap: `藤枝の木賃宿に泊まった。<br><br>今日はよく歩いた。`,
+    innTextCheap: `藤枝の木賃宿に泊まった。<br><br>隣に泊まった巡礼の一行が、夜通しお経を唱えていた。止めるわけにもいかず、耳を塞いで横になった。`,
     innCost: 75,
     cheapCost: 32,
   },
@@ -3377,7 +3578,7 @@ const STAGE_DATA = {
     arriveText: `大井川の川越え場に着いた。<br><br>大井川は川留めで有名だ。今日は増水気味だという。川越え人足が宿場に溢れていた。川越えは足止めになることがある。`,
     travelText: `大井川を渡り切った。<br><br>金谷まで半里ほど。足が重い。`,
     innTextInn: `島田の旅籠に泊まった。<br><br>大井川を渡れた。よかった。`,
-    innTextCheap: `島田の木賃宿に泊まった。<br><br>大井川を渡れた。よかった。`,
+    innTextCheap: `島田の木賃宿に泊まった。<br><br>足止めの旅人が多く、宿は満杯だった。廊下の端に布団を一枚もらって寝た。夜中に人が踏んで通っていった。`,
     innCost: 80,
     cheapCost: 34,
   },
@@ -3387,7 +3588,7 @@ const STAGE_DATA = {
     arriveText: `金谷は茶の産地だ。<br><br>茶畑が丘の上まで続いている。金谷茶の香りが街道に漂っていた。仕入れ値も安い。`,
     travelText: `金谷を後にした。<br><br>日坂まで中山の急坂を越える。`,
     innTextInn: `金谷の旅籠に泊まった。<br><br>茶の匂いのする宿だった。`,
-    innTextCheap: `金谷の木賃宿に泊まった。<br><br>茶の匂いのする土地だった。`,
+    innTextCheap: `金谷の木賃宿に泊まった。<br><br>宿賃を払うと、主人が釣り銭を間違えた。一文少なかった。指摘すると不機嫌な顔をして渡してきた。`,
     innCost: 68,
     cheapCost: 28,
   },
@@ -3397,7 +3598,7 @@ const STAGE_DATA = {
     arriveText: `中山の急坂を越えた。<br><br>日坂は名の通り急な宿場だ。茶屋の親父が「ここまで来る旅人は皆くたびれ顔だ」と笑った。`,
     travelText: `日坂を後にした。<br><br>掛川まで二里ほど。坂を下ると街道が広くなる。`,
     innTextInn: `日坂の旅籠に泊まった。<br><br>坂を越えると体が楽になった。`,
-    innTextCheap: `日坂の木賃宿に泊まった。<br><br>坂を越えると体が楽になった。`,
+    innTextCheap: `日坂の木賃宿に泊まった。<br><br>山間の小さな宿で、灯りが行灯一つだけだった。帳面を書こうとしたが、暗くて字が見えなかった。`,
     innCost: 65,
     cheapCost: 28,
   },
@@ -3407,7 +3608,7 @@ const STAGE_DATA = {
     arriveText: `掛川は城下町だ。<br><br>掛川城の天守が見える。街道が広く、人通りが多い。掛川茶の産地でもある。遠州木綿の問屋が軒を並べていた。`,
     travelText: `掛川を後にした。<br><br>袋井まで二里ほど。遠州の平野が広がる。`,
     innTextInn: `掛川の旅籠に泊まった。<br><br>城下町の旅籠は少し高かったが、飯は旨かった。`,
-    innTextCheap: `掛川の木賃宿に泊まった。<br><br>城下町でも木賃宿は安く済んだ。`,
+    innTextCheap: `掛川の木賃宿に泊まった。<br><br>布団に潜ったら、何かに刺された。朝起きると腕に赤い点が三つ並んでいた。`,
     innCost: 85,
     cheapCost: 36,
   },
@@ -3417,7 +3618,7 @@ const STAGE_DATA = {
     arriveText: `袋井宿は東海道のちょうど真ん中あたりだ。<br><br>「おおむね中ほど」と書いた道標がある。ここを過ぎれば、折り返しだ。掛川茶が安く手に入る。`,
     travelText: `袋井を後にした。<br><br>見付まで三里ほど。天竜川が近づいてくる。`,
     innTextInn: `袋井の旅籠に泊まった。<br><br>旅も半分を過ぎた。`,
-    innTextCheap: `袋井の木賃宿に泊まった。<br><br>旅も半分を過ぎた。`,
+    innTextCheap: `袋井の木賃宿に泊まった。<br><br>旅も半分を過ぎた。宿の飯は冷えた麦飯だった。文句を言う気にもなれず、黙って食った。`,
     innCost: 72,
     cheapCost: 30,
   },
@@ -3427,7 +3628,7 @@ const STAGE_DATA = {
     arriveText: `天竜川の渡し場に着いた。<br><br>川幅が広く、流れが速い。渡し船が何艘も往来していた。見付宿は遠江国の大きな宿場だ。`,
     travelText: `見付を後にした。<br><br>浜松まで四里ほど。遠州の風が強い。`,
     innTextInn: `見付の旅籠に泊まった。<br><br>天竜川の渡しは大変だった。`,
-    innTextCheap: `見付の木賃宿に泊まった。<br><br>天竜川の渡しは大変だった。`,
+    innTextCheap: `見付の木賃宿に泊まった。<br><br>相部屋の男が荷をやたらと気にしていた。盗もうとしていたのかどうか、結局わからなかった。朝まで片目を開けていた。`,
     innCost: 75,
     cheapCost: 32,
   },
@@ -3437,7 +3638,7 @@ const STAGE_DATA = {
     arriveText: `浜松は遠州最大の城下町だ。<br><br>浜松城は家康公ゆかりの城。宿場が広く、旅人が多い。干し鰻が名物だ。遠州木綿の大きな問屋がある。`,
     travelText: `浜松を後にした。<br><br>舞阪まで二里ほど。浜名湖が近づいてくる。`,
     innTextInn: `浜松の旅籠に泊まった。<br><br>城下町は泊まりやすい。`,
-    innTextCheap: `浜松の木賃宿に泊まった。<br><br>城下町でも木賃宿は見つかった。`,
+    innTextCheap: `浜松の木賃宿に泊まった。<br><br>城下町は宿が混んでいた。割り当てられた場所は土間に近く、底冷えがした。`,
     innCost: 95,
     cheapCost: 40,
   },
@@ -3447,7 +3648,7 @@ const STAGE_DATA = {
     arriveText: `舞阪宿は浜名湖畔の小さな宿場だ。<br><br>今切の渡し場がある。湖の向こうに新居の関所が見える。鰻の漁が盛んで、干し鰻が売られていた。`,
     travelText: `舞阪を後にした。<br><br>今切の渡しで新居へ渡る。`,
     innTextInn: `舞阪の旅籠に泊まった。<br><br>浜名湖の夕日が美しかった。`,
-    innTextCheap: `舞阪の木賃宿に泊まった。<br><br>浜名湖の夕日が美しかった。`,
+    innTextCheap: `舞阪の木賃宿に泊まった。<br><br>湖に近い宿は湿気がひどかった。布団が重く、朝まで体が温まらなかった。`,
     innCost: 72,
     cheapCost: 30,
   },
@@ -3457,7 +3658,7 @@ const STAGE_DATA = {
     arriveText: `新居の関所を通った。<br><br>改めが厳しい関所だ。女改めもある。問答を経てやっと通れた。三ヶ日みかんの干し物を売る店が関所の先にあった。`,
     travelText: `新居を後にした。<br><br>白須賀まで一里半。汐見坂を越える。`,
     innTextInn: `新居の旅籠に泊まった。<br><br>関所を越えると少し気が楽になった。`,
-    innTextCheap: `新居の木賃宿に泊まった。<br><br>関所を越えると少し気が楽になった。`,
+    innTextCheap: `新居の木賃宿に泊まった。<br><br>関所越えの疲れで早く寝たかったのに、酔った旅人が部屋を間違えて入ってきた。追い出すのに手間取った。`,
     innCost: 75,
     cheapCost: 32,
   },
@@ -3467,7 +3668,7 @@ const STAGE_DATA = {
     arriveText: `汐見坂を越えた。<br><br>坂の上から遠州灘が一望できる。白須賀宿は崖の上に建つ珍しい宿場だ。三河木綿の問屋がある。`,
     travelText: `白須賀を後にした。<br><br>二川まで二里ほど。三河への境が近い。`,
     innTextInn: `白須賀の旅籠に泊まった。<br><br>崖の上の宿は風が強かった。`,
-    innTextCheap: `白須賀の木賃宿に泊まった。<br><br>崖の上、風が隙間から入ってきた。`,
+    innTextCheap: `白須賀の木賃宿に泊まった。<br><br>崖上の宿は風が強く、板壁がぎしぎしと鳴り続けた。いつ壁が抜けるかと思いながら、横になっていた。`,
     innCost: 65,
     cheapCost: 28,
   },
@@ -3477,7 +3678,7 @@ const STAGE_DATA = {
     arriveText: `遠江と三河の国境を越えた。<br><br>二川宿は小さいが松並木が美しい。三河木綿の仕入れ場がある。干し柿も名物だ。`,
     travelText: `二川を後にした。<br><br>吉田まで三里ほど。豊川が近づいてくる。`,
     innTextInn: `二川の旅籠に泊まった。<br><br>国境を越えた気がした。`,
-    innTextCheap: `二川の木賃宿に泊まった。<br><br>国境を越えた気がした。`,
+    innTextCheap: `二川の木賃宿に泊まった。<br><br>小さな宿で主人の愛想がなかった。飯も出ず、水を頼んだら面倒そうな顔をされた。`,
     innCost: 65,
     cheapCost: 28,
   },
@@ -3487,7 +3688,7 @@ const STAGE_DATA = {
     arriveText: `吉田は三河の大きな城下町だ。<br><br>豊川に架かる吉田橋は東海道随一の長さという。城下の問屋街で三河木綿が安く仕入れられる。`,
     travelText: `吉田を後にした。<br><br>御油まで四里ほど。三河の松並木の道だ。`,
     innTextInn: `吉田の旅籠に泊まった。<br><br>長い橋を渡った日だった。`,
-    innTextCheap: `吉田の木賃宿に泊まった。<br><br>長い橋を渡った日だった。`,
+    innTextCheap: `吉田の木賃宿に泊まった。<br><br>宿の板の間に先客の荷が広がっていて、自分の寝る場所がほとんどなかった。丸まるようにして眠った。`,
     innCost: 90,
     cheapCost: 38,
   },
@@ -3497,7 +3698,7 @@ const STAGE_DATA = {
     arriveText: `御油宿の松並木は見事だ。<br><br>短い宿場だが、松の木が街道の両側に高く立ち並ぶ。旅人の目を引く景色だ。膏薬の産地でもある。`,
     travelText: `御油を後にした。<br><br>赤坂まで半里ほど。隣り合った宿場だ。`,
     innTextInn: `御油の旅籠に泊まった。<br><br>松並木の風景が目に残っている。`,
-    innTextCheap: `御油の木賃宿に泊まった。<br><br>松並木の風景が目に残っている。`,
+    innTextCheap: `御油の木賃宿に泊まった。<br><br>宿引きに引きずり込まれた宿は、思ったより高かった。それでも木賃宿の値段だと言い張った。腑に落ちなかった。`,
     innCost: 70,
     cheapCost: 30,
   },
@@ -3507,7 +3708,7 @@ const STAGE_DATA = {
     arriveText: `赤坂宿に着いた。<br><br>大橋屋という大きな旅籠がある。絹糸の産地で、絹問屋が並んでいる。膏薬も赤坂周辺が産地だ。`,
     travelText: `赤坂を後にした。<br><br>藤川まで二里ほど。三河の山並みが見える。`,
     innTextInn: `赤坂の旅籠に泊まった。<br><br>大橋屋は有名だが、宗吉には少し高かった。`,
-    innTextCheap: `赤坂の木賃宿に泊まった。<br><br>大橋屋の名は有名だが、宗吉は小さな宿にした。`,
+    innTextCheap: `赤坂の木賃宿に泊まった。<br><br>大橋屋の灯りが見えるような安宿だった。隣の部屋から三味線の音が夜更けまで続いた。`,
     innCost: 72,
     cheapCost: 30,
   },
@@ -3517,7 +3718,7 @@ const STAGE_DATA = {
     arriveText: `藤川宿の松並木を通った。<br><br>小さな宿場だが、手入れの行き届いた松が並んでいる。絹糸の産地に近い。`,
     travelText: `藤川を後にした。<br><br>岡崎まで三里ほど。矢作川が近づいてくる。`,
     innTextInn: `藤川の旅籠に泊まった。<br><br>静かな宿場だった。`,
-    innTextCheap: `藤川の木賃宿に泊まった。<br><br>静かな宿場だった。`,
+    innTextCheap: `藤川の木賃宿に泊まった。<br><br>静かすぎる宿場だった。夜中に犬が吠え続けた。何に吠えているのかわからなかった。`,
     innCost: 65,
     cheapCost: 28,
   },
@@ -3527,7 +3728,7 @@ const STAGE_DATA = {
     arriveText: `岡崎は三河最大の城下町だ。<br><br>矢作橋は東海道最長の橋。橋の上から岡崎城の天守が見える。八丁味噌の産地で、大きな味噌蔵が並ぶ。`,
     travelText: `岡崎を後にした。<br><br>池鯉鮒まで三里ほど。尾張へ入る。`,
     innTextInn: `岡崎の旅籠に泊まった。<br><br>大きな城下町だった。旅籠も多かった。`,
-    innTextCheap: `岡崎の木賃宿に泊まった。<br><br>大きな城下町だった。`,
+    innTextCheap: `岡崎の木賃宿に泊まった。<br><br>城下町は旅人が多い。宿に入ると先客が囲炉裏を独り占めにしていて、遠慮して端に座っていたら体が温まる前に火が消えた。`,
     innCost: 95,
     cheapCost: 40,
   },
@@ -3537,7 +3738,7 @@ const STAGE_DATA = {
     arriveText: `池鯉鮒は馬市で有名だ。<br><br>街道沿いに馬が何頭も並んでいる。春の市の名残がある広場。八丁味噌は岡崎より少し高い。`,
     travelText: `池鯉鮒を後にした。<br><br>鳴海まで三里ほど。尾張の平野に入る。`,
     innTextInn: `池鯉鮒の旅籠に泊まった。<br><br>馬の声が遠くで聞こえた。`,
-    innTextCheap: `池鯉鮒の木賃宿に泊まった。<br><br>馬の声が遠くで聞こえた。`,
+    innTextCheap: `池鯉鮒の木賃宿に泊まった。<br><br>馬小屋が隣にあった。一晩中、馬が足を踏み鳴らす音がした。慣れたころに夜が明けた。`,
     innCost: 70,
     cheapCost: 30,
   },
@@ -3547,7 +3748,7 @@ const STAGE_DATA = {
     arriveText: `鳴海宿に着いた。<br><br>有松絞りの産地だ。鮮やかな絞り染めの手拭いが軒先に並んでいる。有松村の絞り染めは全国に名が知れている。`,
     travelText: `鳴海を後にした。<br><br>宮まで二里ほど。熱田神宮が近い。`,
     innTextInn: `鳴海の旅籠に泊まった。<br><br>絞り染めの美しさが目に残った。`,
-    innTextCheap: `鳴海の木賃宿に泊まった。<br><br>絞り染めの美しさが目に残った。`,
+    innTextCheap: `鳴海の木賃宿に泊まった。<br><br>染物の匂いが宿まで漂ってきた。鼻につく刺激臭で、夜中に何度も目が覚めた。`,
     innCost: 80,
     cheapCost: 34,
   },
@@ -3557,7 +3758,7 @@ const STAGE_DATA = {
     arriveText: `宮宿は熱田神宮の門前町だ。<br><br>七里の渡しの出発点でもある。神宮の大鳥居が見える。海路で桑名へ向かう旅人が多い。尾張木綿の大きな問屋がある。`,
     travelText: `七里の渡しの船に乗った。<br><br>伊勢湾を渡り、桑名へ向かう。`,
     innTextInn: `宮の旅籠に泊まった。<br><br>明日は海路で桑名へ渡る。`,
-    innTextCheap: `宮の木賃宿に泊まった。<br><br>明日は海路で桑名へ渡る。`,
+    innTextCheap: `宮の木賃宿に泊まった。<br><br>明日の海路が頭から離れなかった。多摩川の渡しとは比べものにならない。寝返りのたびに、七里という距離が重くのしかかった。`,
     innCost: 95,
     cheapCost: 40,
   },
@@ -3567,7 +3768,7 @@ const STAGE_DATA = {
     arriveText: `桑名湊に着いた。<br><br>七里の渡しを終えた。「その手は桑名の焼き蛤」の名産地だ。大きな蛤の干物が売られている。伊勢参拝客で宿場が賑わっている。`,
     travelText: `桑名を後にした。<br><br>四日市まで三里ほど。伊勢街道の旅人と混じって歩く。`,
     innTextInn: `桑名の旅籠に泊まった。<br><br>七里の渡しは遠かった。`,
-    innTextCheap: `桑名の木賃宿に泊まった。<br><br>七里の渡しは遠かった。`,
+    innTextCheap: `桑名の木賃宿に泊まった。<br><br>海路で体が揺れたままの感覚が続いた。横になっても地面が動いているようで、なかなか落ち着かなかった。`,
     innCost: 90,
     cheapCost: 38,
   },
@@ -3577,7 +3778,7 @@ const STAGE_DATA = {
     arriveText: `四日市宿は伊勢街道の分岐点だ。<br><br>三滝川の渡し場がある。伊勢参拝客と旅商人が行き交う賑やかな宿場だ。伊勢木綿の産地でもある。`,
     travelText: `四日市を後にした。<br><br>石薬師まで二里ほど。鈴鹿の山が見えてくる。`,
     innTextInn: `四日市の旅籠に泊まった。<br><br>伊勢の旅人の話を聞いた。`,
-    innTextCheap: `四日市の木賃宿に泊まった。<br><br>伊勢の旅人の話を聞いた。`,
+    innTextCheap: `四日市の木賃宿に泊まった。<br><br>伊勢参りの大集団と相部屋になった。にぎやかすぎて、宿に入った気がしなかった。`,
     innCost: 80,
     cheapCost: 34,
   },
@@ -3587,7 +3788,7 @@ const STAGE_DATA = {
     arriveText: `石薬師宿は小さな宿場だ。<br><br>石薬師如来の寺がある。鈴鹿の山が近くなってきた。薬草の産地で、問屋に薬草が並んでいる。`,
     travelText: `石薬師を後にした。<br><br>庄野まで一里ほど。鈴鹿の山が迫ってくる。`,
     innTextInn: `石薬師の旅籠に泊まった。<br><br>山が近い。`,
-    innTextCheap: `石薬師の木賃宿に泊まった。<br><br>山が近い。`,
+    innTextCheap: `石薬師の木賃宿に泊まった。<br><br>山が近い小さな宿だった。夜中に何かが屋根を走る音がした。鼠にしては大きすぎた。`,
     innCost: 62,
     cheapCost: 26,
   },
@@ -3597,7 +3798,7 @@ const STAGE_DATA = {
     arriveText: `庄野宿は白雨で知られる。<br><br>突然の夕立が多い宿場だという。鈴鹿の山麓の小さな宿場だ。薬草の産地が近い。`,
     travelText: `庄野を後にした。<br><br>亀山まで三里ほど。山道に入る。`,
     innTextInn: `庄野の旅籠に泊まった。<br><br>山が深くなってきた。`,
-    innTextCheap: `庄野の木賃宿に泊まった。<br><br>山が深くなってきた。`,
+    innTextCheap: `庄野の木賃宿に泊まった。<br><br>宿の主人が無口だった。飯を出すときも何も言わなかった。悪い宿ではなかったが、居場所がなかった。`,
     innCost: 60,
     cheapCost: 25,
   },
@@ -3607,7 +3808,7 @@ const STAGE_DATA = {
     arriveText: `亀山は伊勢国の城下町だ。<br><br>亀山城の天守が台地の上に見える。亀山ろうそくは全国に名が知れている。関の刃物の産地にも近い。`,
     travelText: `亀山を後にした。<br><br>関まで二里ほど。`,
     innTextInn: `亀山の旅籠に泊まった。<br><br>ろうそくの灯りで帳面を書いた。`,
-    innTextCheap: `亀山の木賃宿に泊まった。<br><br>ろうそくの灯りで帳面を書いた。`,
+    innTextCheap: `亀山の木賃宿に泊まった。<br><br>ろうそくを借りたら一刻ごとに追加料金を取られた。帳面を途中でやめて、暗い中で横になった。`,
     innCost: 80,
     cheapCost: 34,
   },
@@ -3617,7 +3818,7 @@ const STAGE_DATA = {
     arriveText: `関宿は古い宿場の面影が残る。<br><br>町並みが整然としている。関の刃物の産地だ。鍛冶屋の音が聞こえる。亀山ろうそくもここで手に入る。`,
     travelText: `関を後にした。<br><br>坂下まで二里ほど。鈴鹿峠が近い。`,
     innTextInn: `関の旅籠に泊まった。<br><br>古い宿場は落ち着く。`,
-    innTextCheap: `関の木賃宿に泊まった。<br><br>古い宿場は落ち着く。`,
+    innTextCheap: `関の木賃宿に泊まった。<br><br>古い宿場の古い宿だった。柱が傾いていた。隙間風が入るたびに、行灯の火が揺れた。`,
     innCost: 75,
     cheapCost: 32,
   },
@@ -3627,7 +3828,7 @@ const STAGE_DATA = {
     arriveText: `坂下宿は鈴鹿峠の麓だ。<br><br>峠越えの旅人で賑わっている。峠を前に一息入れる場所だ。鈴鹿の薬草が安く手に入る。`,
     travelText: `坂下を後にした。<br><br>鈴鹿峠を越えて土山へ向かう。峠は厳しい。`,
     innTextInn: `坂下の旅籠に泊まった。<br><br>明日は峠越えだ。早く休もう。`,
-    innTextCheap: `坂下の木賃宿に泊まった。<br><br>明日は峠越えだ。早く休もう。`,
+    innTextCheap: `坂下の木賃宿に泊まった。<br><br>峠越えの前夜は、宿が混んでいた。早く寝ようとしたのに、あとから来た旅人がいつまでも話し込んでいた。`,
     innCost: 62,
     cheapCost: 26,
   },
@@ -3637,7 +3838,7 @@ const STAGE_DATA = {
     arriveText: `鈴鹿峠を越えた。<br><br>近江国に入った。峠を越えると空気が変わる。土山のお六櫛は名物だ。峠越えの旅人がよく買っていく。`,
     travelText: `土山を後にした。<br><br>水口まで三里ほど。近江の平野が広がる。`,
     innTextInn: `土山の旅籠に泊まった。<br><br>鈴鹿峠を越えた。近江に入った。`,
-    innTextCheap: `土山の木賃宿に泊まった。<br><br>鈴鹿峠を越えた。近江に入った。`,
+    innTextCheap: `土山の木賃宿に泊まった。<br><br>峠越えの後で体が限界だった。布団に倒れ込んだが、薄くて板の感触がそのまま背中に来た。`,
     innCost: 82,
     cheapCost: 35,
   },
@@ -3647,7 +3848,7 @@ const STAGE_DATA = {
     arriveText: `水口宿に着いた。<br><br>水口かんぴょうの産地だ。白い干瓢が風にそよいでいる。近江麻の大きな問屋がある。近江の商人の町だ。`,
     travelText: `水口を後にした。<br><br>石部まで三里ほど。野洲川沿いの道を歩く。`,
     innTextInn: `水口の旅籠に泊まった。<br><br>近江の商人の話を聞いた。`,
-    innTextCheap: `水口の木賃宿に泊まった。<br><br>近江の商人の話を聞いた。`,
+    innTextCheap: `水口の木賃宿に泊まった。<br><br>相部屋の近江商人が商売自慢を延々と続けた。反論する気にもなれず、相槌を打ち続けているうちに夜が明けた。`,
     innCost: 75,
     cheapCost: 32,
   },
@@ -3657,7 +3858,7 @@ const STAGE_DATA = {
     arriveText: `石部宿は田園の中の小さな宿場だ。<br><br>野洲川の流れが聞こえる。遠くに比叡の山並みが見えてきた。京が近い。近江麻の産地が続く。`,
     travelText: `石部を後にした。<br><br>草津まで三里ほど。道中も終わりが近い。`,
     innTextInn: `石部の旅籠に泊まった。<br><br>京まで、もう少しだ。`,
-    innTextCheap: `石部の木賃宿に泊まった。<br><br>京まで、もう少しだ。`,
+    innTextCheap: `石部の木賃宿に泊まった。<br><br>京まであと少しと思うと、かえって眠れなかった。隣で高鼾をかく旅人が、妙に腹立たしかった。`,
     innCost: 70,
     cheapCost: 30,
   },
@@ -3667,7 +3868,7 @@ const STAGE_DATA = {
     arriveText: `草津宿は東海道と中山道の追分だ。<br><br>大きな道標が立っている。二本の街道が合わさる場所。旅人が多い。近江米と近江麻の大きな問屋がある。<br><br>京まで、あと大津ひとつだ。`,
     travelText: `草津を後にした。<br><br>大津まで三里ほど。逢坂山が見えてきた。`,
     innTextInn: `草津の旅籠に泊まった。<br><br>明日は大津だ。`,
-    innTextCheap: `草津の木賃宿に泊まった。<br><br>明日は大津だ。`,
+    innTextCheap: `草津の木賃宿に泊まった。<br><br>旅の終わりが近いせいか、宿の粗さが余計に目についた。染みだらけの天井を眺めながら、長いこと起きていた。`,
     innCost: 85,
     cheapCost: 36,
   },
@@ -3677,7 +3878,7 @@ const STAGE_DATA = {
     arriveText: `大津宿に着いた。<br><br>琵琶湖の大きさに驚いた。湖というより、海のように広い。大津は近江最大の宿場で、京の玄関口だ。大津絵が名物だ。<br><br>逢坂山の向こうに、京がある。`,
     travelText: `大津を後にした。<br><br>逢坂山を越えれば——京だ。`,
     innTextInn: `大津の旅籠に泊まった。<br><br>明日は京に入る。おみつのことを考えたら、なかなか眠れなかった。`,
-    innTextCheap: `大津の木賃宿に泊まった。<br><br>明日は京に入る。おみつのことを考えたら、なかなか眠れなかった。`,
+    innTextCheap: `大津の木賃宿に泊まった。<br><br>明日は京に入る。おみつのことを考えたら、なかなか眠れなかった。最後の夜だというのに、隣の男の鼾だけが立派だった。`,
     innCost: 100,
     cheapCost: 42,
   },
@@ -3732,6 +3933,7 @@ function startFromSave() {
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
+  preloadNextImages(state.currentStage);
   showStageChoices();
 }
 
@@ -3745,6 +3947,7 @@ function startFresh() {
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
+  preloadNextImages(state.currentStage);
   showStageChoices();
 }
 
