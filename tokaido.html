@@ -3092,9 +3092,9 @@ function nextStage() {
         const firstBreak = arriveBody.indexOf('<br><br>');
         let combined;
         if (firstBreak !== -1) {
-          combined = arriveBody.slice(0, firstBreak) + '　' + lunchLine + arriveBody.slice(firstBreak);
+          combined = arriveBody.slice(0, firstBreak) + lunchLine + arriveBody.slice(firstBreak);
         } else {
-          combined = arriveBody + '　' + lunchLine;
+          combined = arriveBody + lunchLine;
         }
         if (state.currentStage === 3) {
           const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
