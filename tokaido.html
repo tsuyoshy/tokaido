@@ -989,6 +989,18 @@
 <div id="notify">旅の手帳に記録された</div>
 
 <script>
+// ── スクロール位置リセット（Slack等アプリ内ブラウザ対策） ──
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+  }, 0);
+});
+
 // ── ゲーム状態 ──
 const state = {
   money: 500,
