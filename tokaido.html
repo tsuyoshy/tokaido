@@ -3939,6 +3939,7 @@ function startFromSave() {
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
+  loadMapImg();
   preloadNextImages(state.currentStage);
   wakeUpMorning();
 }
@@ -3953,6 +3954,7 @@ function startFresh() {
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
+  loadMapImg();
   preloadNextImages(state.currentStage);
   showStageChoices();
 }
