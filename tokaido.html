@@ -276,6 +276,38 @@
 
   .cargo-sell-item:last-child { border-bottom: none; }
 
+  /* 仕入れ品リスト用（行タップ） */
+  .buy-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(200,160,40,.1);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .buy-item:last-child { border-bottom: none; }
+  .buy-item:active { background: rgba(200,160,40,.12); }
+  .buy-item.disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+  }
+  .buy-item-arrow {
+    font-size: 11px;
+    color: rgba(232,192,64,.55);
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+
+  .buy-item-close {
+    display: flex;
+    justify-content: center;
+    padding: 10px 14px;
+  }
+
   .cargo-sell-btn {
     background: rgba(200,160,40,.06);
     border: 1px solid rgba(200,160,40,.28);
@@ -2369,12 +2401,12 @@ function openBuy() {
         ? `仕入<span style="color:#e8c040;">${buyPrice}文</span><span style="font-size:10px;opacity:0.6;">（産地値引）</span>`
         : `仕入${buyPrice}文`;
       const canBuy = state.money >= buyPrice && (item.vol === 0 || freeVol() >= item.vol);
-      return `<div class="cargo-sell-item">
+      return `<div class="buy-item${canBuy ? '' : ' disabled'}" onclick="doBuy(${i})">
         <span>${item.name}　${priceLabel}${item.vol > 0 ? `　体積${item.vol}` : ''}</span>
-        <button class="cargo-sell-btn" ${canBuy ? '' : 'disabled'} onclick="doBuy(${i})">仕入れる</button>
+        <span class="buy-item-arrow">▶</span>
       </div>`;
     }).join('') +
-    `<div class="cargo-sell-item" style="justify-content:center;">
+    `<div class="buy-item-close">
        <button class="cargo-sell-btn" onclick="closeBuyPanel()">閉じる</button>
      </div>`;
 
