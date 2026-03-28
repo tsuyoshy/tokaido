@@ -1218,8 +1218,6 @@ function applyWeatherEffect(w, t) {
   if (snow) snow.style.opacity = (w === 'snow') ? '1' : '0';
 }
 
-// 固定天候（無効化済み）
-const FIXED_WEATHER = {};
 
 /*
   天候マルコフ遷移テーブル
@@ -2606,6 +2604,7 @@ function showTamaRiverChoice() {
 }
 
 function takeFerry() {
+  if (state.money < 10) { showNotify('所持金が足りない'); return; }
   state.money -= 10;
   state.flags.tamaRiverDone = true;
   updateHeader();
@@ -2692,16 +2691,36 @@ function afterTamaRiver() {
 }
 
 // ── ゲームオーバー ──
-function triggerGameOver(innCost) {
+// reason: 'inn'（宿代不足）| 'days'（日数切れ）| 'broke'（路銀尽き）
+function triggerGameOver(reason, innCost) {
   const sd = currentStageData();
   const screen = document.getElementById('gameover-screen');
   const stagesCleared = state.currentStage - 1;
 
-  document.getElementById('gameover-text').innerHTML =
-    `${sd.name}宿まで来たが、宿代${innCost}文が払えなかった。<br><br>` +
-    `宗吉は宿場の軒下で夜を明かした。<br><br>` +
-    `懐に文はない——旅はここで終わりだ。`;
+  let titleText, bodyText;
+  if (reason === 'days') {
+    titleText = '藪入りに間に合わなかった';
+    bodyText =
+      `${sd.name}宿で夜が明けた。<br><br>` +
+      `今日が藪入りのはずだった。しかし宗吉はまだ道の半ばにいる。<br><br>` +
+      `おみつは江戸で待っているだろう。今年は、会えなかった。`;
+  } else if (reason === 'broke') {
+    titleText = '路銀が尽きた';
+    bodyText =
+      `${sd.name}宿まで来たが、路銀が底をついた。<br><br>` +
+      `渡し賃も払えず、先へ進む道が断たれた。<br><br>` +
+      `懐に文はない——旅はここで終わりだ。`;
+  } else {
+    // 'inn'（デフォルト）
+    titleText = '文なし';
+    bodyText =
+      `${sd.name}宿まで来たが、宿代${innCost}文が払えなかった。<br><br>` +
+      `宗吉は宿場の軒下で夜を明かした。<br><br>` +
+      `懐に文はない——旅はここで終わりだ。`;
+  }
 
+  document.getElementById('gameover-title').textContent = titleText;
+  document.getElementById('gameover-text').innerHTML = bodyText;
   document.getElementById('gameover-stats').innerHTML =
     `通過した宿場　${stagesCleared} 次<br>` +
     `残り日数　${state.days} 日<br>` +
@@ -2725,7 +2744,7 @@ function goToInn(selectedCost) {
     const actualCost = (selectedCost !== undefined) ? selectedCost : (sd.innCost || 35);
     // 所持金不足でマイナスになるならゲームオーバー
     if (state.money - actualCost < 0) {
-      triggerGameOver(actualCost);
+      triggerGameOver('inn', actualCost);
       return;
     }
     const paid = actualCost;
@@ -2739,6 +2758,12 @@ function goToInn(selectedCost) {
     state.timeSlot = 'yoru';
 
     updateHeader();
+
+    // 日数切れチェック（京都未到達の場合）
+    if (state.days <= 0 && state.currentStage <= 53) {
+      triggerGameOver('days');
+      return;
+    }
 
     // 旅籠か木賃宿かを記録（morningTextの出し分けに使用）
     state.lastInnType = isInn ? 'inn' : 'cheap';
@@ -3022,6 +3047,18 @@ function showInnLedgerAndSleep(paid, isInn) {
   }, 400);
 }
 
+// ── 渡し賃・川越え料金テーブル（到着宿場番号をキーとする） ──
+// 史実：多摩川（Stage2）は goNext() 側で処理済みのためここには含めない
+const FERRY_COST = {
+   7: { cost:  6, text: '渡し賃は六文だった。' },
+  17: { cost:  8, text: '川越え賃は八文だった。' },
+  19: { cost: 24, text: '川越え賃は二十四文。安倍川は大きい。' },
+  23: { cost: 48, text: '川札を買った。四十八文——東海道で一番高い川だ。' },
+  28: { cost: 12, text: '渡し賃は十二文だった。' },
+  31: { cost: 16, text: '渡し賃は十六文だった。' },
+  42: { cost: 45, text: '船賃は四十五文。伊勢湾を渡る長い船旅だ。' },
+};
+
 // ── 次の宿場へ ──
 function nextStage() {
   fadeTransition(() => {
@@ -3071,7 +3108,15 @@ function nextStage() {
         updateHeader();
         // 昼食テキスト＋到着テキストを一画面に統合
         const stageName = sd.name;
-        const arriveBody = sd.arriveText || (stageName + '宿に着いた。');
+        let arriveBody = sd.arriveText || (stageName + '宿に着いた。');
+        // 渡し賃・川越え料金（昼食ルート）
+        const ferryEntryL = FERRY_COST[state.currentStage];
+        if (ferryEntryL) {
+          const paid = Math.min(ferryEntryL.cost, state.money);
+          state.money -= paid;
+          state.innLog.buy += paid;
+          arriveBody += '<br><br>' + ferryEntryL.text;
+        }
         const lunchLine = '昼飯は' + lunchName + 'を食べ、' + lunchCost + '文だった。';
         // arriveTextの最初の文の後に昼食テキストを挿入
         const firstBreak = arriveBody.indexOf('<br><br>');
@@ -3098,6 +3143,17 @@ function nextStage() {
 
     // 到着テキストを表示
     let arrive = sd.arriveText || (sd.name + '宿に着いた。');
+
+    // 渡し賃・川越え料金の引き落とし
+    const ferryEntry = FERRY_COST[state.currentStage];
+    if (ferryEntry) {
+      const paid = Math.min(ferryEntry.cost, state.money);
+      state.money -= paid;
+      state.innLog.buy += paid;
+      updateHeader();
+      arrive += '<br><br>' + ferryEntry.text;
+    }
+
     // 神奈川到着時、おきくの伝言を持っていれば追記
     if (state.currentStage === 3) {
       const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
@@ -3121,6 +3177,14 @@ function nextStage() {
 function showArriveText(sd) {
   fadeTransition(() => {
     let arrive = sd.arriveText || (sd.name + '宿に着いた。');
+    const ferryEntry = FERRY_COST[state.currentStage];
+    if (ferryEntry) {
+      const paid = Math.min(ferryEntry.cost, state.money);
+      state.money -= paid;
+      state.innLog.buy += paid;
+      updateHeader();
+      arrive += '<br><br>' + ferryEntry.text;
+    }
     if (state.currentStage === 3) {
       const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
       if (hasMessage) arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
@@ -3144,6 +3208,12 @@ function wakeUpMorning() {
     state.innLog = { income: 0, buy: 0, inn: 0 };
     state.innMode = false;
     state.innTradeCount = 0;
+
+    // 日数切れチェック（セーブロード後の安全弁）
+    if (state.days <= 0 && state.currentStage <= 53) {
+      triggerGameOver('days');
+      return;
+    }
 
     document.getElementById('inn-area').classList.add('hidden');
     document.getElementById('cargo-panel').style.display = 'none';
@@ -3693,7 +3763,7 @@ const STAGE_DATA = {
   7: {
     name: '平塚', ji: '第七次', yomi: 'ひらつか',
     next: '大磯', nextJi: '第八次',
-    arriveText: `馬入川の渡しを越えた。<br><br>小さな渡し船に、旅人が肩を寄せ合って乗った。対岸に着くと、平塚宿はすぐそこだった。`,
+    arriveText: `馬入川の渡しを越えた。<br><br>小さな渡し船に、旅人が肩を寄せ合って乗った。船頭に渡し賃を渡し、対岸へ。平塚宿はすぐそこだった。`,
     travelText: `平塚宿を後にした。<br><br>大磯まで三里ほど。海沿いの道は風が強かった。`,
     innTextInn: `夕餉が出た。干物を焼いたものと、汁と飯。体に温かい汁がしみた。<br><br>平塚の旅籠に泊まった。馬入川の渡しを渡った日だった。`,
     morningTextInn: `夜が明けた。<br><br>着物は乾いていた。旅籠の朝飯を済ませ、宗吉は外へ出た。海沿いの道は風が強い。`,
@@ -3803,7 +3873,7 @@ const STAGE_DATA = {
   17: {
     name: '興津', ji: '第十七次', yomi: 'おきつ',
     next: '江尻', nextJi: '第十八次',
-    arriveText: `興津川の川越え場に着いた。<br><br>川越え人足に肩を借りて、冷たい水の中を渡った。足がかじかんだ。清見寺の五重塔が川向こうに見えた。`,
+    arriveText: `興津川の川越え場に着いた。<br><br>川越え人足に肩を借りて、冷たい水の中を渡った。足がかじかんだ。川岸で賃を払い、清見寺の五重塔が川向こうに見えた。`,
     travelText: `興津を後にした。<br><br>江尻まで一里ほど。清水湊の風景が広がる。`,
     innTextInn: `夕餉に削り節をたっぷりかけた豆腐が出た。興津の名産を使った料理だという。<br><br>興津の旅籠に泊まった。川越えで濡れた足袋を囲炉裏の近くで干した。`,
     morningTextInn: `夜が明けた。<br><br>足袋は乾いていた。朝飯を食い終え、宗吉は外へ出た。清見寺の方角から鐘の音が聞こえた。`,
@@ -3825,7 +3895,7 @@ const STAGE_DATA = {
   19: {
     name: '府中', ji: '第十九次', yomi: 'ふちゅう',
     next: '丸子', nextJi: '第二十次',
-    arriveText: `府中は駿河の大都市だ。<br><br>駿府城の城下。街道がにぎわっている。安倍川の川越えを終えた旅人が、安倍川餅の茶屋に群がっていた。`,
+    arriveText: `府中は駿河の大都市だ。<br><br>駿府城の城下。街道がにぎわっている。安倍川の川越えを終えた旅人が、安倍川餅の茶屋に群がっていた。川越え人足に賃を払い、川を渡った疲れが残っている。`,
     travelText: `府中を後にした。<br><br>丸子まで一里半。宇津ノ谷峠への道に入る。`,
     innTextInn: `夕餉は一汁三菜だった。府中の城下町らしく、膳が少し豪勢だった。安倍川餅が甘いものとして出た。<br><br>府中の旅籠に泊まった。大きな城下町だった。旅籠も立派だった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯も丁寧な膳だった。こんな食事ができるのも城下町の旅籠ならではだ。宗吉は腹を満たして立った。今日は丸子へ進む。`,
@@ -3869,7 +3939,7 @@ const STAGE_DATA = {
   23: {
     name: '島田', ji: '第廿三次', yomi: 'しまだ',
     next: '金谷', nextJi: '第廿四次',
-    arriveText: `大井川の川越え場に着いた。<br><br>大井川は川留めで有名だ。今日は増水気味だという。川越え人足が宿場に溢れていた。川越えは足止めになることがある。`,
+    arriveText: `大井川の川越え場に着いた。<br><br>まず川会所で川札を買う。今日の水深は股通——最も浅い値だ。川越え人足の肩につかまり、冷たい流れの中を渡った。川越えは足止めになることがある。渡れた今日はまだいい。`,
     travelText: `大井川を渡り切った。<br><br>金谷まで半里ほど。足が重い。`,
     innTextInn: `夕餉に大井川の川魚の塩焼きが出た。渡し場の宿らしい、旨い魚だった。<br><br>島田の旅籠に泊まった。大井川を渡れた。よかった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食い終えて外へ出た。今日は金谷へ向かう。急な坂が待っている。宗吉は荷を担ぎ直した。`,
@@ -3924,7 +3994,7 @@ const STAGE_DATA = {
   28: {
     name: '見付', ji: '第廿八次', yomi: 'みつけ',
     next: '浜松', nextJi: '第廿九次',
-    arriveText: `天竜川の渡し場に着いた。<br><br>川幅が広く、流れが速い。渡し船が何艘も往来していた。見付宿は遠江国の大きな宿場だ。`,
+    arriveText: `天竜川の渡し場に着いた。<br><br>川幅が広く、流れが速い。渡し船が何艘も往来していた。船頭に渡し賃を払い、揺れる船で対岸へ。見付宿は遠江国の大きな宿場だ。`,
     travelText: `見付を後にした。<br><br>浜松まで四里ほど。遠州の風が強い。`,
     innTextInn: `夕餉に天竜川の川魚の煮付けが出た。渡し場の宿らしい、脂の乗った一品だった。<br><br>見付の旅籠に泊まった。天竜川の渡しは大変だった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を早々に済ませた。今日は浜松へ進む。宗吉は荷を担ぎ、外へ出た。`,
@@ -3957,7 +4027,7 @@ const STAGE_DATA = {
   31: {
     name: '新居', ji: '第三十一次', yomi: 'あらい',
     next: '白須賀', nextJi: '第三十二次',
-    arriveText: `新居の関所を通った。<br><br>改めが厳しい関所だ。女改めもある。問答を経てやっと通れた。三ヶ日みかんの干し物を売る店が関所の先にあった。`,
+    arriveText: `舞阪から今切の渡しに乗り、新居の関所を通った。<br><br>渡し賃を払い、船で浜名湖の口を越える。改めが厳しい関所だ。女改めもある。問答を経てやっと通れた。三ヶ日みかんの干し物を売る店が関所の先にあった。`,
     travelText: `新居を後にした。<br><br>白須賀まで一里半。汐見坂を越える。`,
     innTextInn: `夕餉に三ヶ日みかんを干したものが香の物として出た。甘酸っぱくて、珍しい取り合わせだった。<br><br>新居の旅籠に泊まった。関所を越えると少し気が楽になった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を済ませて、宗吉は外へ出た。今日は白須賀へ向かう。三河が近づいてきた。`,
@@ -4078,7 +4148,7 @@ const STAGE_DATA = {
   42: {
     name: '桑名', ji: '第四十二次', yomi: 'くわな',
     next: '四日市', nextJi: '第四十三次',
-    arriveText: `桑名湊に着いた。<br><br>七里の渡しを終えた。「その手は桑名の焼き蛤」の名産地だ。大きな蛤の干物が売られている。伊勢参拝客で宿場が賑わっている。`,
+    arriveText: `桑名湊に着いた。<br><br>七里の渡しを終えた。宮の渡し場で船賃を払い、四時間ほど伊勢湾の波に揺られた。「その手は桑名の焼き蛤」の名産地だ。大きな蛤の干物が売られている。伊勢参拝客で宿場が賑わっている。`,
     travelText: `桑名を後にした。<br><br>四日市まで三里ほど。伊勢街道の旅人と混じって歩く。`,
     innTextInn: `夕餉に焼き蛤が出た。桑名の名物だ。ぷりぷりとした身が旨く、七里の渡しの疲れを忘れた。<br><br>桑名の旅籠に泊まった。七里の渡しは遠かった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯にも蛤の汁が出た。贅沢な一膳だった。宗吉は腹を満たして立った。今日は四日市へ向かう。`,
