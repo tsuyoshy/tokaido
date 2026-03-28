@@ -471,6 +471,58 @@
 
   #memo-overlay.open { display: block; }
 
+  /* ── セーブ／ロード モーダル ── */
+  #start-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 900;
+    align-items: center;
+    justify-content: center;
+  }
+  #start-modal.open { display: flex; }
+  #start-box {
+    background: #0e0c00;
+    border: 1px solid rgba(200,160,40,.4);
+    border-radius: 6px;
+    padding: 28px 24px;
+    width: 88%;
+    max-width: 320px;
+    text-align: center;
+  }
+  #start-box h2 {
+    font-size: 14px;
+    color: #e8c040;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+  #start-save-info {
+    font-size: 11px;
+    color: rgba(232,216,128,.55);
+    margin-bottom: 24px;
+    line-height: 1.8;
+  }
+  .start-btn {
+    display: block;
+    width: 100%;
+    background: none;
+    border: 1px solid rgba(200,160,40,.4);
+    color: #e8d880;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.15s;
+  }
+  .start-btn:hover { background: rgba(200,160,40,.12); }
+  .start-btn.primary {
+    border-color: rgba(200,160,40,.75);
+    color: #e8c040;
+  }
+
   /* ── 地図オーバーレイ ── */
   #map-overlay {
     display: none;
@@ -742,6 +794,7 @@
   <div id="header-icons">
     <button class="icon-btn" onclick="openMap()">地図</button>
     <button class="icon-btn" onclick="openMemo()">手帳</button>
+    <button class="icon-btn" onclick="saveGame()">記録</button>
   </div>
 </div>
 
@@ -807,6 +860,16 @@
   <div id="night-text"></div>
   <div id="inn-days"></div>
   <div id="tap-hint">— タップして続ける —</div>
+</div>
+
+<!-- セーブデータ選択モーダル -->
+<div id="start-modal">
+  <div id="start-box">
+    <h2>東海道商い旅</h2>
+    <div id="start-save-info"></div>
+    <button class="start-btn primary" id="btn-continue" onclick="startFromSave()">— 旅を続ける —</button>
+    <button class="start-btn" onclick="startFresh()">— 最初からはじめる —</button>
+  </div>
 </div>
 
 <!-- 旅の手帳 -->
@@ -3583,16 +3646,83 @@ function currentStageData() {
     cheapCost: 42,
   };
 }
-// ── 初期化 ──
-updateHeader();
-drawRainCanvas();
-drawSnowCanvas();
-(function() {
+// ── セーブ／ロード ──
+const SAVE_KEY = 'tokaido_save_v1';
+
+function saveGame() {
+  const data = {
+    savedAt: Date.now(),
+    state: JSON.parse(JSON.stringify(state)),
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    showNotify('記録しました');
+  } catch(e) {
+    showNotify('記録に失敗しました');
+  }
+}
+
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function startFromSave() {
+  const data = loadSave();
+  if (!data) return;
+  Object.assign(state, data.state);
+  document.getElementById('start-modal').classList.remove('open');
+  updateHeader();
   const sd = currentStageData();
   document.getElementById('stage-name').textContent = sd.name;
   document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
   document.getElementById('scene-text').innerHTML = sd.arriveText;
-})();
+  showStageChoices();
+}
+
+function startFresh() {
+  document.getElementById('start-modal').classList.remove('open');
+  updateHeader();
+  const sd = currentStageData();
+  document.getElementById('stage-name').textContent = sd.name;
+  document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
+  document.getElementById('scene-text').innerHTML = sd.arriveText;
+  showStageChoices();
+}
+
+function checkSaveOnStart() {
+  const data = loadSave();
+  if (!data) return false; // セーブなし → そのまま開始
+  // セーブ情報を表示
+  const s = data.state;
+  const d = new Date(data.savedAt);
+  const dateStr = d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate()
+    + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+  const stagesCleared = s.currentStage - 1;
+  document.getElementById('start-save-info').innerHTML =
+    dateStr + '<br>' +
+    '第' + s.currentStage + '次　' + (STAGE_DATA[s.currentStage] ? STAGE_DATA[s.currentStage].name : '') + '<br>' +
+    '通過 ' + stagesCleared + ' 次　手元金 ' + s.money.toLocaleString() + ' 文';
+  document.getElementById('start-modal').classList.add('open');
+  return true;
+}
+
+// ── 初期化 ──
+updateHeader();
+drawRainCanvas();
+drawSnowCanvas();
+if (!checkSaveOnStart()) {
+  (function() {
+    const sd = currentStageData();
+    document.getElementById('stage-name').textContent = sd.name;
+    document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
+    document.getElementById('scene-text').innerHTML = sd.arriveText;
+  })();
+  showStageChoices();
+}
+
 // ── 地図 ──
 const MAP_IMG_URL = 'https://raw.githubusercontent.com/tsuyoshy/tokaido/main/map/tokaido_map.png';
 const MAP_W = 820, MAP_H = 344;
@@ -3713,8 +3843,6 @@ function closeMap() {
 function handleMapOverlayClick(e) {
   if (e.target === document.getElementById('map-overlay')) closeMap();
 }
-
-showStageChoices();
 </script>
 </body>
 </html>
