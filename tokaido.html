@@ -3628,10 +3628,8 @@ drawSnowCanvas();
   const stageKey = STAGE_FILENAMES[state.currentStage];
   if (stageKey) {
     const illusImg = document.getElementById('illus-img');
-    illusImg.style.opacity = '0';
-    illusImg.onload  = () => { illusImg.style.opacity = '0.9'; };
-    illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
     illusImg.src = `https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/${stageNum}_${stageKey}.png`;
+    illusImg.style.opacity = '0.9';
   }
 })();
 showStageChoices();
