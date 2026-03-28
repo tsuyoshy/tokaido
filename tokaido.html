@@ -1017,6 +1017,8 @@ const state = {
   maxVol: 100,
   memos: { shobai: [], hito: [], michi: [], miyage: [] },
   flags: {},
+  souvenirs: [],        // 購入済み土産のid配列
+  souvenirChosen: null, // 大津で選んだ土産id（nullは手ぶら）
   visited: {},
   innLog: { income: 0, buy: 0, inn: 0 },
   commerceDone: false,
@@ -1561,6 +1563,24 @@ const STAGES = [
 
 
 // ── 宿場別仕入れ品データ（カテゴリ付き） ──
+// ── 土産データ ──
+// cls: 'inori'祈り / 'jitsuyo'実用 / 'zeitaku'贅沢 / 'kinen'記念
+const SOUVENIR_DATA = [
+  { id: 'mamori',  stage: 6,  name: '遊行寺の守り札',   price: 10,  cls: 'inori',   cond: null,        memo: '遊行寺の門前で買った守り札。おみつの無事を祈って。' },
+  { id: 'tenugui', stage: 7,  name: '藍染めの手拭い',   price: 40,  cls: 'jitsuyo', cond: null,        memo: '平塚で見かけた藍染めの手拭い。おみつに似合うかもしれない。' },
+  { id: 'ocha',    stage: 24, name: '島田茶',           price: 25,  cls: 'jitsuyo', cond: null,        memo: '金谷の茶農家からもらった茶。奉公先でも飲めるだろう。' },
+  { id: 'arima',   stage: 40, name: '有松絞りの手拭い', price: 80,  cls: 'zeitaku', cond: { money: 100 }, memo: '鳴海の有松絞り。高かった。それだけの物だと思う。' },
+  { id: 'asa',     stage: 50, name: '近江麻の小布',     price: 150, cls: 'zeitaku', cond: { money: 200 }, memo: '水口で買った近江麻。商売がうまくいった証として。' },
+  { id: 'otsue',   stage: 53, name: '大津絵',           price: 24,  cls: 'kinen',   cond: null,        memo: '大津で買った大津絵。旅の終わりの記念に。' },
+];
+
+const SOUVENIR_CLASS_LABEL = {
+  inori:   '祈り',
+  jitsuyo: '実用',
+  zeitaku: '贅沢',
+  kinen:   '記念',
+};
+
 const STAGE_ITEMS = {
   1:  [ // 品川
     { name: '干し鰯', origin: [1], unit: '個', buy: 8,  sell: 13,  vol: 3, cat: '食料' },
@@ -1955,7 +1975,7 @@ function showChoices(choices) {
       };
     }, 400);
   } else {
-    const nums = ['一、', '二、', '三、', '四、', '五、', '六、'];
+    const nums = ['一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、', '九、', '十、'];
     el.innerHTML = choices.map((c, i) =>
       `<button class="choice-btn" onclick="__choices[${i}].action()">
         <span class="choice-num">${nums[i]}</span>${c.label}
@@ -1982,9 +2002,44 @@ function triggerEnding() {
   const totalSold = state.memos.shobai.length;
   const stagesCleared = Object.keys(state.visited).length;
 
+  // 土産クラスを取得
+  const chosenSv = state.souvenirChosen
+    ? SOUVENIR_DATA.find(s => s.id === state.souvenirChosen)
+    : null;
+  const svCls = chosenSv ? chosenSv.cls : null;
+
+  // おみつのセリフ（所持金ベース）
   let omitsuLine = '兄さん、変わったね。';
   if (state.money >= 2000) omitsuLine = '兄さん、変わったね。——顔つきが、違う。';
   else if (state.money <= 200) omitsuLine = '兄さん、変わったね。——苦労したの、顔に出てる。';
+
+  // 土産シーンのテキスト（クラスで分岐）
+  let souvenirScene = '';
+  if (chosenSv) {
+    souvenirScene += `宗吉は懐から「${chosenSv.name}」を出した。<br><br>`;
+    if (svCls === 'inori') {
+      // 祈りB
+      souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「藤沢で買ったの？」<br><br>「ああ」<br><br>おみつはまた札を見た。「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
+      if (state.money <= 200) souvenirScene += `<br><br>「兄さん、無理したでしょ」<br><br>宗吉は首を振った。おみつは、それ以上聞かなかった。`;
+    } else if (svCls === 'jitsuyo') {
+      if (chosenSv.id === 'ocha') {
+        // 実用・お茶専用テキスト（B案）
+        souvenirScene += `おみつは包みを開けて、中を見た。それから顔を上げて、宗吉を見た。<br><br>「お茶」<br><br>「ああ。飲み切ったらそれまでだけど」<br><br>おみつは包みをもう一度見た。「茶畑、見た？」と聞いた。<br><br>「見た。丘の上まで続いてた」<br><br>おみつは「そう」と言った。しばらくして「飲む時、思い出すね」と言った。`;
+      } else {
+        // 実用B（手拭いなど）
+        souvenirScene += `おみつは包みを開けた。手拭いを手に取って、広げた。<br><br>「藍染めだ」<br><br>独り言みたいに言って、ためつすがめつ眺めた。それから宗吉を見た。<br><br>「どこで買ったの」<br><br>「平塚で。おみつに似合うと思って」<br><br>おみつは少し黙った。それからまた手拭いを見た。「似合うかな」と言った。笑いながら言った。宗吉は、その顔を見ていた。`;
+      }
+    } else if (svCls === 'zeitaku') {
+      // 贅沢B
+      souvenirScene += `おみつは布を受け取った。両手で持って、光に透かした。<br><br>「有松絞り……？」<br><br>「鳴海で買った」<br><br>おみつはしばらく黙っていた。畳んで、また広げた。それを二度繰り返した。<br><br>「高かったでしょ」<br><br>「まあ」<br><br>「もう」と言って、おみつは笑った。でも大事そうに布を抱えた。「大切にします」と言った。`;
+    } else if (svCls === 'kinen') {
+      // 記念A
+      souvenirScene += `おみつは大津絵を受け取って、じっと見た。鬼が豆を撒いている絵だった。<br><br>「東海道、歩いたの」<br><br>「歩いた」<br><br>おみつはもう一度絵を見た。それから宗吉の顔を見た。笑っていた。「大事にします」と言った。<br><br>宗吉はその時、自分が五十三の宿場を歩いてきたことを、初めてちゃんと実感した気がした。`;
+    }
+  } else {
+    // 手ぶらA
+    souvenirScene += `宗吉の手を、おみつは一度だけ見た。<br><br>何も言わなかった。しばらく、二人とも黙っていた。<br><br>それから顔を上げて、宗吉の顔を見た。「来てくれただけで、よかった」と言った。<br><br>宗吉はうなずいた。おみつも、うなずいた。それだけだった。それで十分だった。`;
+  }
 
   // 挿絵を京都画像に切り替え
   const illusImgKyo = document.getElementById('illus-img');
@@ -2015,10 +2070,12 @@ function triggerEnding() {
     `——三条大橋が見えた。<br><br>` +
     `橋の向こうに、おみつが立っていた。<br><br>` +
     `笑っているのか泣いているのか、よくわからない顔をして、こちらを見ていた。<br><br>` +
+    `${souvenirScene}<br><br>` +
     `「${omitsuLine}」<br><br>` +
-    `宗吉は何も言えなかった。ただ、橋を渡った。<br><br>` +
+    `宗吉は何も言えなかった。<br><br>` +
     `<span style="font-size:11px;opacity:0.45;line-height:2.2;">` +
     `通過した宿場 ${stagesCleared} 次　残り日数 ${state.days} 日　手元金 ${state.money.toLocaleString()} 文　商売 ${totalSold} 件` +
+    (chosenSv ? `　土産【${SOUVENIR_CLASS_LABEL[svCls]}】${chosenSv.name}` : `　土産なし`) +
     `</span>`;
 
   document.getElementById('scene-text').innerHTML = endText;
@@ -2055,6 +2112,10 @@ function showStageChoices() {
         choices.push({ label: '升屋・庄兵衛を訪ねる', fn: '', action: () => showShobeeScene() });
       }
     }
+    // 土産購入選択肢
+    const souvenirChoice = getSouvenirChoice();
+    if (souvenirChoice) choices.push(souvenirChoice);
+
     choices.push({ label: '宿を取る', fn: '', action: () => selectInn() });
     choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
   } else {
@@ -2073,6 +2134,90 @@ function showStageChoices() {
     }
   }
   showChoices(choices);
+}
+
+// ── 土産購入選択肢を返す（該当宿場・未購入・所持金チェック）──
+function getSouvenirChoice() {
+  const sv = SOUVENIR_DATA.find(s => s.stage === state.currentStage);
+  if (!sv) return null;
+  if (state.souvenirs.includes(sv.id)) return null; // 購入済み
+  if (sv.cond && sv.cond.money && state.money < sv.cond.money) return null; // 所持金不足
+  return {
+    label: `土産に「${sv.name}」を買う（${sv.price}文）`,
+    fn: '',
+    action: () => buySouvenir(sv.id),
+  };
+}
+
+// ── 土産を購入する ──
+function buySouvenir(id) {
+  const sv = SOUVENIR_DATA.find(s => s.id === id);
+  if (!sv) return;
+  if (state.money < sv.price) {
+    showNotify('所持金が足りない');
+    return;
+  }
+  state.money -= sv.price;
+  state.souvenirs.push(sv.id);
+  // 手帳「土産候補」タブに記録
+  const sd = currentStageData();
+  state.memos.miyage.push({ stage: sd ? sd.name : '', text: `${sv.name}（${sv.price}文）　${sv.memo}` });
+  updateHeader();
+  document.getElementById('scene-text').innerHTML =
+    `「${sv.name}」を買った。（${sv.price}文）<br><br>手帳の土産候補に書き留めた。`;
+  showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+}
+
+// ── 大津翌朝：土産最終選択シーン ──
+function showSouvenirChoice() {
+  const purchased = state.souvenirs
+    .map(id => SOUVENIR_DATA.find(s => s.id === id))
+    .filter(Boolean);
+
+  let text = `京へ向かう前に、宗吉は荷の中を確かめた。<br><br>`;
+
+  if (purchased.length === 0) {
+    text += `おみつへの土産——何も買わなかった。<br><br>手ぶらで行くのも、悪くはないか。`;
+  } else {
+    text += `おみつへの土産の候補が、`;
+    text += purchased.length === 1 ? `一つある。` : `${purchased.length}つある。`;
+    text += `<br><br>`;
+    text += purchased.map(sv =>
+      `・${sv.name}（${sv.price}文）`
+    ).join('<br>');
+    text += `<br><br>どれを持っていくか、今ここで決める。`;
+  }
+
+  document.getElementById('scene-text').innerHTML = text;
+
+  const choices = purchased.map(sv => ({
+    label: `「${sv.name}」を持っていく`,
+    fn: '',
+    action: () => confirmSouvenir(sv.id),
+  }));
+  choices.push({
+    label: '何も持たない',
+    fn: '',
+    action: () => confirmSouvenir(null),
+  });
+
+  showChoices(choices);
+}
+
+// ── 土産を確定する ──
+function confirmSouvenir(id) {
+  state.souvenirChosen = id;
+  const sv = id ? SOUVENIR_DATA.find(s => s.id === id) : null;
+
+  let text;
+  if (sv) {
+    text = `「${sv.name}」を、おみつへの土産にした。<br><br>荷の奥にそっとしまった。宗吉は立ち上がり、逢坂山へ向かった。`;
+  } else {
+    text = `手ぶらで行くことにした。<br><br>それでもいい。おみつに会いに行く——それだけで十分だ。宗吉は立ち上がり、逢坂山へ向かった。`;
+  }
+
+  document.getElementById('scene-text').innerHTML = text;
+  showChoices([{ label: '京へ向かう', fn: '', action: () => showStageChoices() }]);
 }
 
 // ── 宿の種類を選ぶ ──
@@ -3273,6 +3418,13 @@ function wakeUpMorning() {
     document.getElementById('scene-text').innerHTML = morningText;
 
     updateHeader();
+
+    // 大津（53）の翌朝は土産最終選択シーンを挿入
+    if (state.currentStage === 53 && state.souvenirChosen === null) {
+      showSouvenirChoice();
+      return;
+    }
+
     showStageChoices();
   });
 }
@@ -3752,7 +3904,7 @@ const STAGE_DATA = {
   6: {
     name: '藤沢', ji: '第六次', yomi: 'ふじさわ',
     next: '平塚', nextJi: '第七次',
-    arriveText: `藤沢宿は遊行寺の門前町だ。<br><br>大きな山門が見える。参拝客の姿もあった。托鉢の僧が数人、街道沿いに立っていた。`,
+    arriveText: `藤沢宿は遊行寺の門前町だ。<br><br>大きな山門が見える。参拝客の姿もあった。托鉢の僧が数人、街道沿いに立っていた。<br><br>門前の小店に、守り札が並んでいた。旅の安全を祈る人が買っていく。——おみつへ、一枚持っていくか。`,
     travelText: `藤沢宿を後にした。<br><br>平塚まで四里ほど。馬入川の渡しがある。`,
     innTextInn: `夕餉に蛤の汁が出た。遊行寺の門前町らしい、上品な一椀だった。<br><br>藤沢の旅籠に泊まった。遊行寺の鐘の音が遠くに聞こえた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、今日の道を頭に描いた。平塚まで四里ほど。馬入川の渡しがある。宗吉は立ち上がり、荷を担いだ。`,
@@ -3763,7 +3915,7 @@ const STAGE_DATA = {
   7: {
     name: '平塚', ji: '第七次', yomi: 'ひらつか',
     next: '大磯', nextJi: '第八次',
-    arriveText: `馬入川の渡しを越えた。<br><br>小さな渡し船に、旅人が肩を寄せ合って乗った。船頭に渡し賃を渡し、対岸へ。平塚宿はすぐそこだった。`,
+    arriveText: `馬入川の渡しを越えた。<br><br>小さな渡し船に、旅人が肩を寄せ合って乗った。船頭に渡し賃を渡し、対岸へ。平塚宿はすぐそこだった。<br><br>店先に藍染めの手拭いが積まれていた。深い藍の色だった。おみつに似合うかもしれない、と思った。`,
     travelText: `平塚宿を後にした。<br><br>大磯まで三里ほど。海沿いの道は風が強かった。`,
     innTextInn: `夕餉が出た。干物を焼いたものと、汁と飯。体に温かい汁がしみた。<br><br>平塚の旅籠に泊まった。馬入川の渡しを渡った日だった。`,
     morningTextInn: `夜が明けた。<br><br>着物は乾いていた。旅籠の朝飯を済ませ、宗吉は外へ出た。海沿いの道は風が強い。`,
@@ -3796,7 +3948,7 @@ const STAGE_DATA = {
   10: {
     name: '箱根', ji: '第十次', yomi: 'はこね',
     next: '三島', nextJi: '第十一次',
-    arriveText: `箱根の山道は険しかった。<br><br>関所を越えると、視界が開けた。頂上近くの茶屋で一息ついた。老人が富士の方角を指した。<br><br>宗吉は初めて立ち止まって、富士山を見た。`,
+    arriveText: `箱根の関所は、峠の中腹にある。<br><br>「手形」<br><br>番士が手を出した。宗吉は荷を下ろして手形を探した。荷の奥に押し込んであった。出すのに手間取った。<br><br>「江戸から？　商人か」<br><br>「はい、行商で」<br><br>「荷の中身は」<br><br>宗吉は品目を一つずつ答えた。番士は荷を少しかき回した。簪と紅が出てきた時、番士の顔が動いた。<br><br>「売り歩くのか、これを」<br><br>「はい」<br><br>「通れ」<br><br>それだけだった。峠道に戻ると、膝が少し震えていた。<br><br>関所を抜けると、視界が開けた。頂上近くの茶屋で一息ついた。老人が富士の方角を指した。宗吉は初めて立ち止まって、富士山を見た。`,
     travelText: `箱根を下り始めた。<br><br>三島まで四里ほど。下り坂は足に来る。`,
     innTextInn: `夕餉に薬草を煮込んだ汁が出た。湯治客向けなのか、少し苦い味がした。峠の宿らしい食事だった。<br><br>箱根の旅籠に泊まった。峠の夜は冷えた。薬草の匂いがする宿だった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯の汁も薬草入りだった。体の芯から温まる気がした。今日は三島まで下る。宗吉は荷を担ぎ、峠道へ向かった。`,
@@ -3830,7 +3982,7 @@ const STAGE_DATA = {
     name: '原', ji: '第十三次', yomi: 'はら',
     next: '吉原', nextJi: '第十四次',
     arriveText: `原宿は小さな宿場だ。<br><br>道端で絵を描いている男がいた。富士山を写生していた。「美しいと思ったことを商売にしてみな」と男は言った。`,
-    travelText: `原宿を出た。<br><br>吉原まで三里ほど。田畑の広がる平坦な道だった。`,
+    travelText: `原宿を出た。<br><br>吉原まで三里ほど。田子の浦沿いの道に入ったとき、宗吉は足を止めた。<br><br>富士山が、左にある。<br><br>江戸を出てからずっと、富士は右手に見えていた。箱根でも、三島でも、原でも——いつも右だった。それがいつの間にか、左に移っている。<br><br>同じ山なのに、向きが変わる。当たり前のことだが、なぜか妙な気がした。<br><br>旅人の一人が「吉原の左富士ですよ」と教えてくれた。「この先に行くとまた右に戻る」<br><br>宗吉はしばらく立ったまま、左手の富士を見ていた。白い頂が、冬の空にくっきりと立っていた。`,
     innTextInn: `夕餉に干し芋の煮たものが出た。素朴な味だった。田舎の宿らしい。<br><br>原の旅籠に泊まった。絵師の言葉が、なんとなく頭に残っていた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食い終えて外へ出ると、富士が朝日を浴びていた。宗吉はしばらく眺めてから、歩き出した。`,
     innTextCheap: `原の木賃宿に泊まった。<br><br>小さな宿で、夕飯が出なかった。持ち合わせの煮干しを一本食べて横になった。腹が鳴って、眠れなかった。`,
@@ -3853,7 +4005,7 @@ const STAGE_DATA = {
     next: '由比', nextJi: '第十六次',
     arriveText: `蒲原宿に着いた。<br><br>富士川を渡ってきた体に、宿場の灯りが温かかった。小さな宿場だが、旅人の姿がある。`,
     travelText: `蒲原を後にした。<br><br>由比へ向かう。薩埵峠が待っている。`,
-    innTextInn: `囲炉裏の傍に、老夫婦が座っていた。「五年ぶりに息子に会いに行くんだよ」と老婆は言った。「明日には着く。もうすぐだ」と老人が笑った。<br><br>夕餉の飯を食べながら、その言葉が頭に残った。蒲原の旅籠に泊まった。夜は静かだった。<br><br>——第一部・終——`,
+    innTextInn: `囲炉裏の傍に、老夫婦が座っていた。「五年ぶりに息子に会いに行くんだよ」と老婆は言った。「明日には着く。もうすぐだ」と老人が笑った。<br><br>夕餉に塩鯖の焼いたものと飯が出た。その言葉を噛み締めながら、宗吉は箸を動かした。蒲原の旅籠に泊まった。夜は静かだった。<br><br>——第一部・終——`,
     morningTextInn: `夜が明けた。<br><br>雪はまだ残っていた。朝飯の汁が熱くて、それがありがたかった。宗吉は荷を担ぎ、由比へ向かった。`,
     innTextCheap: `蒲原の木賃宿に泊まった。<br><br>板の間の冷えが体に染みてきた。夜は静かだった。<br><br>——第一部・終——`,
     innCost: 200,
@@ -3950,7 +4102,7 @@ const STAGE_DATA = {
   24: {
     name: '金谷', ji: '第廿四次', yomi: 'かなや',
     next: '日坂', nextJi: '第廿五次',
-    arriveText: `金谷は茶の産地だ。<br><br>茶畑が丘の上まで続いている。金谷茶の香りが街道に漂っていた。仕入れ値も安い。`,
+    arriveText: `金谷は茶の産地だ。<br><br>茶畑が丘の上まで続いている。金谷茶の香りが街道に漂っていた。仕入れ値も安い。<br><br>茶農家が小分けにした茶を売っていた。奉公に出ている者への土産にする旅人も多いという。`,
     travelText: `金谷を後にした。<br><br>日坂まで中山の急坂を越える。`,
     innTextInn: `夕餉に金谷茶で入れた汁が出た。茶の香りがほのかに漂う食事だった。宿全体に茶の匂いが染みていた。<br><br>金谷の旅籠に泊まった。茶の匂いのする宿だった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯にも茶が出た。いい香りだった。今日は日坂の急坂を越える。宗吉は腹を満たして立った。`,
@@ -4027,7 +4179,7 @@ const STAGE_DATA = {
   31: {
     name: '新居', ji: '第三十一次', yomi: 'あらい',
     next: '白須賀', nextJi: '第三十二次',
-    arriveText: `舞阪から今切の渡しに乗り、新居の関所を通った。<br><br>渡し賃を払い、船で浜名湖の口を越える。改めが厳しい関所だ。女改めもある。問答を経てやっと通れた。三ヶ日みかんの干し物を売る店が関所の先にあった。`,
+    arriveText: `舞阪から今切の渡しに乗り、新居の関所へ向かった。<br><br>新居の関所は、海に面した珍しい構えだった。渡し賃を払い、船で浜名湖の口を越えてきたばかりだ。<br><br>「手形を」<br><br>番士の声は静かだった。宗吉は懐から手形を出した。神田の名主の判が押してある。<br><br>番士は手形をじっと見た。それから宗吉の顔を見た。<br><br>「何のために京へ」<br><br>「妹に会いに行きます」<br><br>自分でも驚くくらい、すんなり出た言葉だった。<br><br>番士は何も言わず、手形を返した。<br><br>関所を抜けた。三ヶ日みかんの干し物を売る店が、関所の先にあった。`,
     travelText: `新居を後にした。<br><br>白須賀まで一里半。汐見坂を越える。`,
     innTextInn: `夕餉に三ヶ日みかんを干したものが香の物として出た。甘酸っぱくて、珍しい取り合わせだった。<br><br>新居の旅籠に泊まった。関所を越えると少し気が楽になった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を済ませて、宗吉は外へ出た。今日は白須賀へ向かう。三河が近づいてきた。`,
@@ -4126,7 +4278,7 @@ const STAGE_DATA = {
   40: {
     name: '鳴海', ji: '第四十次', yomi: 'なるみ',
     next: '宮', nextJi: '第四十一次',
-    arriveText: `鳴海宿に着いた。<br><br>有松絞りの産地だ。鮮やかな絞り染めの手拭いが軒先に並んでいる。有松村の絞り染めは全国に名が知れている。`,
+    arriveText: `鳴海宿に着いた。<br><br>有松絞りの産地だ。鮮やかな絞り染めの手拭いが軒先に並んでいる。有松村の絞り染めは全国に名が知れている。<br><br>値を見た。高い。それでも手が止まった。——おみつに、これくらいのものを持っていってもいいかもしれない。`,
     travelText: `鳴海を後にした。<br><br>宮まで二里ほど。熱田神宮が近い。`,
     innTextInn: `夕餉に甘辛の魚が一切れ出た。絞り染めの美しさが目に残った。<br><br>鳴海の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を済ませて、宗吉は外へ出た。今日は宮へ進む。熱田神宮が近い。`,
@@ -4194,7 +4346,7 @@ const STAGE_DATA = {
     next: '関', nextJi: '第四十七次',
     arriveText: `亀山は伊勢国の城下町だ。<br><br>亀山城の天守が台地の上に見える。亀山ろうそくは全国に名が知れている。関の刃物の産地にも近い。`,
     travelText: `亀山を後にした。<br><br>関まで二里ほど。`,
-    innTextInn: `夕餉に飯を食いながら、燭台に灯る亀山ろうそくの安定した炎をぼんやり見ていた。<br><br>亀山の旅籠に泊まった。ろうそくの灯りで帳面を書いた。`,
+    innTextInn: `夕餉に飯と汁、鈴鹿の山菜を煮たものが一皿出た。箸を動かしながら、燭台に灯る亀山ろうそくの安定した炎をぼんやり見ていた。<br><br>亀山の旅籠に泊まった。ろうそくの灯りで帳面を書いた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を済ませて、宗吉は外へ出た。今日は関へ向かう。宿場の古い町並みを歩く。`,
     innTextCheap: `亀山の木賃宿に泊まった。<br><br>ろうそくを借りたら一刻ごとに追加料金を取られた。帳面を途中でやめて、暗い中で横になった。`,
     innCost: 220,
@@ -4226,7 +4378,7 @@ const STAGE_DATA = {
     name: '土山', ji: '第四十九次', yomi: 'つちやま',
     next: '水口', nextJi: '第五十次',
     arriveText: `鈴鹿峠を越えた。<br><br>近江国に入った。峠を越えると空気が変わる。土山のお六櫛は名物だ。峠越えの旅人がよく買っていく。`,
-    travelText: `土山を後にした。<br><br>水口まで三里ほど。近江の平野が広がる。`,
+    travelText: `土山を後にした。<br><br>水口まで三里ほど。近江の平野が広がる。<br><br>街道の向こうから、荷を積んだ馬を二頭引いた男たちが歩いてくる。先頭の男は年配で、目が鋭かった。江戸の方へ向かっている。近江商人だろう。<br><br>すれ違う瞬間、男が宗吉の荷にちらりと目をやった。何も言わなかった。ただそれだけだった。<br><br>宗吉は振り返らず、歩き続けた。`,
     innTextInn: `夕餉に近江の芋の煮物が出た。峠を越えて近江に入ると、食べ物の味が変わる気がした。<br><br>土山の旅籠に泊まった。鈴鹿峠を越えた。近江に入った。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、近江の空気を感じた。ここから京まで、もう少しだ。宗吉は荷を担ぎ、外へ出た。`,
     innTextCheap: `土山の木賃宿に泊まった。<br><br>峠越えの後で体が限界だった。布団に倒れ込んだが、薄くて板の感触がそのまま背中に来た。`,
@@ -4236,9 +4388,9 @@ const STAGE_DATA = {
   50: {
     name: '水口', ji: '第五十次', yomi: 'みなくち',
     next: '石部', nextJi: '第五十一次',
-    arriveText: `水口宿に着いた。<br><br>水口かんぴょうの産地だ。白い干瓢が風にそよいでいる。近江麻の大きな問屋がある。近江の商人の町だ。`,
+    arriveText: `水口宿に着いた。<br><br>水口かんぴょうの産地だ。白い干瓢が風にそよいでいる。近江麻の大きな問屋がある。近江の商人の町だ。<br><br>問屋の前に近江麻の端切れが並んでいた。上質な布だった。ここまで来て稼いだ金で、これを買えるなら——そう思った。`,
     travelText: `水口を後にした。<br><br>石部まで三里ほど。野洲川沿いの道を歩く。`,
-    innTextInn: `夕餉に水口かんぴょうを使った煮物が出た。甘く煮てあって、旨かった。<br><br>水口の旅籠に泊まった。近江商人の老人の話を聞いた。`,
+    innTextInn: `夕餉に水口かんぴょうを使った煮物が出た。甘く煮てあって、旨かった。<br><br>囲炉裏の向かいに、白髪の老人が座っていた。荷の多さからして商人だろう。老人のほうから口を開いた。<br><br>「どこから来なすった」<br><br>「江戸から」と宗吉は答えた。<br><br>老人は少し目を細めた。「若いのに一人か。何を売っておる」<br><br>宗吉が荷の中身を言うと、老人はうなずいた。「売れたか」「まあ、なんとか」「損はしておらんか」「してません」「それはいい」<br><br>それだけ言って、老人はしばらく黙った。やがて、ぽつりと言った。<br><br>「売り手よし、買い手よし、世間よし。三方よし、というのじゃ」<br><br>宗吉は聞き返す間もなかった。老人はもう目を閉じていた。<br><br>水口の旅籠に泊まった。帳面を開いて、その言葉を書き留めた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、昨夜の老人の言葉を反芻した。三方よし。宗吉は荷を担ぎ、外へ出た。今日は石部へ向かう。`,
     innTextCheap: `水口の木賃宿に泊まった。<br><br>相部屋の近江商人が商売自慢を延々と続けた。反論する気にもなれず、相槌を打ち続けているうちに夜が明けた。`,
     innCost: 210,
@@ -4269,7 +4421,7 @@ const STAGE_DATA = {
   53: {
     name: '大津', ji: '第五十三次', yomi: 'おおつ',
     next: '京', nextJi: '終着',
-    arriveText: `大津宿に着いた。<br><br>琵琶湖の大きさに驚いた。湖というより、海のように広い。大津は近江最大の宿場で、京の玄関口だ。大津絵が名物だ。<br><br>逢坂山の向こうに、京がある。`,
+    arriveText: `大津宿に着いた。<br><br>琵琶湖の大きさに驚いた。湖というより、海のように広い。大津は近江最大の宿場で、京の玄関口だ。大津絵が名物だ。<br><br>街道沿いの店に大津絵が並んでいた。旅人が土産に買っていく。——明日は京に入る。これが最後の宿場だ。<br><br>逢坂山の向こうに、京がある。`,
     travelText: `大津を後にした。<br><br>逢坂山を越えれば——京だ。`,
     innTextInn: `夕餉に近江米の飯と、琵琶湖の魚の焼いたものが出た。京を目の前にした最後の夜の食事だった。<br><br>大津の旅籠に泊まった。明日は京に入る。おみつのことを考えたら、なかなか眠れなかった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べたが、味がよくわからなかった。心がもう先に行っていた。宗吉は荷を担ぎ、京へ向かった。`,
@@ -4319,6 +4471,8 @@ function startFromSave() {
   // 旧セーブデータに存在しないフィールドを補完
   if (state.lastInnType === undefined) state.lastInnType = null;
   if (state.lastDinnerItem === undefined) state.lastDinnerItem = null;
+  if (state.souvenirs === undefined) state.souvenirs = [];
+  if (state.souvenirChosen === undefined) state.souvenirChosen = null;
   document.getElementById('start-modal').classList.remove('open');
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
