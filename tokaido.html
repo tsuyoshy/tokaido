@@ -843,7 +843,7 @@
   <div id="header-icons">
     <button class="icon-btn" onclick="openMap()">地図</button>
     <button class="icon-btn" onclick="openMemo()">手帳</button>
-    <button class="icon-btn" onclick="saveGame()">記録</button>
+
   </div>
 </div>
 
@@ -2880,6 +2880,9 @@ function showInnLedgerAndSleep(paid, isInn) {
   document.getElementById('night-text').innerHTML = monologue;
   document.getElementById('inn-days').textContent = '藪入りまで残り ' + state.days + ' 日';
 
+  // オートセーブ（帳面を見たタイミング）
+  saveGame();
+
   // 旅籠選択肢を隠して翌朝へ
   document.getElementById('choices').classList.add('hidden');
   document.getElementById('scene-text').innerHTML = '';
@@ -2970,6 +2973,17 @@ function wakeUpMorning() {
     document.getElementById('cargo-panel').style.display = 'none';
 
     const sd = currentStageData();
+    document.getElementById('stage-name').textContent = sd.name;
+
+    // 挿絵を現在の宿場に更新（ロード時に品川画像のままになるのを防ぐ）
+    const stageKey = STAGE_FILENAMES[state.currentStage];
+    if (stageKey) {
+      const illusImg = document.getElementById('illus-img');
+      illusImg.style.opacity = '0';
+      illusImg.onload = () => { illusImg.style.opacity = '0.9'; };
+      illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
+      illusImg.src = shukubaUrl(state.currentStage, stageKey);
+    }
 
     // 朝の出発テキスト（旅籠/木賃宿で出し分け）
     let morningText;
@@ -3907,10 +3921,7 @@ function saveGame() {
   };
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-    showNotify('記録しました');
-  } catch(e) {
-    showNotify('記録に失敗しました');
-  }
+  } catch(e) {}
 }
 
 function loadSave() {
@@ -3925,16 +3936,11 @@ function startFromSave() {
   if (!data) return;
   Object.assign(state, data.state);
   document.getElementById('start-modal').classList.remove('open');
-  updateHeader();
-  const sd = currentStageData();
-  document.getElementById('stage-name').textContent = sd.name;
-  document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
-  document.getElementById('scene-text').innerHTML = sd.arriveText;
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
   preloadNextImages(state.currentStage);
-  showStageChoices();
+  wakeUpMorning();
 }
 
 function startFresh() {
