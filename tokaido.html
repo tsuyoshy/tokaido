@@ -480,8 +480,9 @@
     z-index: 900;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
   }
-  #start-modal.open { display: flex; }
+  #start-modal.open { display: flex; pointer-events: auto; }
   #start-box {
     background: #0e0c00;
     border: 1px solid rgba(200,160,40,.4);
@@ -3679,6 +3680,9 @@ function startFromSave() {
   document.getElementById('stage-name').textContent = sd.name;
   document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
   document.getElementById('scene-text').innerHTML = sd.arriveText;
+  window.scrollTo(0, 0);
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
   showStageChoices();
 }
 
@@ -3689,6 +3693,9 @@ function startFresh() {
   document.getElementById('stage-name').textContent = sd.name;
   document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
   document.getElementById('scene-text').innerHTML = sd.arriveText;
+  window.scrollTo(0, 0);
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
   showStageChoices();
 }
 
@@ -3719,6 +3726,9 @@ if (!checkSaveOnStart()) {
     document.getElementById('stage-name').textContent = sd.name;
     document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
     document.getElementById('scene-text').innerHTML = sd.arriveText;
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
   })();
   showStageChoices();
 }
