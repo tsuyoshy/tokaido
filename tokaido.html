@@ -291,52 +291,6 @@
   .cargo-sell-btn:hover { background: rgba(200,160,40,.15); }
   .cargo-sell-btn:disabled { opacity: 0.3; cursor: default; }
 
-  /* ── 仕入れパネル ── */
-  #purchase-panel {
-    display: none;
-    margin: 0 16px 8px;
-    border: 1px solid rgba(200,160,40,.28);
-    background: rgba(200,160,40,.05);
-    border-radius: 2px;
-  }
-
-  #purchase-panel-title {
-    padding: 8px 14px;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    border-bottom: 1px solid rgba(200,160,40,.28);
-    color: #e8c040;
-  }
-
-  #purchase-panel .cargo-sell-item {
-    border-bottom-color: rgba(200,160,40,.1);
-  }
-
-  #purchase-panel .cargo-sell-btn {
-    background: rgba(200,160,40,.06);
-    border-color: rgba(200,160,40,.28);
-    color: #e8d880;
-  }
-
-  #purchase-panel .cargo-sell-btn:hover { background: rgba(200,160,40,.15); }
-  #purchase-panel .cargo-sell-btn:disabled { opacity: 0.3; cursor: default; }
-
-  .purchase-row {
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .purchase-row:hover, .purchase-row:active { background: rgba(200,160,40,.12); }
-  .purchase-row--disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-  .purchase-row--disabled:hover, .purchase-row--disabled:active { background: none; }
-  .purchase-row--close {
-    justify-content: center;
-    font-size: 12px;
-    opacity: 0.7;
-  }
-
   /* ── 宿泊パート ── */
   #inn-area {
     margin: 0 16px 16px;
@@ -516,6 +470,68 @@
   }
 
   #memo-overlay.open { display: block; }
+
+  /* ── 地図オーバーレイ ── */
+  #map-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.82);
+    z-index: 700;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  #map-overlay.open { display: flex; }
+
+  #map-panel {
+    width: 92vw;
+    max-width: 540px;
+    background: #0e0c00;
+    border: 1px solid rgba(200,160,40,.32);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(200,160,40,.2);
+  }
+  #map-title {
+    font-size: 13px;
+    color: #e8c040;
+    letter-spacing: 0.1em;
+  }
+  #map-close {
+    background: none;
+    border: none;
+    color: #e8d880;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  #map-canvas-wrap {
+    position: relative;
+    width: 100%;
+  }
+  #map-canvas-wrap canvas {
+    display: block;
+    width: 100%;
+  }
+  #map-cur-label {
+    position: absolute;
+    bottom: 8px;
+    left: 12px;
+    font-size: 11px;
+    color: #c03040;
+    text-shadow: 0 1px 4px #000;
+    pointer-events: none;
+  }
 
   #memo-header {
     padding: 14px 16px;
@@ -724,8 +740,8 @@
     </div>
   </div>
   <div id="header-icons">
+    <button class="icon-btn" onclick="openMap()">地図</button>
     <button class="icon-btn" onclick="openMemo()">手帳</button>
-    <button class="icon-btn" id="save-btn" onclick="saveGame(true)" title="この宿場の状態を記録する">記録</button>
   </div>
 </div>
 
@@ -772,12 +788,6 @@
   <div id="cargo-sell-list"></div>
 </div>
 
-<!-- 仕入れ品一覧（問屋で仕入れる時に表示） -->
-<div id="purchase-panel" style="display:none;">
-  <div id="purchase-panel-title">◆ 仕入れ品</div>
-  <div id="purchase-list"></div>
-</div>
-
 <!-- 選択肢（商売完了後に表示） -->
 <div id="choices" class="hidden"></div>
 
@@ -801,6 +811,20 @@
 
 <!-- 旅の手帳 -->
 <div id="memo-overlay" onclick="closeMemo()"></div>
+
+<!-- 地図オーバーレイ -->
+<div id="map-overlay" onclick="handleMapOverlayClick(event)">
+  <div id="map-panel">
+    <div id="map-header">
+      <div id="map-title">東海道五十三次　道中図</div>
+      <button id="map-close" onclick="closeMap()">✕</button>
+    </div>
+    <div id="map-canvas-wrap">
+      <canvas id="map-canvas"></canvas>
+      <div id="map-cur-label"></div>
+    </div>
+  </div>
+</div>
 <div id="memo-panel">
   <div id="memo-header">
     <div id="memo-header-title">旅の手帳</div>
@@ -1258,7 +1282,7 @@ function callCustomer() {
   if (available.length === 0) {
     document.getElementById('scene-text').innerHTML = '宗吉は荷を広げた。<br><br>しかし、誰も足を止めなかった。';
     showChoices([
-      { label: '', fn: '', action: () => { hidePanels(); showStageChoices(); }},
+      { label: '', fn: '', action: () => { document.getElementById("cargo-panel").style.display="none"; showStageChoices(); }},
     ]);
     return;
   }
@@ -1287,7 +1311,7 @@ function callCustomer() {
 
   // 客が来るか確率判定
   if (Math.random() > customerPct()) {
-    hidePanels();
+    document.getElementById('cargo-panel').style.display = 'none';
     document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
     showChoices([
@@ -1310,7 +1334,7 @@ function callCustomer() {
   }
   // マッチしない場合は客が立ち去る
   if (!matches || matches.length === 0) {
-    hidePanels();
+    document.getElementById('cargo-panel').style.display = 'none';
     document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
     showChoices([
@@ -1854,9 +1878,9 @@ function triggerEnding() {
   state.timeSlot = 'hiru';
   updateHeader();
 
-  // inn-area / panels を隠す
+  // inn-area / cargo-panel を隠す
   document.getElementById('inn-area').classList.add('hidden');
-  hidePanels();
+  document.getElementById('cargo-panel').style.display = 'none';
   document.getElementById('tap-hint').style.display = 'none';
   document.body.onclick = null;
 
@@ -1888,12 +1912,6 @@ function showNotify(msg) {
   el.textContent = msg;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2500);
-}
-
-// ── パネル類をすべて隠す ──
-function hidePanels() {
-  document.getElementById('cargo-panel').style.display = 'none';
-  document.getElementById('purchase-panel').style.display = 'none';
 }
 
 // ── 宿場の共通選択肢を表示 ──
@@ -2013,7 +2031,7 @@ function openCargo() {
 
 // ── 所持品を閉じる ──
 function closeCargo() {
-  hidePanels();
+  document.getElementById('cargo-panel').style.display = 'none';
   if (state.innMode) {
     returnToInnChoices();
     return;
@@ -2032,7 +2050,7 @@ function startSell(idx, customer) {
   const customerName = customer ? customer.name : '女将';
 
   fadeTransition(() => {
-    hidePanels();
+    document.getElementById('cargo-panel').style.display = 'none';
     document.getElementById('scene-text').innerHTML = '';
 
     // 登場テキストは callCustomer / openCargo で表示済み
@@ -2108,7 +2126,7 @@ function doSell(idx, price, customer) {
       if (price < item.sell) {
         result = `「安いねえ」と女将は笑い、${sold}本買ってくれた。${income}文。<br><br>悪くない出だしだ——そう思いながら、宗吉は少しだけ損をした気がした。`;
       } else if (price === item.sell) {
-        result = `「ちょうどよかった」と女将は言って、${sold}本買ってくれた。${income}文。`;
+        result = `「ちょうどよかった」と女将は言って、${sold}本買ってくれた。${income}文。<br><br>最初の商売だった。`;
       } else {
         result = `「少し高いねえ」と女将は眉をひそめた。${income}文。<br><br>もう少し下げればよかったか、と宗吉は思った。`;
       }
@@ -2138,7 +2156,7 @@ function doSell(idx, price, customer) {
   }
 
   fadeTransition(() => {
-    if (state.innMode) hidePanels();
+    if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
     document.getElementById('scene-text').innerHTML = result;
     // 品川・女将（customer===null）・売れた場合のみ伝言イベントへ
     if (state.currentStage === 1 && !customer && bought && !state.flags.kamiDone) {
@@ -2146,7 +2164,7 @@ function doSell(idx, price, customer) {
     } else if (state.innMode) {
       showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
     } else {
-      showChoices([{ label: '', fn: '', action: () => { hidePanels(); showStageChoices(); } }]);
+      showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
     }
   });
 }
@@ -2178,7 +2196,7 @@ function doSellFirm(idx, price) {
 
 // ── 売買後の分岐 ──
 function afterSell() {
-  hidePanels();
+  document.getElementById('cargo-panel').style.display = 'none';
   document.getElementById('choices').classList.add('hidden');
   if (state.currentStage === 1 && !state.flags.kamiDone) {
     showKamiMessage();
@@ -2260,9 +2278,9 @@ function openBuy() {
       '宗吉は問屋を見て回った。気になるものがあった。<br><br>' +
       `<span style="font-size:11px;opacity:0.6;">${volInfo}</span>`;
 
-    // 仕入れ品リストを生成（行タップで選択）
-    const buyPanel = document.getElementById('purchase-panel');
-    const buyList  = document.getElementById('purchase-list');
+    // 仕入れ品ボタンを生成
+    const buyPanel = document.getElementById('cargo-panel');
+    const buyList  = document.getElementById('cargo-sell-list');
     buyList.innerHTML = items.map((item, i) => {
       const buyPrice = currentBuyPrice(item);
       const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
@@ -2270,11 +2288,14 @@ function openBuy() {
         ? `仕入<span style="color:#e8c040;">${buyPrice}文</span><span style="font-size:10px;opacity:0.6;">（産地値引）</span>`
         : `仕入${buyPrice}文`;
       const canBuy = state.money >= buyPrice && (item.vol === 0 || freeVol() >= item.vol);
-      return `<div class="cargo-sell-item purchase-row${canBuy ? '' : ' purchase-row--disabled'}" ${canBuy ? `onclick="doBuy(${i})"` : ''}>
+      return `<div class="cargo-sell-item">
         <span>${item.name}　${priceLabel}${item.vol > 0 ? `　体積${item.vol}` : ''}</span>
+        <button class="cargo-sell-btn" ${canBuy ? '' : 'disabled'} onclick="doBuy(${i})">仕入れる</button>
       </div>`;
     }).join('') +
-    `<div class="cargo-sell-item purchase-row purchase-row--close" onclick="closeBuyPanel()">閉じる</div>`;
+    `<div class="cargo-sell-item" style="justify-content:center;">
+       <button class="cargo-sell-btn" onclick="closeBuyPanel()">閉じる</button>
+     </div>`;
 
     // STAGE_ITEMSをwindowに保存（doBuyで参照）
     window.__buyItems = items;
@@ -2300,7 +2321,7 @@ function doBuy(itemIdx) {
 
   // 数量選択UIを表示
   fadeTransition(() => {
-    document.getElementById('purchase-panel').style.display = 'none';
+    document.getElementById('cargo-panel').style.display = 'none';
     const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
     const discountNote = isDiscount ? '　<span style="color:#e8c040;font-size:11px;">産地値引き</span>' : '';
     document.getElementById('scene-text').innerHTML =
@@ -2353,14 +2374,14 @@ function confirmBuy(itemIdx, qty) {
       `荷の容量：${currentVol()} / ${state.maxVol}`;
     showChoices([
       { label: 'さらに仕入れる', fn: '', action: () => openBuy() },
-      { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('purchase-panel').style.display='none'; showStageChoices(); } },
+      { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } },
     ]);
   });
 }
 
 // ── 仕入れパネルを閉じる ──
 function closeBuyPanel() {
-  document.getElementById('purchase-panel').style.display = 'none';
+  document.getElementById('cargo-panel').style.display = 'none';
   showStageChoices();
 }
 
@@ -2402,7 +2423,7 @@ function goToInn(selectedCost) {
   state.justArrived = false;
   fadeTransition(() => {
     document.getElementById('choices').classList.add('hidden');
-    hidePanels();
+    document.getElementById('cargo-panel').style.display = 'none';
     document.getElementById('tap-hint').style.display = 'none';
     document.body.onclick = null;
 
@@ -2617,7 +2638,7 @@ function nextStage() {
     const sd = currentStageData();
     document.getElementById('stage-name').textContent = sd.name;
     document.getElementById('inn-area').classList.add('hidden');
-    hidePanels();
+    document.getElementById('cargo-panel').style.display = 'none';
 
     // 挿絵を更新
     const stageNum = String(state.currentStage).padStart(2, '0');
@@ -2663,7 +2684,7 @@ function wakeUpMorning() {
     state.innTradeCount = 0;
 
     document.getElementById('inn-area').classList.add('hidden');
-    hidePanels();
+    document.getElementById('cargo-panel').style.display = 'none';
 
     const sd = currentStageData();
 
@@ -3562,59 +3583,7 @@ function currentStageData() {
     cheapCost: 42,
   };
 }
-// ── セーブ・ロード ──
-const SAVE_KEY = 'tokaido_save_v1';
-
-function saveGame(notify) {
-  const snapshot = {
-    money:         state.money,
-    days:          state.days,
-    timeSlot:      state.timeSlot,
-    currentStage:  state.currentStage,
-    weather:       state.weather,
-    cargo:         JSON.parse(JSON.stringify(state.cargo)),
-    maxVol:        state.maxVol,
-    memos:         JSON.parse(JSON.stringify(state.memos)),
-    flags:         JSON.parse(JSON.stringify(state.flags)),
-    visited:       JSON.parse(JSON.stringify(state.visited)),
-    innLog:        JSON.parse(JSON.stringify(state.innLog)),
-    commerceDone:  state.commerceDone,
-    cargoOpenCount:state.cargoOpenCount,
-    innTradeCount: state.innTradeCount,
-    innMode:       state.innMode,
-    justArrived:   state.justArrived,
-  };
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
-    if (notify) showNotify('旅の記録を残した');
-  } catch(e) {
-    if (notify) showNotify('記録に失敗した');
-  }
-}
-
-function loadGame() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const snap = JSON.parse(raw);
-    Object.assign(state, snap);
-    return true;
-  } catch(e) {
-    return false;
-  }
-}
-
-function hasSaveData() {
-  try { return !!localStorage.getItem(SAVE_KEY); } catch(e) { return false; }
-}
-
 // ── 初期化 ──
-(function() {
-  if (hasSaveData()) {
-    const ok = confirm('前回の旅の記録があります。続きから始めますか？\n（「キャンセル」で最初から）');
-    if (ok) loadGame();
-  }
-})();
 updateHeader();
 drawRainCanvas();
 drawSnowCanvas();
@@ -3623,15 +3592,128 @@ drawSnowCanvas();
   document.getElementById('stage-name').textContent = sd.name;
   document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
   document.getElementById('scene-text').innerHTML = sd.arriveText;
-  // 挿絵をcurrentStageに合わせて更新
-  const stageNum = String(state.currentStage).padStart(2, '0');
-  const stageKey = STAGE_FILENAMES[state.currentStage];
-  if (stageKey) {
-    const illusImg = document.getElementById('illus-img');
-    illusImg.src = `https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/${stageNum}_${stageKey}.png`;
-    illusImg.style.opacity = '0.9';
-  }
 })();
+// ── 地図 ──
+const MAP_IMG_URL = 'https://raw.githubusercontent.com/tsuyoshy/tokaido/main/map/tokaido_map.png';
+const MAP_W = 820, MAP_H = 344;
+
+const MAP_EDO = {x:762, y:222};
+const MAP_KYO = {x:126, y:157};
+const MAP_STAGES = [
+  {id:1,x:752,y:226},{id:2,x:746,y:235},{id:3,x:739,y:246},{id:4,x:727,y:251},
+  {id:5,x:715,y:256},{id:6,x:703,y:263},{id:7,x:693,y:263},{id:8,x:679,y:265},
+  {id:9,x:653,y:270},{id:10,x:634,y:272},{id:11,x:615,y:279},{id:12,x:603,y:280},
+  {id:13,x:592,y:269},{id:14,x:579,y:265},{id:15,x:563,y:266},{id:16,x:550,y:269},
+  {id:17,x:542,y:280},{id:18,x:534,y:285},{id:19,x:525,y:283},{id:20,x:518,y:282},
+  {id:21,x:511,y:284},{id:22,x:502,y:284},{id:23,x:492,y:285},{id:24,x:482,y:286},
+  {id:25,x:473,y:289},{id:26,x:461,y:296},{id:27,x:449,y:299},{id:28,x:440,y:300},
+  {id:29,x:427,y:294},{id:30,x:407,y:296},{id:31,x:390,y:291},{id:32,x:380,y:287},
+  {id:33,x:373,y:281},{id:34,x:366,y:275},{id:35,x:358,y:256},{id:36,x:353,y:251},
+  {id:37,x:344,y:243},{id:38,x:337,y:233},{id:39,x:325,y:215},{id:40,x:316,y:196},
+  {id:41,x:309,y:184},{id:42,x:272,y:184},{id:43,x:256,y:202},{id:44,x:244,y:204},
+  {id:45,x:237,y:207},{id:46,x:229,y:206},{id:47,x:218,y:197},{id:48,x:212,y:189},
+  {id:49,x:199,y:179},{id:50,x:188,y:175},{id:51,x:175,y:170},{id:52,x:161,y:169},
+  {id:53,x:145,y:170},
+];
+const MAP_LABEL_IDS = new Set([1,5,9,10,11,14,19,23,26,29,33,38,41,42,46,52,53]);
+const MAP_RD = [MAP_EDO, ...MAP_STAGES, MAP_KYO].flatMap(s => [s.x, s.y]);
+
+let mapImg = null;
+let mapImgLoaded = false;
+
+function loadMapImg() {
+  if (mapImg) return;
+  mapImg = new Image();
+  mapImg.onload = () => { mapImgLoaded = true; renderMap(); };
+  mapImg.src = MAP_IMG_URL;
+}
+
+function renderMap() {
+  const canvas = document.getElementById('map-canvas');
+  if (!canvas) return;
+  const wrap = document.getElementById('map-canvas-wrap');
+  const dispW = wrap.clientWidth || 480;
+  const scale = dispW / MAP_W;
+  canvas.width  = MAP_W;
+  canvas.height = MAP_H;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, MAP_W, MAP_H);
+
+  if (mapImgLoaded) {
+    ctx.drawImage(mapImg, 0, 0, MAP_W, MAP_H);
+  } else {
+    ctx.fillStyle = '#1a1408';
+    ctx.fillRect(0, 0, MAP_W, MAP_H);
+  }
+  ctx.fillStyle = 'rgba(0,0,0,.08)';
+  ctx.fillRect(0, 0, MAP_W, MAP_H);
+
+  const cur = state.currentStage;
+
+  // 通過済みルート
+  ctx.beginPath();
+  for (let i = 0; i <= cur * 2; i += 2) {
+    i ? ctx.lineTo(MAP_RD[i], MAP_RD[i+1]) : ctx.moveTo(MAP_RD[i], MAP_RD[i+1]);
+  }
+  ctx.strokeStyle = 'rgba(160,20,40,.95)';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // 江戸・京ラベル
+  mapLbl(ctx, MAP_EDO.x, MAP_EDO.y - 10, '江戸', 9);
+  mapLbl(ctx, MAP_KYO.x,  MAP_KYO.y  - 10, '京',   9);
+
+  // 宿場ドット
+  MAP_STAGES.forEach(s => {
+    const visited = s.id <= cur;
+    const current = s.id === cur;
+    if (current) {
+      ctx.beginPath(); ctx.arc(s.x, s.y, 10, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(160,20,40,.15)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(s.x, s.y, 4.5, 0, Math.PI*2);
+      ctx.fillStyle = '#c03040';
+      ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(180,20,40,.8)'; ctx.fill();
+      ctx.shadowBlur = 0;
+      const sd = STAGE_DATA[s.id];
+      mapLbl(ctx, s.x, s.y - 13, sd ? sd.name : '', 10);
+    } else if (visited) {
+      ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(160,20,40,.9)'; ctx.fill();
+      if (MAP_LABEL_IDS.has(s.id)) {
+        const sd = STAGE_DATA[s.id];
+        mapLbl(ctx, s.x, s.y - 8, sd ? sd.name : '', 8);
+      }
+    }
+  });
+
+  // 現在地ラベル
+  const sd = STAGE_DATA[cur];
+  document.getElementById('map-cur-label').textContent =
+    '現在地：' + (sd ? sd.name : '') + '宿';
+}
+
+function mapLbl(ctx, x, y, t, sz) {
+  ctx.font = sz + 'px serif';
+  ctx.textAlign = 'center';
+  ctx.strokeStyle = 'rgba(0,0,0,.9)'; ctx.lineWidth = 2.8; ctx.strokeText(t, x, y);
+  ctx.fillStyle = 'rgba(255,200,200,.95)'; ctx.fillText(t, x, y);
+}
+
+function openMap() {
+  loadMapImg();
+  document.getElementById('map-overlay').classList.add('open');
+  renderMap();
+}
+function closeMap() {
+  document.getElementById('map-overlay').classList.remove('open');
+}
+function handleMapOverlayClick(e) {
+  if (e.target === document.getElementById('map-overlay')) closeMap();
+}
+
 showStageChoices();
 </script>
 </body>
