@@ -1024,6 +1024,8 @@ const state = {
   innTradeCount: 0,
   innMode: false,
   justArrived: false,
+  lastDinnerItem: null,
+  lastInnType: null,
 };
 
 const timeLabels   = { asa: '朝', hiru: '昼', yuu: '夕', yoru: '夜' };
@@ -2861,72 +2863,55 @@ function sleepAtInn() {
   showInnLedgerAndSleep(paid, true);
 }
 
-// ── 木賃宿の朝食描写（食料ごと） ──
+// ── 木賃宿の朝食描写（食料ごと）── 常に「昨日の残り」表現
 function cheapInnMorningDesc(name) {
   const descs = {
-    '干し鰯':       '荷から干し鰯を一本出して、かじった。',
-    '煮干し':       '煮干しを数本、そのまま口に入れた。',
-    '鰹節':         '鰹節の欠片を口に入れた。',
-    '干し貝柱':     '干し貝柱を一つ、かじった。硬いが、旨みがあった。',
-    '海苔':         '海苔を一枚、糒に巻いて食べた。',
-    'するめ':       'するめを少し引きちぎって噛んだ。',
-    '干しエビ':     '干しエビをひとつまみ、口に入れた。',
-    '干し海老':     '干し海老をひとつまみ、口に入れた。',
-    '桜えび':       '桜えびを少し、糒に混ぜて食べた。',
-    '干し桜えび':   '干し桜えびを少し、糒に混ぜて食べた。',
-    '干し芋':       '干し芋を一切れ、口に入れた。甘みがあった。',
-    '干し柿':       '干し柿を一つ、かじった。甘みが体に染みた。',
-    '梅干し':       '梅干しを一粒、糒と一緒に食べた。',
-    '塩鯛':         '塩鯛を少し裂いて、そのまま食べた。',
-    '干し鯵':       '干し鯵を少しかじった。',
-    '干物':         '干物を少しかじった。',
-    '吉田の干物':   '干物を少しかじった。',
-    '熱田の干物':   '干物を少しかじった。',
-    'わかめ':       'わかめを少し口に入れた。',
-    '昆布':         '昆布の端をかじった。出汁の味がした。',
-    '削り節':       '削り節を糒にかけて食べた。',
-    '塩辛':         '塩辛を少し、糒の上に乗せて食べた。',
-    '安倍川餅':     '安倍川餅を一つ食べた。',
-    '蒲鉾':         '蒲鉾を薄く切って食べた。',
-    '干し鰻':       '干し鰻を少しかじった。',
-    '三ヶ日みかん干し': 'みかんの干したものを食べた。',
-    '焼き蛤干し':   '焼き蛤干しを一つ、かじった。',
-    '矢作の川海苔': '川海苔を少し、糒と食べた。',
-    '水口かんぴょう': 'かんぴょうを少し口に入れた。',
-    '金谷茶':       '金谷茶を一杯だけ飲んだ。',
-    '掛川茶':       '掛川茶を一杯だけ飲んだ。',
-    '宇津の茶':     '宇津の茶を一杯飲んだ。',
-    '近江米':       '近江米を少し炊いた。旨い飯が炊けた。',
+    '干し鰯':           '昨日の残りの干し鰯を一本、かじった。',
+    '煮干し':           '昨日の残りの煮干しを数本、口に入れた。',
+    '海苔':             '昨日の残りの海苔を一枚、糒に巻いて食べた。',
+    'するめ':           '昨日の残りのするめを少し引きちぎって噛んだ。',
+    '干しエビ':         '昨日の残りの干しエビをひとつまみ、口に入れた。',
+    '干し海老':         '昨日の残りの干し海老をひとつまみ、口に入れた。',
+    '桜えび':           '昨日の残りの桜えびを糒に混ぜて食べた。',
+    '干し桜えび':       '昨日の残りの干し桜えびを糒に混ぜて食べた。',
+    '干し芋':           '昨日の残りの干し芋を一切れ、かじった。甘みがあった。',
+    '干し柿':           '昨日の残りの干し柿を一つ、かじった。',
+    '梅干し':           '昨日の残りの梅干しを一粒、糒と食べた。',
+    '干し鯵':           '昨日の残りの干し鯵を少しかじった。',
+    '干物':             '昨日の残りの干物を少しかじった。',
+    '吉田の干物':       '昨日の残りの干物を少しかじった。',
+    '熱田の干物':       '昨日の残りの干物を少しかじった。',
+    'わかめ':           '昨日の残りのわかめを少し口に入れた。',
+    '塩辛':             '昨日の残りの塩辛を糒の上に乗せて食べた。',
+    '三ヶ日みかん干し': '昨日の残りのみかん干しをかじった。',
+    '焼き蛤干し':       '昨日の残りの焼き蛤干しを一つ、かじった。',
+    '矢作の川海苔':     '昨日の残りの川海苔を糒と食べた。',
+    '水口かんぴょう':   '昨日の残りのかんぴょうを口に入れた。',
   };
-  return descs[name] || name + 'を少し食べた。';
+  return descs[name] || '昨日の残りの' + name + 'を少し食べた。';
 }
 
 
 // ── 木賃宿：食料チェック→夕食描写→帳面へ ──
 function showCheapInnDinner(paid) {
-  // 荷から食料カテゴリを探す（qty > 0 のもの）
-  const foodItems = state.cargo.filter(item => item.cat === '食料' && item.qty > 0);
+  // 仕入値20文未満の食料のみ対象（高価な商品は木賃宿で消費しない）
+  const foodItems = state.cargo.filter(item => item.cat === '食料' && item.qty > 0 && item.buy < 20);
 
   let dinnerText;
-  let usedItem = null;
 
   if (foodItems.length > 0) {
-    // ランダムに一品選ぶ
-    usedItem = foodItems[Math.floor(Math.random() * foodItems.length)];
-    // 1つ消費
-    usedItem.qty -= 1;
-    if (usedItem.qty <= 0) {
-      state.cargo = state.cargo.filter(item => item !== usedItem || item.qty > 0);
-    }
+    // ランダムに一品選ぶ（消費はしない。朝食時に1個消費）
+    const chosen = foodItems[Math.floor(Math.random() * foodItems.length)];
+    state.lastDinnerItem = chosen.name;
 
     // 食料別の調理描写
-    const foodDesc = cheapInnFoodDesc(usedItem.name);
+    const foodDesc = cheapInnFoodDesc(chosen.name);
     dinnerText =
       '薪代を払い、囲炉裏の前に座った。<br><br>' +
-      foodDesc +
-      '';
+      foodDesc;
   } else {
-    // 食料なし → 糒のみ
+    // 対象食料なし → 糒のみ
+    state.lastDinnerItem = null;
     dinnerText =
       '薪代を払い、囲炉裏の前に座った。<br><br>' +
       '湯を借りて、糒をふやかした。梅干しもない。それだけの夕飯だった。';
@@ -3181,9 +3166,20 @@ function wakeUpMorning() {
     if (sd.morningTextInn && state.lastInnType === 'inn') {
       morningText = sd.morningTextInn;
     } else if (state.lastInnType === 'cheap') {
-      // 木賃宿の朝：食料があれば朝食描写を冒頭に追加
-      const morningFood = state.cargo.find(item => item.cat === '食料' && item.qty > 0);
+      // 木賃宿の朝：夕食で使った品（または仕入値20文未満の食料）を1個消費
+      let morningFood = null;
       let morningFoodText = '';
+
+      if (state.lastDinnerItem) {
+        // 夕食で描写した品を朝食で消費（夕食＋朝食で合計1消費）
+        morningFood = state.cargo.find(item => item.name === state.lastDinnerItem && item.qty > 0);
+        state.lastDinnerItem = null;
+      }
+      if (!morningFood) {
+        // 夕食で対象外だった場合、buy<20の食料から選ぶ
+        morningFood = state.cargo.find(item => item.cat === '食料' && item.qty > 0 && item.buy < 20);
+      }
+
       if (morningFood) {
         morningFood.qty -= 1;
         if (morningFood.qty <= 0) {
@@ -3675,11 +3671,11 @@ const STAGE_DATA = {
   5: {
     name: '戸塚', ji: '第五次', yomi: 'とつか',
     next: '藤沢', nextJi: '第六次',
-    arriveText: `戸塚宿に着いた頃、雨が降り始めた。<br><br>柏尾川が増水している。渡し場の船頭が「今日は渡れない」と言った。足止めだ。<br><br>同じ宿に泊まることになった旅人たちと、狭い部屋で雨音を聞いた。`,
-    travelText: `雨が上がった翌朝、戸塚を出た。<br><br>藤沢まで二里余り。街道はぬかるんでいた。`,
-    innTextInn: `囲炉裏の周りに旅人が集まって、それぞれ汁をすすっていた。宗吉も飯と汁を受け取り、隅に座った。雨の夜の旅籠の飯は、妙にしみた。<br><br>雨の戸塚で足止めになった。旅籠の囲炉裏で体を温めながら、帳面を開いた。`,
+    arriveText: `戸塚宿に着いた。<br><br>柏尾川沿いの宿場は大きく、旅籠が軒を連ねていた。江戸から五番目の宿場とあって、旅人の数も多い。`,
+    travelText: `戸塚を出た。<br><br>藤沢まで二里余り。街道は続く。`,
+    innTextInn: `囲炉裏の周りに旅人が集まって、それぞれ汁をすすっていた。宗吉も飯と汁を受け取り、隅に座った。<br><br>旅籠の囲炉裏で体を温めながら、帳面を開いた。`,
     morningTextInn: `夜が明けた。<br><br>雨は上がっていた。朝飯を急いで食って、宗吉は宿を出た。街道はまだぬかるんでいた。`,
-    innTextCheap: `雨の戸塚で足止めになった。<br><br>木賃宿に旅人が溢れ、廊下まで人が寝ていた。夜中に誰かが自分の荷を枕にして眠っていて、起こすに起こせなかった。`,
+    innTextCheap: `木賃宿に旅人が溢れ、廊下まで人が寝ていた。夜中に誰かが自分の荷を枕にして眠っていて、起こすに起こせなかった。`,
     innCost: 210,
     cheapCost: 30,
   },
@@ -3697,11 +3693,11 @@ const STAGE_DATA = {
   7: {
     name: '平塚', ji: '第七次', yomi: 'ひらつか',
     next: '大磯', nextJi: '第八次',
-    arriveText: `馬入川の渡しは雨だった。<br><br>小さな渡し船に、旅人が肩を寄せ合って乗った。対岸に着くと、平塚宿はすぐそこだった。`,
+    arriveText: `馬入川の渡しを越えた。<br><br>小さな渡し船に、旅人が肩を寄せ合って乗った。対岸に着くと、平塚宿はすぐそこだった。`,
     travelText: `平塚宿を後にした。<br><br>大磯まで三里ほど。海沿いの道は風が強かった。`,
-    innTextInn: `夕餉が出た。干物を焼いたものと、汁と飯。濡れた体に温かい汁がしみた。<br><br>平塚の旅籠に泊まった。雨の渡しで濡れた着物を囲炉裏の近くに干した。`,
+    innTextInn: `夕餉が出た。干物を焼いたものと、汁と飯。体に温かい汁がしみた。<br><br>平塚の旅籠に泊まった。馬入川の渡しを渡った日だった。`,
     morningTextInn: `夜が明けた。<br><br>着物は乾いていた。旅籠の朝飯を済ませ、宗吉は外へ出た。海沿いの道は風が強い。`,
-    innTextCheap: `平塚の木賃宿に泊まった。<br><br>濡れた着物を干したかったが、囲炉裏の場所を先客に取られていた。仕方なく、湿ったまま横になった。`,
+    innTextCheap: `平塚の木賃宿に泊まった。<br><br>囲炉裏の場所を先客に取られていた。端に座っていたが、なかなか体が温まらなかった。`,
     innCost: 200,
     cheapCost: 32,
   },
@@ -3785,11 +3781,11 @@ const STAGE_DATA = {
   15: {
     name: '蒲原', ji: '第十五次', yomi: 'かんばら',
     next: '由比', nextJi: '第十六次',
-    arriveText: `夜、雪が降り始めた。<br><br>蒲原宿の宿に入ると、老夫婦が囲炉裏で暖を取っていた。「五年ぶりに息子に会いに行くんだよ」と老婆は言った。「今日はもう近い」と老人が笑った。`,
-    travelText: `雪の蒲原を後にした。<br><br>由比へ向かう。薩埵峠が待っている。`,
-    innTextInn: `夕餉の飯を食べながら、雪の降る外を見ていた。老夫婦が「もう近い」と言っていた。その言葉が温かかった。<br><br>蒲原の旅籠に泊まった。雪の音は何も聞こえない。ただ静かだった。<br><br>——第一部・終——`,
+    arriveText: `蒲原宿に着いた。<br><br>富士川を渡ってきた体に、宿場の灯りが温かかった。小さな宿場だが、旅人の姿がある。`,
+    travelText: `蒲原を後にした。<br><br>由比へ向かう。薩埵峠が待っている。`,
+    innTextInn: `囲炉裏の傍に、老夫婦が座っていた。「五年ぶりに息子に会いに行くんだよ」と老婆は言った。「明日には着く。もうすぐだ」と老人が笑った。<br><br>夕餉の飯を食べながら、その言葉が頭に残った。蒲原の旅籠に泊まった。夜は静かだった。<br><br>——第一部・終——`,
     morningTextInn: `夜が明けた。<br><br>雪はまだ残っていた。朝飯の汁が熱くて、それがありがたかった。宗吉は荷を担ぎ、由比へ向かった。`,
-    innTextCheap: `蒲原の木賃宿に泊まった。<br><br>雪の音は何も聞こえない。板の間に雪の冷えが染みてきた。<br><br>——第一部・終——`,
+    innTextCheap: `蒲原の木賃宿に泊まった。<br><br>板の間の冷えが体に染みてきた。夜は静かだった。<br><br>——第一部・終——`,
     innCost: 200,
     cheapCost: 28,
   },
@@ -4250,6 +4246,9 @@ function startFromSave() {
   const data = loadSave();
   if (!data) return;
   Object.assign(state, data.state);
+  // 旧セーブデータに存在しないフィールドを補完
+  if (state.lastInnType === undefined) state.lastInnType = null;
+  if (state.lastDinnerItem === undefined) state.lastDinnerItem = null;
   document.getElementById('start-modal').classList.remove('open');
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
