@@ -265,7 +265,7 @@
     color: #e8c040;
   }
 
-  .cargo-item {
+  .cargo-sell-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -274,56 +274,22 @@
     font-size: 13px;
   }
 
-  .cargo-item:last-child { border-bottom: none; }
+  .cargo-sell-item:last-child { border-bottom: none; }
 
-  /* ── 仕入れ一覧 ── */
-  #buy-panel {
-    display: none;
-    margin: 0 16px 8px;
+  .cargo-sell-btn {
+    background: rgba(200,160,40,.06);
     border: 1px solid rgba(200,160,40,.28);
-    background: rgba(200,160,40,.05);
-    border-radius: 2px;
-  }
-
-  #buy-panel-title {
-    padding: 8px 14px;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    border-bottom: 1px solid rgba(200,160,40,.28);
-    color: #e8c040;
-  }
-
-  .buy-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 14px;
-    border-bottom: 1px solid rgba(200,160,40,.1);
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-
-  .buy-item:hover { background: rgba(200,160,40,.08); }
-  .buy-item:last-child { border-bottom: none; }
-
-  .buy-item--disabled {
-    opacity: 0.35;
-    cursor: default;
-    pointer-events: none;
-  }
-
-  .buy-close {
-    display: flex;
-    justify-content: center;
-    padding: 10px 14px;
+    color: #e8d880;
+    padding: 5px 12px;
     font-size: 12px;
-    color: rgba(232,216,128,0.6);
+    font-family: 'Noto Serif JP', serif;
     cursor: pointer;
-    transition: background 0.15s;
+    border-radius: 2px;
+    transition: background 0.2s;
   }
 
-  .buy-close:hover { background: rgba(200,160,40,.08); }
+  .cargo-sell-btn:hover { background: rgba(200,160,40,.15); }
+  .cargo-sell-btn:disabled { opacity: 0.3; cursor: default; }
 
   /* ── 宿泊パート ── */
   #inn-area {
@@ -605,10 +571,26 @@
   #map-canvas-wrap {
     position: relative;
     width: 100%;
+    touch-action: none;
+    cursor: grab;
+    overflow: hidden;
+  }
+  #map-canvas-wrap.grabbing {
+    cursor: grabbing;
   }
   #map-canvas-wrap canvas {
     display: block;
     width: 100%;
+    transform-origin: 0 0;
+  }
+  #map-zoom-hint {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 9px;
+    color: rgba(200,160,40,.55);
+    pointer-events: none;
+    letter-spacing: 0.05em;
   }
   #map-cur-label {
     position: absolute;
@@ -873,12 +855,7 @@
 <!-- 所持品一覧（荷を広げた時に表示） -->
 <div id="cargo-panel" style="display:none;">
   <div id="cargo-panel-title">◆ 所持品</div>
-  <div id="cargo-list"></div>
-</div>
-
-<div id="buy-panel" style="display:none;">
-  <div id="buy-panel-title">◆ 仕入れ</div>
-  <div id="buy-list"></div>
+  <div id="cargo-sell-list"></div>
 </div>
 
 <!-- 選択肢（商売完了後に表示） -->
@@ -924,6 +901,7 @@
     </div>
     <div id="map-canvas-wrap">
       <canvas id="map-canvas"></canvas>
+      <div id="map-zoom-hint">ピンチでズーム・ダブルタップでリセット</div>
       <div id="map-cur-label"></div>
     </div>
   </div>
@@ -1981,10 +1959,9 @@ function triggerEnding() {
   state.timeSlot = 'hiru';
   updateHeader();
 
-  // inn-area / cargo-panel / buy-panel を隠す
+  // inn-area / cargo-panel を隠す
   document.getElementById('inn-area').classList.add('hidden');
   document.getElementById('cargo-panel').style.display = 'none';
-  document.getElementById('buy-panel').style.display = 'none';
   document.getElementById('tap-hint').style.display = 'none';
   document.body.onclick = null;
 
@@ -2094,16 +2071,16 @@ function openCargo() {
 
   // 所持品一覧を生成（ボタンなし）
   const panel = document.getElementById('cargo-panel');
-  const list  = document.getElementById('cargo-list');
+  const list  = document.getElementById('cargo-sell-list');
   const volUsed = currentVol();
   list.innerHTML =
-    `<div class="cargo-item" style="font-size:11px;opacity:0.6;">
+    `<div class="cargo-sell-item" style="font-size:11px;opacity:0.6;">
       <span>荷の容量</span><span>${volUsed} / ${state.maxVol}</span>
     </div>` +
     state.cargo
       .filter(item => item.qty > 0)
       .map((item, i) =>
-        `<div class="cargo-item">
+        `<div class="cargo-sell-item">
            <span>${item.name}</span><span>${item.qty}${item.unit}</span>
          </div>`
       ).join('');
@@ -2382,9 +2359,9 @@ function openBuy() {
       '宗吉は問屋を見て回った。気になるものがあった。<br><br>' +
       `<span style="font-size:11px;opacity:0.6;">${volInfo}</span>`;
 
-    // 仕入れ品リストを生成（行全体がボタン）
-    const buyPanel = document.getElementById('buy-panel');
-    const buyList  = document.getElementById('buy-list');
+    // 仕入れ品ボタンを生成
+    const buyPanel = document.getElementById('cargo-panel');
+    const buyList  = document.getElementById('cargo-sell-list');
     buyList.innerHTML = items.map((item, i) => {
       const buyPrice = currentBuyPrice(item);
       const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
@@ -2392,13 +2369,14 @@ function openBuy() {
         ? `仕入<span style="color:#e8c040;">${buyPrice}文</span><span style="font-size:10px;opacity:0.6;">（産地値引）</span>`
         : `仕入${buyPrice}文`;
       const canBuy = state.money >= buyPrice && (item.vol === 0 || freeVol() >= item.vol);
-      const disabledClass = canBuy ? '' : ' buy-item--disabled';
-      return `<div class="buy-item${disabledClass}" onclick="doBuy(${i})">
-        <span>${item.name}${item.vol > 0 ? `　体積${item.vol}` : ''}</span>
-        <span>${priceLabel}</span>
+      return `<div class="cargo-sell-item">
+        <span>${item.name}　${priceLabel}${item.vol > 0 ? `　体積${item.vol}` : ''}</span>
+        <button class="cargo-sell-btn" ${canBuy ? '' : 'disabled'} onclick="doBuy(${i})">仕入れる</button>
       </div>`;
     }).join('') +
-    `<div class="buy-close" onclick="closeBuyPanel()">閉じる</div>`;
+    `<div class="cargo-sell-item" style="justify-content:center;">
+       <button class="cargo-sell-btn" onclick="closeBuyPanel()">閉じる</button>
+     </div>`;
 
     // STAGE_ITEMSをwindowに保存（doBuyで参照）
     window.__buyItems = items;
@@ -2424,7 +2402,7 @@ function doBuy(itemIdx) {
 
   // 数量選択UIを表示
   fadeTransition(() => {
-    document.getElementById('buy-panel').style.display = 'none';
+    document.getElementById('cargo-panel').style.display = 'none';
     const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
     const discountNote = isDiscount ? '　<span style="color:#e8c040;font-size:11px;">産地値引き</span>' : '';
     document.getElementById('scene-text').innerHTML =
@@ -2477,14 +2455,14 @@ function confirmBuy(itemIdx, qty) {
       `荷の容量：${currentVol()} / ${state.maxVol}`;
     showChoices([
       { label: 'さらに仕入れる', fn: '', action: () => openBuy() },
-      { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('buy-panel').style.display='none'; showStageChoices(); } },
+      { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } },
     ]);
   });
 }
 
 // ── 仕入れパネルを閉じる ──
 function closeBuyPanel() {
-  document.getElementById('buy-panel').style.display = 'none';
+  document.getElementById('cargo-panel').style.display = 'none';
   showStageChoices();
 }
 
@@ -2603,16 +2581,16 @@ function openCargoForInn() {
   const available = state.cargo.filter(item => item.qty > 0);
 
   // 所持品パネルを生成・表示
-  const list = document.getElementById('cargo-list');
+  const list = document.getElementById('cargo-sell-list');
   const volUsed = currentVol();
   list.innerHTML =
-    `<div class="cargo-item" style="font-size:11px;opacity:0.6;">
+    `<div class="cargo-sell-item" style="font-size:11px;opacity:0.6;">
       <span>荷の容量</span><span>${volUsed} / ${state.maxVol}</span>
     </div>` +
     state.cargo
       .filter(item => item.qty > 0)
       .map(item =>
-        `<div class="cargo-item">
+        `<div class="cargo-sell-item">
            <span>${item.name}</span><span>${item.qty}${item.unit}</span>
          </div>`
       ).join('');
@@ -2653,7 +2631,7 @@ function returnToInnChoices() {
   state.innMode = false;
   const panel = document.getElementById('cargo-panel');
   panel.style.display = 'none';
-  document.getElementById('cargo-list').innerHTML = '';
+  document.getElementById('cargo-sell-list').innerHTML = '';
   document.getElementById('choices').classList.add('hidden');
   document.getElementById('tap-hint').style.display = 'none';
   document.body.onclick = null;
@@ -2742,7 +2720,6 @@ function nextStage() {
     document.getElementById('stage-name').textContent = sd.name;
     document.getElementById('inn-area').classList.add('hidden');
     document.getElementById('cargo-panel').style.display = 'none';
-    document.getElementById('buy-panel').style.display = 'none';
 
     // 挿絵を更新
     const stageNum = String(state.currentStage).padStart(2, '0');
@@ -2789,7 +2766,6 @@ function wakeUpMorning() {
 
     document.getElementById('inn-area').classList.add('hidden');
     document.getElementById('cargo-panel').style.display = 'none';
-    document.getElementById('buy-panel').style.display = 'none';
 
     const sd = currentStageData();
 
@@ -3883,13 +3859,144 @@ function mapLbl(ctx, x, y, t, sz) {
   ctx.fillStyle = 'rgba(255,200,200,.95)'; ctx.fillText(t, x, y);
 }
 
+// ── 地図ズーム・パン ──
+let mapZoom = 1.0;
+let mapPanX = 0, mapPanY = 0;
+let mapDragStart = null;
+let mapPinchDist = 0;
+let mapLastTap = 0;
+
+function applyMapTransform() {
+  const canvas = document.getElementById('map-canvas');
+  if (!canvas) return;
+  canvas.style.transform = `translate(${mapPanX}px,${mapPanY}px) scale(${mapZoom})`;
+}
+
+function resetMapTransform() {
+  mapZoom = 1.0; mapPanX = 0; mapPanY = 0;
+  applyMapTransform();
+}
+
+function clampMapPan() {
+  const wrap = document.getElementById('map-canvas-wrap');
+  if (!wrap) return;
+  const wrapW = wrap.clientWidth;
+  const wrapH = wrap.clientHeight;
+  const scaledW = wrapW * mapZoom;
+  const scaledH = (wrapW / MAP_W * MAP_H) * mapZoom;
+  const minX = Math.min(0, wrapW - scaledW);
+  const minY = Math.min(0, wrapH - scaledH);
+  mapPanX = Math.max(minX, Math.min(0, mapPanX));
+  mapPanY = Math.max(minY, Math.min(0, mapPanY));
+}
+
+function initMapGestures() {
+  const wrap = document.getElementById('map-canvas-wrap');
+  if (!wrap || wrap._gesturesInit) return;
+  wrap._gesturesInit = true;
+
+  wrap.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - mapLastTap < 300) {
+        resetMapTransform();
+        mapLastTap = 0;
+        return;
+      }
+      mapLastTap = now;
+      mapDragStart = { x: e.touches[0].clientX - mapPanX, y: e.touches[0].clientY - mapPanY };
+      wrap.classList.add('grabbing');
+    } else if (e.touches.length === 2) {
+      mapPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      mapDragStart = null;
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1 && mapDragStart) {
+      mapPanX = e.touches[0].clientX - mapDragStart.x;
+      mapPanY = e.touches[0].clientY - mapDragStart.y;
+      clampMapPan();
+      applyMapTransform();
+    } else if (e.touches.length === 2) {
+      const newDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (mapPinchDist > 0) {
+        const wrapEl = document.getElementById('map-canvas-wrap');
+        const rect = wrapEl.getBoundingClientRect();
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+        const ratio = newDist / mapPinchDist;
+        const newZoom = Math.max(1.0, Math.min(4.0, mapZoom * ratio));
+        mapPanX = cx - (cx - mapPanX) * (newZoom / mapZoom);
+        mapPanY = cy - (cy - mapPanY) * (newZoom / mapZoom);
+        mapZoom = newZoom;
+        clampMapPan();
+        applyMapTransform();
+      }
+      mapPinchDist = newDist;
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (e.touches.length === 0) {
+      mapDragStart = null;
+      mapPinchDist = 0;
+      wrap.classList.remove('grabbing');
+    } else if (e.touches.length === 1) {
+      mapPinchDist = 0;
+      mapDragStart = { x: e.touches[0].clientX - mapPanX, y: e.touches[0].clientY - mapPanY };
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('mousedown', e => {
+    mapDragStart = { x: e.clientX - mapPanX, y: e.clientY - mapPanY };
+    wrap.classList.add('grabbing');
+  });
+  window.addEventListener('mousemove', e => {
+    if (!mapDragStart) return;
+    mapPanX = e.clientX - mapDragStart.x;
+    mapPanY = e.clientY - mapDragStart.y;
+    clampMapPan();
+    applyMapTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    mapDragStart = null;
+    wrap.classList.remove('grabbing');
+  });
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = wrap.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const delta = e.deltaY > 0 ? 0.85 : 1.18;
+    const newZoom = Math.max(1.0, Math.min(4.0, mapZoom * delta));
+    mapPanX = cx - (cx - mapPanX) * (newZoom / mapZoom);
+    mapPanY = cy - (cy - mapPanY) * (newZoom / mapZoom);
+    mapZoom = newZoom;
+    clampMapPan();
+    applyMapTransform();
+  }, { passive: false });
+}
+
 function openMap() {
   loadMapImg();
   document.getElementById('map-overlay').classList.add('open');
   renderMap();
+  resetMapTransform();
+  setTimeout(initMapGestures, 0);
 }
 function closeMap() {
   document.getElementById('map-overlay').classList.remove('open');
+  resetMapTransform();
 }
 function handleMapOverlayClick(e) {
   if (e.target === document.getElementById('map-overlay')) closeMap();
