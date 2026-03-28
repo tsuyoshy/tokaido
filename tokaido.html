@@ -3623,6 +3623,16 @@ drawSnowCanvas();
   document.getElementById('stage-name').textContent = sd.name;
   document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
   document.getElementById('scene-text').innerHTML = sd.arriveText;
+  // 挿絵をcurrentStageに合わせて更新
+  const stageNum = String(state.currentStage).padStart(2, '0');
+  const stageKey = STAGE_FILENAMES[state.currentStage];
+  if (stageKey) {
+    const illusImg = document.getElementById('illus-img');
+    illusImg.style.opacity = '0';
+    illusImg.onload  = () => { illusImg.style.opacity = '0.9'; };
+    illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
+    illusImg.src = `https://raw.githubusercontent.com/tsuyoshy/tokaido/main/shukuba/${stageNum}_${stageKey}.png`;
+  }
 })();
 showStageChoices();
 </script>
