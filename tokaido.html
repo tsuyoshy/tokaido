@@ -3991,7 +3991,25 @@ function openMap() {
   loadMapImg();
   document.getElementById('map-overlay').classList.add('open');
   renderMap();
-  resetMapTransform();
+  // 進捗に応じた初期ズーム（現在地を中心に表示）
+  const cur = state.currentStage;
+  const initialZoom = cur <= 17 ? 2.5 : cur <= 35 ? 1.8 : 1.3;
+  const stagePos = MAP_STAGES.find(s => s.id === cur);
+  const wrap = document.getElementById('map-canvas-wrap');
+  const wrapW = wrap ? wrap.clientWidth : 480;
+  const canvasH = wrapW / MAP_W * MAP_H;
+  if (stagePos) {
+    const scaleBase = wrapW / MAP_W;
+    const sx = stagePos.x * scaleBase;
+    const sy = stagePos.y * scaleBase;
+    mapZoom = initialZoom;
+    mapPanX = wrapW / 2 - sx * initialZoom;
+    mapPanY = canvasH / 2 - sy * initialZoom;
+    clampMapPan();
+    applyMapTransform();
+  } else {
+    resetMapTransform();
+  }
   setTimeout(initMapGestures, 0);
 }
 function closeMap() {
