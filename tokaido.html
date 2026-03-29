@@ -946,8 +946,6 @@
   <div id="memo-tabs">
     <button class="memo-tab active" onclick="switchTab('stamp')">道中印</button>
     <button class="memo-tab" onclick="switchTab('shobai')">商売</button>
-    <button class="memo-tab" onclick="switchTab('hito')">人物</button>
-    <button class="memo-tab" onclick="switchTab('michi')">覚書</button>
     <button class="memo-tab" onclick="switchTab('miyage')">土産</button>
   </div>
   <div id="memo-content">
@@ -1015,7 +1013,7 @@ const state = {
     { name: '簪（かんざし）', unit: '本', qty: 1,  buy: 32, sell: 50, vol: 0, cat: '女性向け' },
   ],
   maxVol: 100,
-  memos: { shobai: [], hito: [], michi: [], miyage: [] },
+  memos: { shobai: [], miyage: [] },
   flags: {},
   souvenirs: [],        // 購入済み土産のid配列
   souvenirChosen: null, // 大津で選んだ土産id（nullは手ぶら）
@@ -2186,11 +2184,6 @@ function showNotify(msg) {
 }
 
 // 時間帯ごとの客傾向ヒント
-const TIME_SLOT_HINT = {
-  asa:  '朝：旅人・飛脚・武士が多い',
-  hiru: '昼：各層まんべんなく',
-  yuu:  '夕：地元の商家・職人が多い',
-};
 
 // ── 宿場の共通選択肢を表示 ──
 function showStageChoices() {
@@ -2199,16 +2192,12 @@ function showStageChoices() {
   if (state.timeSlot !== 'yoru') {
     // 朝・昼・夕は移動可能
     if (remaining > 0) {
-      const timeHint = TIME_SLOT_HINT[state.timeSlot] ? `　※${TIME_SLOT_HINT[state.timeSlot]}` : '';
-      choices.push({ label: `荷を広げ、通行人に声をかける（あと${remaining}回）${timeHint}`, fn: '', action: () => openCargo() });
+      choices.push({ label: `荷を広げ、通行人に声をかける（あと${remaining}回）`, fn: '', action: () => openCargo() });
     }
     choices.push({ label: '仕入れを探す', fn: '', action: () => openBuy() });
     // 神奈川：伝言を持っている＆まだ庄兵衛に会っていない
     if (state.currentStage === 3 && state.flags.kamiDone && !state.flags.shobeeDone) {
-      const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
-      if (hasMessage) {
         choices.push({ label: '升屋・庄兵衛を訪ねる', fn: '', action: () => showShobeeScene() });
-      }
     }
     // 土産購入選択肢
     const souvenirChoice = getSouvenirChoice();
@@ -2648,8 +2637,6 @@ function showKamiMessage() {
 // ── 伝言を引き受ける ──
 function acceptMessage() {
   state.flags.kamiDone = true;
-  state.memos.michi.push({ stage: '品川宿', text: '品川屋おきくから依頼。神奈川・升屋庄兵衛への伝言。干し貝柱の仕入れ、今年は品薄——早めに押さえよとのこと。' });
-  state.memos.hito.push({ stage: '品川宿', text: '品川屋のおきく。茶屋の女将。五十がらみの愛想のよい女。升屋・庄兵衛との古い知り合い。' });
   recordVisit(1, '品川屋おきくから伝言を預かった。');
   showNotify('旅の手帳に記録された');
   fadeTransition(() => {
@@ -2705,7 +2692,6 @@ function showShobeeMessage() {
 function acceptShobee() {
   state.flags.shobeeDone = true;
   state.memos.shobai.push({ stage: '神奈川宿', text: '升屋・庄兵衛から助言。海で干物を買い、山で売れ——山の人間は魚に飢えている。値が出る。' });
-  state.memos.hito.push({ stage: '神奈川宿', text: '升屋の庄兵衛。廻船問屋。六十がらみ。おきくの古い知り合い。「おきくに礼を言え」と言った。' });
   recordVisit(state.currentStage, '升屋・庄兵衛に伝言を届けた。');
   showNotify('旅の手帳に記録された');
   fadeTransition(() => {
@@ -3421,8 +3407,7 @@ function nextStage() {
           combined = arriveBody + lunchLine;
         }
         if (state.currentStage === 3) {
-          const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
-          if (hasMessage) combined += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
+          if (state.flags.kamiDone && !state.flags.shobeeDone) combined += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
         }
         if (state.timeSlot === 'yoru') {
           combined += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
@@ -3450,10 +3435,7 @@ function nextStage() {
 
     // 神奈川到着時、おきくの伝言を持っていれば追記
     if (state.currentStage === 3) {
-      const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
-      if (hasMessage) {
-        arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
-      }
+      if (state.flags.kamiDone && !state.flags.shobeeDone) arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
     }
     // 夜に到着した場合（3宿場移動後）は日暮れを告げる
     if (state.timeSlot === 'yoru') {
@@ -3480,8 +3462,7 @@ function showArriveText(sd) {
       arrive += '<br><br>' + ferryEntry.text;
     }
     if (state.currentStage === 3) {
-      const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
-      if (hasMessage) arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
+      if (state.flags.kamiDone && !state.flags.shobeeDone) arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
     }
     if (state.timeSlot === 'yoru') {
       arrive += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
@@ -3596,7 +3577,7 @@ function closeMemo() {
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.memo-tab').forEach((el, i) => {
-    const tabs = ['stamp', 'shobai', 'hito', 'michi', 'miyage'];
+    const tabs = ['stamp', 'shobai', 'miyage'];
     el.classList.toggle('active', tabs[i] === tab);
   });
   if (tab !== 'stamp') closeStampPopup();
@@ -4141,7 +4122,7 @@ const STAGE_DATA = {
   14: {
     name: '吉原', ji: '第十四次', yomi: 'よしわら',
     next: '蒲原', nextJi: '第十五次',
-    arriveText: `吉原は塩魚の産地だ。<br><br>塩鯛が安く手に入る。漁師が気持ちよく値段を教えてくれた。後味の悪くない商売だった。`,
+    arriveText: `吉原に着くと、浜の方から磯の匂いがした。<br><br>道端で荷を整えていると、漁師に声をかけられた。「塩鯛、いるかい。今日は上がりがよかった」<br><br>値を聞いたら、思ったより安かった。`,
     travelText: `吉原宿を出た。<br><br>蒲原まで三里ほど。富士川が近づいてきた。`,
     innTextInn: `夕餉に塩鯛の焼いたものが出た。産地だけあって、身が締まって旨かった。今日は悪くない商売ができた気がした。<br><br>吉原の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>旅籠の朝飯を食べながら、今日の仕入れのことを考えた。蒲原まで進もう。宗吉は立ち上がり、荷を担いだ。`,
