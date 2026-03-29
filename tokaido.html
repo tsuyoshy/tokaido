@@ -2250,6 +2250,10 @@ function showStageChoices() {
     const encounterChoice = getEncounterChoice();
     if (encounterChoice) choices.push(encounterChoice);
 
+    // 品川限定：廻船ワープ（一回限り）
+    if (state.currentStage === 1 && !state.flags.kaisenUsed) {
+      choices.push({ label: '湊で廻船の船頭に話しかける', fn: '', action: () => showKaisenChoice() });
+    }
     choices.push({ label: '宿を取る', fn: '', action: () => selectInn() });
     choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
   } else {
@@ -2945,6 +2949,188 @@ function confirmBuy(itemIdx, qty) {
 function closeBuyPanel() {
   document.getElementById('cargo-panel').style.display = 'none';
   showStageChoices();
+}
+
+// ── 廻船データ ──
+const KAISEN_PORTS = [
+  {
+    stage: 9,
+    name: '小田原',
+    cost: 200,
+    days: 1,
+    label: '小田原まで（200文・1泊）',
+    boardText:
+      '二百文を渡すと、船頭は無言でうなずいた。<br><br>' +
+      '翌朝、宗吉は小田原の湊に降り立った。<br><br>' +
+      '船の上で一夜を過ごした。波の揺れが体に残っている。',
+    arriveText:
+      '小田原湊に着いた。<br><br>' +
+      '相模灘を一晩かけて西へ渡ってきた。波は穏やかだったが、板の上の眠りは浅かった。<br><br>' +
+      '早川の河口に船をつけると、小田原城下の賑わいが聞こえてきた。陸路を八宿分、一気に飛ばしてきた——足ではなく、銭でそれをした。宗吉は少し複雑な気持ちで荷を担いだ。',
+  },
+  {
+    stage: 18,
+    name: '江尻',
+    cost: 350,
+    days: 2,
+    label: '江尻まで（350文・2泊）',
+    boardText:
+      '三百五十文を渡すと、船頭は「二日かかる。船中で寝てもらう」と言った。<br><br>' +
+      '二日後の朝、宗吉は江尻の湊に降り立った。',
+    arriveText:
+      '江尻湊に着いた。<br><br>' +
+      '相模灘から遠州灘をぐるりと回り、駿河湾に入った。清水の湊は廻船でごった返していた。<br><br>' +
+      '船中で二夜を過ごした。最初の夜は波が高く、荷を抱えたまま夜明けを待った。二日目の朝、富士が海の向こうに見えた。それだけで、来た甲斐があった気がした。',
+  },
+  {
+    stage: 30,
+    name: '舞阪',
+    cost: 500,
+    days: 3,
+    label: '舞阪まで（500文・3泊）',
+    boardText:
+      '五百文を渡すと、船頭は「三日だ。荷はしっかり縛っておけ」と言った。<br><br>' +
+      '三日後の朝、宗吉は舞阪の湊に降り立った。',
+    arriveText:
+      '舞阪湊に着いた。<br><br>' +
+      '遠州灘は荒れた。二日目の夜、波が板を叩く音が止まなかった。船頭は平然としていたが、宗吉は荷にしがみついたまま夜を明かした。<br><br>' +
+      '三日目の朝、浜名湖の入り口が見えてきた。穏やかな水面に、疲れがほぐれた。品川を出てから三日——足では十日以上かかる道を、銭で買った。',
+  },
+  {
+    stage: 41,
+    name: '宮（熱田）',
+    cost: 650,
+    days: 4,
+    label: '宮まで（650文・4泊）',
+    boardText:
+      '六百五十文を渡すと、船頭は「四日かかる。伊勢湾まで入る。途中で嵐が来たら寄港するぞ」と言った。<br><br>' +
+      '四日後の朝、宗吉は熱田湊に降り立った。',
+    arriveText:
+      '熱田湊に着いた。<br><br>' +
+      '品川を出てから四日——東海道の半分以上を船で来てしまった。<br><br>' +
+      '伊勢湾の入り口で風待ちを一日した。三日目の夜、熱田の常夜灯が見えてきたとき、宗吉は声を出しそうになった。大きな湊だった。廻船が何艘も碇を下ろし、荷を積んだ人夫が行き交っている。七里の渡しの波止場もすぐそこだ。',
+  },
+];
+
+// ── 廻船の船頭に話しかける ──
+function showKaisenChoice() {
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML =
+      '品川湊の波止場に、大きな廻船が碇を下ろしていた。<br><br>' +
+      '船頭らしき男が荷の積み込みを指図している。宗吉は思い切って声をかけた。<br><br>' +
+      '「どちらまで？」<br><br>' +
+      '男は宗吉をひと目見て、「旅人か。乗せてやれないことはないが——金次第だな」と言った。';
+
+    const choices = KAISEN_PORTS.map(port => {
+      const canAfford = state.money >= port.cost;
+      const daysOk = state.days > port.days;
+      const available = canAfford && daysOk;
+      return {
+        label: available
+          ? port.label
+          : port.label + (canAfford ? '（日数が足りない）' : '（所持金が足りない）'),
+        fn: '',
+        action: available ? () => boardKaisen(port) : () => showNotify(canAfford ? '日数が足りない' : '所持金が足りない'),
+      };
+    });
+    choices.push({ label: 'やめる', fn: '', action: () => {
+      fadeTransition(() => {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        const sd = currentStageData();
+        document.getElementById('scene-text').innerHTML = sd.arriveText || '品川宿に戻った。';
+        showStageChoices();
+      });
+    }});
+    showChoices(choices);
+  });
+}
+
+// ── 廻船に乗る ──
+function boardKaisen(port) {
+  if (state.money < port.cost) { showNotify('所持金が足りない'); return; }
+  if (state.days <= port.days) { showNotify('日数が足りない'); return; }
+
+  state.money -= port.cost;
+  state.flags.kaisenUsed = true;
+  state.flags.tamaRiverDone = true; // 多摩川を経由しないのでフラグを立てる
+  updateHeader();
+
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML = port.boardText;
+    document.getElementById('choices').classList.add('hidden');
+
+    // 画面タップで到着シーンへ
+    const hint = document.getElementById('tap-hint');
+    hint.style.display = 'block';
+    setTimeout(() => {
+      document.body.onclick = () => {
+        document.body.onclick = null;
+        hint.style.display = 'none';
+        arriveByKaisen(port);
+      };
+    }, 400);
+  });
+}
+
+// ── 廻船到着処理 ──
+function arriveByKaisen(port) {
+  // 日数消費（ship中泊分）
+  state.days -= port.days;
+  // 時刻を朝にリセット
+  state.timeSlot = 'asa';
+  // innLogリセット（宿泊分の帳面は不要）
+  state.innLog = { income: 0, buy: 0, inn: 0 };
+
+  // 日数切れチェック
+  if (state.days <= 0) {
+    triggerGameOver('days');
+    return;
+  }
+
+  // ステージをワープ先に設定
+  state.currentStage = port.stage;
+  state.commerceDone = false;
+  state.cargoOpenCount = 0;
+  state.innTradeCount = 0;
+  state.innMode = false;
+  state.justArrived = false;
+  state.lastInnType = null;
+
+  // 天候を設定（マルコフ遷移を複数回回す）
+  for (let i = 0; i < port.days; i++) {
+    state.weather = nextWeather(state.weather, state.currentStage);
+  }
+
+  updateHeader();
+
+  // 挿絵を更新
+  const stageKey = STAGE_FILENAMES[state.currentStage];
+  if (stageKey) {
+    const illusImg = document.getElementById('illus-img');
+    illusImg.style.opacity = '0';
+    illusImg.onload = () => { illusImg.style.opacity = '0.9'; };
+    illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
+    illusImg.src = shukubaUrl(state.currentStage, stageKey);
+  }
+  preloadNextImages(state.currentStage);
+
+  document.getElementById('stage-name').textContent = STAGE_DATA[state.currentStage].name;
+  document.getElementById('inn-area').classList.add('hidden');
+  document.getElementById('cargo-panel').style.display = 'none';
+
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    // 船用arriveTextを使用（FERRY_COSTは適用しない）
+    document.getElementById('scene-text').innerHTML = port.arriveText;
+    updateHeader();
+    showStageChoices();
+  });
 }
 
 // ── 先を急ぐ / 次の宿場へ ──
