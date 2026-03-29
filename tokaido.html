@@ -779,15 +779,9 @@
   /* ── タップヒント ── */
   #tap-hint {
     display: none;
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 200;
+    text-align: center;
+    margin: 28px auto 8px;
     padding: 8px 20px;
-    background: rgba(10,9,0,0.72);
-    border: 1px solid rgba(200,160,40,0.28);
-    border-radius: 20px;
     color: rgba(232,216,128,0.85);
     font-size: 13px;
     letter-spacing: 0.15em;
@@ -883,12 +877,9 @@
 <div id="scene-area">
   <div id="scene-text">
     元禄十四年、師走。<br><br>
-    東海道は、思ったより人が多かった。<br><br>
-    品川宿の街道沿いには、茶屋や小店が軒を連ねている。威勢のいい客引きの声。荷を担いだ飛脚。笠を深くかぶった武士。宗吉はその流れに混じりながら、少しだけ立ち止まった。<br><br>
-    品川を過ぎれば、江戸ともお別れだ。<br><br>
-    宗吉は荷を背負い直した。針、糸、油紙、簪（かんざし）。それだけが頼りだった。<br><br>
-    <span class="highlight">藪入りまで、二十日。</span><br><br>
-    今日中に川崎まで進むつもりだった。まずは品川で一稼ぎできるか——試してみるか。<br><br>そういえば、おみつへの土産も探さなくては。何がいいか、まだわからない。
+    出発の朝、父は帳場に座っていた。<br><br>
+    しばらく算盤を置いて、こちらを向いた。<br><br>
+    「おみつに会いに行くんだろう。ならついでに、道中で商いをしてこい。東海道を歩けば、嫌でも覚える。それが修行というものだ」
   </div>
 </div>
 
@@ -901,10 +892,10 @@
 <!-- 選択肢（商売完了後に表示） -->
 <div id="choices" class="hidden"></div>
 
-<!-- タップヒント（choices・inn両方から使用。画面下部に固定表示） -->
-<div id="tap-hint">— タップして続ける —</div>
-
 <div class="divider"></div>
+
+<!-- タップヒント（テキストエリア末尾に表示） -->
+<div id="tap-hint">— タップして続ける —</div>
 
 <!-- 宿泊パート（初期は非表示） -->
 <div id="inn-area" class="hidden">
@@ -1031,6 +1022,8 @@ const state = {
   innLog: { income: 0, buy: 0, inn: 0 },
   commerceDone: false,
   cargoOpenCount: 0,
+  merchantMeetCount: 0,
+  innEventDone: {},
   innTradeCount: 0,
   innMode: false,
   justArrived: false,
@@ -1287,7 +1280,7 @@ const CUSTOMERS = [
     name: '宿の主人',
     intro: '主人が帳場から顔を上げた。「何かお持ちでございますか。拝見してもよろしいですか」',
     hint: null,
-    wants: ['食料', '調味料', '旅道具', '雑貨', '薬', '女性向け'],
+    wants: ['食料', '調味料', '旅道具', '雑貨', '薬', '女性向け', '嗜好品'],
     prob: { low: 1.0, mid: 1.0, high: 0.90 },
     reject: '「本日はご遠慮いたします。またの機会に」と主人は穏やかに言った。',
     nightOnly: true,
@@ -1297,7 +1290,7 @@ const CUSTOMERS = [
     name: '旅の女',
     intro: '「あの、少しよろしいですか」と、編み笠の女が足を止めた。',
     hint: '荷物は少ない。旅慣れた様子だが、財布は重そうだ。',
-    wants: ['女性向け', '食料'],
+    wants: ['女性向け', '食料', '嗜好品'],
     prob: { low: 1.0, mid: 0.9, high: 0.65 },
     reject: '「少し高いですね」と言って、足早に立ち去った。',
     timeSlots: ['asa', 'hiru'],
@@ -1315,7 +1308,7 @@ const CUSTOMERS = [
     name: '武士',
     intro: '「ちと、見せてみよ」と通りがかりの武士が立ち止まった。',
     hint: '身なりは整っているが、財布に手を当てる素振りはない。値段には敏感そうだ。',
-    wants: ['食料', '調味料'],
+    wants: ['食料', '調味料', '嗜好品'],
     prob: { low: 1.0, mid: 0.8, high: 0.1 },
     reject: '「高い」と一言残して、去った。',
     timeSlots: ['asa', 'hiru'],
@@ -1361,7 +1354,7 @@ const CUSTOMERS = [
     name: '商家の女中',
     intro: '「奥様に頼まれていて」と、小柄な女が言った。',
     hint: '買い物かごを下げている。主人の財布で買うのか、値段をあまり気にしていない様子だ。',
-    wants: ['女性向け', '食料', '調味料'],
+    wants: ['女性向け', '食料', '調味料', '嗜好品'],
     prob: { low: 1.0, mid: 0.9, high: 0.75 },
     reject: '「予算が決まっていて」と困った顔をして、去った。',
     timeSlots: ['hiru', 'yuu'],
@@ -1370,7 +1363,7 @@ const CUSTOMERS = [
     name: '老婆',
     intro: 'しわだらけの老婆が、荷をそっと触ろうとした。',
     hint: '着物は古いが、丁寧に手入れされている。お金はあるが使い方には厳しそうだ。',
-    wants: ['食料', '女性向け', '薬'],
+    wants: ['食料', '女性向け', '薬', '嗜好品'],
     prob: { low: 1.0, mid: 0.8, high: 0.2 },
     reject: '「もう少し安ければねえ」とつぶやきながら、去っていった。',
     timeSlots: ['hiru', 'yuu'],
@@ -1386,7 +1379,7 @@ const CUSTOMERS = [
   },
   {
     name: '旅の僧',
-    intro: '「少し分けてもらえぬか」と、穏やかに言った。',
+    intro: '旅の僧が立ち止まった。「少し分けてもらえぬか」と、穏やかに言った。',
     hint: '旅の垢がついた草鞋を履いている。長旅のようだが、物腰に余裕がある。懐も同様かもしれない。',
     wants: ['食料', '薬', '雑貨'],
     prob: { low: 1.0, mid: 0.85, high: 0.55 },
@@ -1416,7 +1409,7 @@ const CUSTOMERS = [
     name: '旅籠の女将',
     intro: '「うちで使えるものはあるかい」と、女将が声をかけた。',
     hint: '商売人の目をしている。まとめ買いするかもしれないが、値段も見ている。',
-    wants: ['食料', '女性向け', '調味料', '雑貨'],
+    wants: ['食料', '女性向け', '調味料', '雑貨', '嗜好品'],
     prob: { low: 1.0, mid: 0.85, high: 0.45 },
     reject: '「もう少し勉強してくれたらねえ」と言って、去った。',
     timeSlots: ['hiru', 'yuu'],
@@ -1445,7 +1438,10 @@ const ITEM_REQUEST = {
 // ── ランダム客を選んで声をかけてくる ──
 function callCustomer() {
   // 所持品で売れるものを確認
-  const available = state.cargo.filter(item => item.qty > 0);
+  const available = state.cargo.filter(item =>
+    item.qty > 0 &&
+    !(item.origin && item.origin.includes(state.currentStage))
+  );
   if (available.length === 0) {
     document.getElementById('scene-text').innerHTML = '宗吉は荷を探ったが、売れるものが残っていなかった。<br><br>仕入れが必要だ。';
     showChoices([
@@ -1734,10 +1730,35 @@ const SOUVENIR_DATA = [
     memory: '掛川で祭りの手伝いをした。布紐を帯に結んでもらって、浜松の旅籠で女将にもらった絵馬だ。',
     omitsu: '「手伝いをしたら、もらった」と言えば、おみつは笑うだろう。「兄さんらしい」と言いそうだ。',
   },
+  { id: 'kushi',    stage: 49, name: 'お六櫛',           price: 45,  cls: 'jitsuyo', cond: { event: 'kushiEvent' },
+    memo: '土山の職人が作ったお六櫛。峠越えの旅人が買っていくという。',
+    memory: '土山の小さな店で、職人が削り出した櫛を見た。手に取ると、目が細かく、手触りがよかった。四十五文だった。',
+    omitsu: 'おみつは受け取って、すぐに髪に当てるだろう。「使えるの」と聞けば、うなずくに違いない。',
+  },
   { id: 'choji',   stage: 49, name: '丁子の香木',       price: 0,   cls: 'inori',   cond: { event: 'chojiKoboku' },
     memo: '亀山で薬屋の老人を助けて、土山の茶屋でもらった丁子の香木。',
     memory: '亀山で荷を運ぶのを手伝った老人が、帯に巾着を差してくれた。土山の茶屋で香木として受け取った。',
     omitsu: '鼻を近づければ、すぐにわかるだろう。奉公先で丁子を使うと言っていた。',
+  },
+  { id: 'netsuke',    stage: 38, name: '矢作の根付け',      price: 0,  cls: 'kinen',   cond: { event: 'netsukeEvent' },
+    memo: '岡崎で旅人の忘れ物を届けた礼にもらった、矢作橋を模した根付け。',
+    memory: '岡崎の旅籠を出がけに、前の泊まり客の忘れ物を届けた。礼に矢作橋の根付けをもらった。',
+    omitsu: 'おみつは根付けを手の中で転がし、「小さな橋だ」と言うだろう。矢作橋のことを話したら、少し聞き入るかもしれない。',
+  },
+  { id: 'kumihimo',   stage: 47, name: '鈴鹿の組紐',        price: 0,  cls: 'jitsuyo', cond: { event: 'kumihimoEvent' },
+    memo: '関で旅人の忘れ物を届けた礼にもらった、鈴鹿の組紐。',
+    memory: '関の旅籠を出がけに、前の泊まり客の忘れ物を届けた。礼に組紐をもらった。',
+    omitsu: 'おみつは組紐を広げて、色合いを確かめるだろう。帯締めに使えると言えば、喜ぶと思う。',
+  },
+  { id: 'sakuraebi',  stage: 16, name: 'さくら海老の佃煮',  price: 30, cls: 'jitsuyo', cond: { event: 'sakuraebiEvent' },
+    memo: '由比の旅籠の番頭から買った、さくら海老の佃煮。',
+    memory: '由比の旅籠で番頭から勧められた。この浜でしか揚がらないと言っていた。三十文だった。',
+    omitsu: '佃煮を開ければ海老の香りが広がるだろう。「由比で買ったの？」と言って、味見するに違いない。',
+  },
+  { id: 'ubagamochi', stage: 52, name: '草津の姥が餅',      price: 20, cls: 'jitsuyo', cond: { event: 'ubagamochiEvent' },
+    memo: '草津の旅籠の番頭から買った、草津名物の姥が餅。',
+    memory: '草津の旅籠で番頭から勧められた。東海道の旅人なら知らぬ者はないと言っていた。二十文だった。',
+    omitsu: 'おみつは餅を一口食べて、少し目を細めるだろう。「草津まで行ったんだね」と言いそうな気がする。',
   },
 ];
 
@@ -1784,6 +1805,40 @@ const SHRINE_DATA = [
 // ── 身につけ系イベントデータ ──
 // triggerStage: 出会いの宿場 / rewardStage: 土産解放の宿場
 // wearFlag: 「身につけている」フラグ / rewardFlag: 土産解放済みフラグ
+// ── 旅籠限定イベントデータ ──
+const INN_EVENTS = {
+  38: {
+    type: 'wasuremono', flag: 'netsukeEvent', deliverStage: 39,
+    morningText: `朝飯を食べ終え、宗吉は荷を担いで立ち上がった。<br><br>女中が「あの、よろしければ」と声をかけてきた。「昨夜のお客さまが忘れ物を。今日は池鯉鮒まで向かうと言っていたんですが、もし追いつけそうなら」<br><br>小さな包みを受け取った。渡すかどうかは、自分で判断するしかない。`,
+    deliverChoiceLabel: '忘れ物を届ける',
+    deliverText: `池鯉鮒宿の入り口で、年配の旅人が荷を下ろして休んでいた。声をかけると、すぐに気づいた。<br><br>「これは——忘れてきてしまった。わざわざ」<br><br>旅人は何度も頭を下げた。しばらくして、懐から小さなものを取り出した。<br><br>「たいしたものじゃないんですが。矢作橋の形を模して作ったんです。旅の記念に、どうぞ」<br><br>木でできた小さな根付けだった。橋の欄干が細かく彫られていた。`,
+    skipText: `その日は急ぎの旅だった。包みは宿に預けて、池鯉鮒に向かった。`,
+    souvenirId: 'netsuke',
+  },
+  47: {
+    type: 'wasuremono', flag: 'kumihimoEvent', deliverStage: 48,
+    morningText: `朝飯を済ませ、荷を担もうとしたとき、番頭が「少々よろしいですか」と声をかけてきた。「昨夜のお客さまの忘れ物です。坂下へ向かうと言っていましたが——お急ぎでなければ」<br><br>布包みをひとつ受け取った。`,
+    deliverChoiceLabel: '忘れ物を届ける',
+    deliverText: `坂下宿の茶屋の前で、荷を広げていた旅人が振り返った。包みを差し出すと、目を見開いた。<br><br>「これがなくて困ってた。ありがとうございます」<br><br>旅人は荷の中をごそごそとやって、細い紐を取り出した。何色もの糸が組み合わされた、鈴鹿の組紐だ。<br><br>「礼になるかどうか。でも持っていてください」`,
+    skipText: `急ぎ足だった。包みは番頭に返して、先を急いだ。`,
+    souvenirId: 'kumihimo',
+  },
+  16: {
+    type: 'bantou', flag: 'sakuraebiEvent', price: 30, souvenirId: 'sakuraebi',
+    choiceLabel: '番頭に声をかける',
+    offerText: `帳場の番頭が宗吉に声をかけてきた。<br><br>「旅のお方ですか。うちで扱っている品があるんですが——さくら海老の佃煮です。この浜でしか揚がらない海老で、京でも手に入らない。土産にいかがですか」<br><br>「三十文になります」`,
+    buyText: `番頭が小さな陶器の壺を持ってきた。蓋を少し開けると、海老の香りが立った。<br><br>「京まで持っていっても傷みません。大事な方への土産にどうぞ」`,
+    passText: `番頭に断った。`,
+  },
+  52: {
+    type: 'bantou', flag: 'ubagamochiEvent', price: 20, souvenirId: 'ubagamochi',
+    choiceLabel: '番頭に声をかける',
+    offerText: `帳場の番頭が話しかけてきた。<br><br>「もうすぐ京でございますね。草津の名物、姥が餅はご存知ですか。東海道を通るお方なら知らぬ者はない。うちでも扱っております。二十文です」`,
+    buyText: `番頭が紙包みを持ってきた。開くと、白い餅が並んでいた。<br><br>「今日焼いたものです。明日の京まで持ちます。大切な方へどうぞ」`,
+    passText: `番頭に断った。`,
+  },
+};
+
 const ENCOUNTER_DATA = [
   {
     id: 'kakegawa',
@@ -1907,7 +1962,7 @@ const STAGE_ITEMS = {
     { name: '草鞋',   unit: '足', buy: 12, sell: 18,  vol: 2, cat: '旅道具' },
   ],
   21: [ // 岡部
-    { name: '宇津の茶', origin: [21], unit: '袋', buy: 18,  sell: 28, vol: 2, cat: '食料' },
+    { name: '宇津の茶', origin: [21], unit: '袋', buy: 18,  sell: 28, vol: 2, cat: '嗜好品' },
     { name: '駿河和紙', origin: [19,20,21], unit: '束', buy: 20, sell: 30, vol: 2, cat: '雑貨' },
   ],
   22: [ // 藤枝
@@ -1921,20 +1976,20 @@ const STAGE_ITEMS = {
     { name: '草鞋',   unit: '足', buy: 12, sell: 18,  vol: 2, cat: '旅道具' },
   ],
   24: [ // 金谷
-    { name: '金谷茶', origin: [24], unit: '袋', buy: 20, sell: 32, vol: 2, cat: '食料' },
+    { name: '金谷茶', origin: [24], unit: '袋', buy: 20, sell: 32, vol: 2, cat: '嗜好品' },
     { name: '草鞋',   unit: '足', buy: 12, sell: 18,  vol: 2, cat: '旅道具' },
   ],
   25: [ // 日坂
-    { name: '金谷茶', origin: [24], unit: '袋', buy: 20, sell: 32, vol: 2, cat: '食料' },
+    { name: '金谷茶', origin: [24], unit: '袋', buy: 20, sell: 32, vol: 2, cat: '嗜好品' },
     { name: '草鞋',   unit: '足', buy: 12, sell: 18,  vol: 2, cat: '旅道具' },
   ],
   26: [ // 掛川
-    { name: '掛川茶', origin: [26,27], unit: '袋', buy: 22, sell: 35, vol: 2, cat: '食料' },
+    { name: '掛川茶', origin: [26,27], unit: '袋', buy: 22, sell: 35, vol: 2, cat: '嗜好品' },
     { name: '遠州木綿', origin: [26,27,28,29], unit: '反', buy: 70, sell: 105, vol: 4, cat: '女性向け' },
     { name: '竹細工', unit: '個', buy: 20, sell: 30, vol: 4, cat: '雑貨' },
   ],
   27: [ // 袋井
-    { name: '掛川茶', origin: [26,27], unit: '袋', buy: 22, sell: 35, vol: 2, cat: '食料' },
+    { name: '掛川茶', origin: [26,27], unit: '袋', buy: 22, sell: 35, vol: 2, cat: '嗜好品' },
     { name: '遠州木綿', origin: [26,27,28,29], unit: '反', buy: 70, sell: 105, vol: 4, cat: '女性向け' },
     { name: '草鞋',   unit: '足', buy: 12, sell: 18,  vol: 2, cat: '旅道具' },
   ],
@@ -2424,6 +2479,38 @@ function showStageChoices() {
     if (state.currentStage === 1 && !state.flags.kaisenUsed) {
       choices.push({ label: '湊で廻船の船頭に話しかける', fn: '', action: () => showKaisenChoice() });
     }
+    // 土山限定：職人の店でお六櫛を見つける（初回のみ）
+    if (state.currentStage === 49 && !state.flags.kushiEvent) {
+      choices.push({ label: '街道沿いの店を覗く', fn: '', action: () => {
+        fadeTransition(() => {
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+          document.getElementById('scene-text').innerHTML =
+            '小さな店の奥で、老いた職人が一人、黙々と櫛を削っていた。<br><br>' +
+            '棚に並んだ櫛は、どれも目が細かく、丁寧に仕上げられている。峠越えの旅人が買っていくのだという。<br><br>' +
+            '「お六櫛といいます」と職人は言った。「この土山にしかない。江戸にも京にも、売っておらん」<br><br>' +
+            '宗吉は一本手に取った。軽く、手触りがよかった。おみつの髪に当てたら、どうだろう——そう思った。';
+          state.flags.kushiEvent = true;
+          showChoices([
+            { label: `土産に「お六櫛」を買う（45文）`, fn: '', action: () => buySouvenir('kushi') },
+            { label: '今日は見るだけにする', fn: '', action: () => showStageChoices() },
+          ]);
+        });
+      }});
+    }
+    // 川崎限定：旅籠前の旅人（初回のみ）
+    if (state.currentStage === 2 && !state.flags.kawasakiTravelerDone) {
+      choices.push({ label: '旅籠前の旅人に声をかけてみる', fn: '', action: () => {
+        state.flags.kawasakiTravelerDone = true;
+        fadeTransition(() => {
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+          document.getElementById('scene-text').innerHTML =
+            '声をかけると、男は少し驚いた顔をしてから、困ったように笑った。<br><br>「旅籠というのは、客筋がいいぶん、いろんな話が聞けるんですよ。物をくれる人もいる。——だが高い。木賃宿と、どちらにしようか、悩んでおりまして」';
+          showChoices([{ label: 'なるほど', fn: '', action: () => showStageChoices() }]);
+        });
+      }});
+    }
     choices.push({ label: '宿を取る', fn: '', action: () => selectInn() });
     choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
   } else {
@@ -2446,12 +2533,14 @@ function showStageChoices() {
 
 // ── 土産購入選択肢を返す（該当宿場・未購入・所持金チェック・参拝条件チェック）──
 function getSouvenirChoice() {
-  const sv = SOUVENIR_DATA.find(s => s.stage === state.currentStage);
-  if (!sv) return null;
-  if (state.souvenirs.includes(sv.id)) return null; // 購入済み
-  if (sv.cond && sv.cond.money && state.money < sv.cond.money) return null; // 所持金不足
-  if (sv.cond && sv.cond.shrine && !state.flags[sv.cond.shrine]) return null; // 参拝前は非表示
-  if (sv.cond && sv.cond.event && !state.flags[sv.cond.event]) return null; // イベントフラグ未達
+  const svList = SOUVENIR_DATA.filter(s => s.stage === state.currentStage)
+    .filter(s => !state.souvenirs.includes(s.id))
+    .filter(s => !(s.cond && s.cond.money && state.money < s.cond.money))
+    .filter(s => !(s.cond && s.cond.shrine && !state.flags[s.cond.shrine]))
+    .filter(s => !(s.cond && s.cond.event && !state.flags[s.cond.event]));
+  if (svList.length === 0) return null;
+  // 複数ある場合は先頭1件のみ（通常は1件）
+  const sv = svList[0];
   // 無料土産（もらい物）は「もらう」ラベル
   if (sv.price === 0) {
     return {
@@ -3128,7 +3217,7 @@ function confirmBuy(itemIdx, qty) {
     state.cargo.push({ name: item.name, unit: item.unit, qty, buy: buyPrice, sell: item.sell, vol: item.vol, cat: item.cat, origin: item.origin });
   }
 
-  state.memos.shobai.push({ stage: stageName(), text: `${item.name}を${qty}${item.unit}、${total}文で仕入れた。売値目安${currentSellPrice(item)}文/${item.unit}。` });
+  state.memos.shobai.push({ stage: stageName(), text: `${item.name}を${qty}${item.unit}、${total}文で仕入れた。` });
   recordVisit(state.currentStage, `${item.name}を仕入れた。`);
   showNotify(`仕入れた　${item.name} ${qty}${item.unit}`);
 
@@ -3391,7 +3480,7 @@ function takeFerry() {
       '「ここにゃ昔、橋があってな」<br><br>' +
       'どこか遠くを見るような目だった。<br><br>' +
       '「十三年前の大水で流れた。それからずっとこうだ」<br><br>' +
-      '宗吉には、橋のある多摩川を知らない。<br><br>' +
+      '宗吉は、橋のある多摩川を知らない。<br><br>' +
       '船が岸につき、宗吉は川崎側に降り立った。';
     showChoices([{ label: '', fn: '', action: () => showFerryMerchant() }]);
   });
@@ -3411,6 +3500,7 @@ function showFerryMerchant() {
       '老人は荷を担ぎ直しながら言った。<br><br>' +
       '「朝に売り切るな。夕方まで残しておく品もある」<br><br>' +
       'それだけ言って、老人は足早に川崎宿の方へ歩いていった。';
+    state.merchantMeetCount += 1;
     showChoices([{ label: '', fn: '', action: () => afterTamaRiver() }]);
   });
 }
@@ -3599,6 +3689,10 @@ function showInnChoices() {
   }
   const choices = [];
   choices.push({ label: '旅籠の主人に話しかける（あと' + remaining + '回）', fn: '', action: () => openInnTrade() });
+  const bantouEv = INN_EVENTS[state.currentStage];
+  if (bantouEv && bantouEv.type === 'bantou' && !state.innEventDone[bantouEv.flag]) {
+    choices.push({ label: bantouEv.choiceLabel, fn: '', action: () => triggerBantouEvent(state.currentStage) });
+  }
   choices.push({ label: '今日はもう眠る', fn: '', action: () => sleepAtInn() });
   showChoices(choices);
 }
@@ -3688,6 +3782,71 @@ function returnToInnChoices() {
 }
 
 // ── 旅籠：眠る → 帳面を表示してから翌朝へ ──
+// ── 番頭イベント（旅籠夜） ──
+function triggerBantouEvent(stageNum) {
+  const ev = INN_EVENTS[stageNum];
+  if (!ev || ev.type !== 'bantou') return;
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML = ev.offerText;
+    showChoices([
+      { label: '買う（' + ev.price + '文）', fn: '', action: () => {
+          if (state.money < ev.price) { showNotify('所持金が足りない'); return; }
+          state.money -= ev.price;
+          state.innLog.buy += ev.price;
+          updateHeader();
+          state.innEventDone[ev.flag] = 'done';
+          fadeTransition(() => {
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            document.getElementById('scene-text').innerHTML = ev.buyText;
+            receiveSouvenir(ev.souvenirId);
+          });
+      }},
+      { label: 'やめておく', fn: '', action: () => {
+          state.innEventDone[ev.flag] = 'skipped';
+          document.getElementById('scene-text').innerHTML = ev.passText;
+          showChoices([{ label: '', fn: '', action: () => showInnChoices() }]);
+      }},
+    ]);
+  });
+}
+
+// ── 忘れ物イベント：届けに行く ──
+function triggerWasuremonoDeliver(fromStage) {
+  const ev = INN_EVENTS[fromStage];
+  if (!ev) return;
+  state.innEventDone[ev.flag] = 'delivering';
+  const nextSd = STAGE_DATA[state.currentStage + 1];
+  const nextLabel = nextSd ? nextSd.name + 'へ向かう' : '先へ進む';
+  document.getElementById('scene-text').innerHTML =
+    '忘れ物を持って、' + (STAGE_DATA[ev.deliverStage] ? STAGE_DATA[ev.deliverStage].name : '次の宿場') + 'へ向かった。';
+  showChoices([{ label: nextLabel, fn: '', action: () => showStageChoices() }]);
+}
+
+// ── 忘れ物の届け先到着チェック（nextStage内から呼ぶ） ──
+function checkWasuremonoReward(stageNum, nextAction) {
+  const fromStageKey = Object.keys(INN_EVENTS).find(k => {
+    const ev = INN_EVENTS[k];
+    return ev.type === 'wasuremono' &&
+           ev.deliverStage === stageNum &&
+           state.innEventDone[ev.flag] === 'delivering';
+  });
+  if (!fromStageKey) return false;
+  const ev = INN_EVENTS[fromStageKey];
+  state.innEventDone[ev.flag] = 'done';
+  const sceneEl = document.getElementById('scene-text');
+  sceneEl.innerHTML += '<br><br>' + ev.deliverText;
+  const sv = SOUVENIR_DATA.find(s => s.id === ev.souvenirId);
+  showChoices([{
+    label: '「' + sv.name + '」を受け取る',
+    fn: '',
+    action: () => receiveSouvenir(ev.souvenirId),
+  }]);
+  return true;
+}
+
 function sleepAtInn() {
   const paid = state.innLog.inn;
   showInnLedgerAndSleep(paid, true);
@@ -3894,31 +4053,47 @@ function getFujiNote(stageNum, weather) {
 
 // ── 老行商人の再会データ ──
 // Stage 2で宗吉に声をかけた老行商人が、街道の途中で再び姿を見せる
-const OLD_MERCHANT_MEETINGS = {
-  10: {
-    flag: 'oldMerchant10',
-    // travelTextの後、選択肢ボタンの前に差し込む
-    text: `箱根の下り坂で、見覚えのある後ろ姿があった。<br><br>荷を二つ担いだ老人——多摩川の渡しで声をかけてきた行商人だ。宗吉は思わず足を速めた。<br><br>「おい」と声をかけると、老人が振り返った。しばらく宗吉の顔を見てから、「ああ、川崎で会った兄さんか」と言った。<br><br>「まだ先へ行くんですか」<br><br>「当たり前だ。おれはもう十五回、この道を歩いている」<br><br>老人は歩きながら言った。「箱根は下りが膝に来る。急ぐな。膝をやったら商売ができなくなる」<br><br>それだけ言って、老人の足は相変わらず速かった。宗吉はついていけなかった。`,
-  },
-  26: {
-    flag: 'oldMerchant26',
-    text: `掛川の城下を歩いていると、茶屋の縁台に老人が腰を下ろしていた。<br><br>荷を足元に置いて、番茶を飲んでいる。多摩川以来、二度目の再会だ。<br><br>「ずいぶん来たな」と老人は言った。「荷が減ってるじゃないか」<br><br>「売れました」<br><br>老人は少し目を細めた。「どうだった。稼げたか」<br><br>宗吉が正直に答えると、老人はうなずいた。「損しなければ上等だ。最初の旅なんてそんなもんだ」<br><br>「あなたは」と宗吉は聞いた。「最初の旅のとき、どうでしたか」<br><br>老人は番茶を一口飲んだ。「全部売り切れなかった。帰り道に捨てた」<br><br>「捨てたんですか」<br><br>「重かったからな」と老人は笑った。「次の旅からは、仕入れすぎなくなった」`,
-  },
-  49: {
-    flag: 'oldMerchant49',
-    text: `土山の茶屋で休んでいると、隣に老人が座った。<br><br>三度目だ。宗吉は声をかける前に、老人の方が気づいた。<br><br>「もう峠を越えたか。早いな」<br><br>「あなたこそ」と宗吉は言った。老人も鈴鹿を越えてきたらしい。<br><br>「おれは峠慣れしてる」と老人は言った。「あんたは何度目だ」<br><br>「初めてです」<br><br>老人は少し黙った。「そうか」と言った。「初めての鈴鹿か」<br><br>「しんどかったですか、最初は」<br><br>「しんどかった」と老人は言った。「でも越えれば近江だ。京まであと少しになる。それだけはいつも同じだ」<br><br>宗吉は遠くに近江の平野を見た。老人はもう立ち上がって、先へ歩き始めていた。<br><br>「また会うかもな」と老人は振り返りもせずに言った。<br><br>宗吉は答えなかった。でも、そうあってほしいと思った。`,
-  },
+const OLD_MERCHANT_FLAGS = {
+  10: 'oldMerchant10',
+  26: 'oldMerchant26',
+  49: 'oldMerchant49',
 };
+
+function oldMerchantText(stageNum) {
+  const c = state.merchantMeetCount;
+  if (stageNum === 10) {
+    if (c === 0) {
+      return `箱根の下り坂で、老人に呼び止められた。荷を二つ担いだ行商人だ。<br><br>「もし、江戸から来た兄さんじゃないか」<br><br>「ええ」<br><br>「同じ道を歩いているようだな。おれはもう十五回、この道を歩いている」<br><br>老人は歩きながら言った。「箱根は下りが膝に来る。急ぐな。膝をやったら商売ができなくなる」<br><br>それだけ言って、老人は先へ行った。宗吉はその背中を、しばらく目で追った。`;
+    } else {
+      return `箱根の下り坂で、見覚えのある後ろ姿があった。荷を二つ担いだ行商人——渡しで声をかけてきた老人だ。<br><br>「またお会いしましたね」と宗吉が声をかけると、老人が振り返った。「ああ、兄さんか。来たか」<br><br>「まだ先へ行くんですか」<br><br>「当たり前だ。おれはもう十五回、この道を歩いている」<br><br>老人は歩きながら言った。「箱根は下りが膝に来る。急ぐな。膝をやったら商売ができなくなる」<br><br>それだけ言って、老人は先へ行った。宗吉はその背中を、しばらく目で追った。`;
+    }
+  }
+  if (stageNum === 26) {
+    if (c === 0) {
+      return `掛川の城下を歩いていると、茶屋の縁台に老人が腰を下ろしていた。荷を足元に置いて、番茶を飲んでいる。<br><br>「江戸から来なすったか」と老人が声をかけてきた。「若いのに一人か」<br><br>「ええ、行商で」<br><br>老人は少し目を細めた。「どうだった。稼げたか」<br><br>宗吉が正直に答えると、老人はうなずいた。「損しなければ上等だ。最初の旅なんてそんなもんだ」<br><br>「あなたは」と宗吉は聞いた。「最初の旅のとき、どうでしたか」<br><br>老人は番茶を一口飲んだ。「全部売り切れなかった。帰り道に捨てた」<br><br>「捨てたんですか」<br><br>「重かったからな」と老人は笑った。「次の旅からは、仕入れすぎなくなった」`;
+    } else {
+      return `掛川の城下を歩いていると、茶屋の縁台に老人が腰を下ろしていた。荷を足元に置いて、番茶を飲んでいる。また会った。<br><br>「ずいぶん来たな」と老人は言った。「荷が減ってるじゃないか」<br><br>「売れました」<br><br>老人は少し目を細めた。「どうだった。稼げたか」<br><br>宗吉が正直に答えると、老人はうなずいた。「損しなければ上等だ。最初の旅なんてそんなもんだ」<br><br>「あなたは」と宗吉は聞いた。「最初の旅のとき、どうでしたか」<br><br>老人は番茶を一口飲んだ。「全部売り切れなかった。帰り道に捨てた」<br><br>「捨てたんですか」<br><br>「重かったからな」と老人は笑った。「次の旅からは、仕入れすぎなくなった」`;
+    }
+  }
+  if (stageNum === 49) {
+    if (c === 0) {
+      return `土山の茶屋で休んでいると、隣に老人が座った。荷を二つ担いだ行商人だ。老人の方から声をかけてきた。<br><br>「もう峠を越えたか。早いな」<br><br>「おれは峠慣れしてる」と老人は言った。「あんたは何度目だ」<br><br>「初めてです」<br><br>老人は少し黙った。「そうか」と言った。「初めての鈴鹿か」<br><br>「しんどかったですか、最初は」<br><br>「しんどかった」と老人は言った。「でも越えれば近江だ。京まであと少しになる。それだけはいつも同じだ」<br><br>宗吉は遠くに近江の平野を見た。老人はもう立ち上がって、先へ歩き始めていた。<br><br>「また会うかもな」と老人は振り返りもせずに言った。<br><br>宗吉は答えなかった。でも、そうあってほしいと思った。`;
+    } else {
+      return `土山の茶屋で休んでいると、隣に老人が座った。また同じ道を歩いている。宗吉は声をかける前に、老人の方が気づいた。<br><br>「もう峠を越えたか。早いな」<br><br>「あなたこそ」と宗吉は言った。老人も鈴鹿を越えてきたらしい。<br><br>「おれは峠慣れしてる」と老人は言った。「あんたは何度目だ」<br><br>「初めてです」<br><br>老人は少し黙った。「そうか」と言った。「初めての鈴鹿か」<br><br>「しんどかったですか、最初は」<br><br>「しんどかった」と老人は言った。「でも越えれば近江だ。京まであと少しになる。それだけはいつも同じだ」<br><br>宗吉は遠くに近江の平野を見た。老人はもう立ち上がって、先へ歩き始めていた。<br><br>「また会うかもな」と老人は振り返りもせずに言った。<br><br>宗吉は答えなかった。でも、そうあってほしいと思った。`;
+    }
+  }
+  return '';
+}
 
 // ── 老行商人の再会を表示（goNext内から呼ぶ）──
 function checkOldMerchant(stageNum, nextAction) {
-  const meet = OLD_MERCHANT_MEETINGS[stageNum];
-  if (!meet || state.flags[meet.flag]) return false;
-  // 廻船利用時は多摩川の渡し船で出会っていないので登場しない
-  if (state.flags.kaisenUsed) { state.flags[meet.flag] = true; return false; }
-  state.flags[meet.flag] = true;
+  const flag = OLD_MERCHANT_FLAGS[stageNum];
+  if (!flag || state.flags[flag]) return false;
+  state.flags[flag] = true;
+  const text = oldMerchantText(stageNum);
+  state.merchantMeetCount += 1;
   const sceneEl = document.getElementById('scene-text');
-  sceneEl.innerHTML += '<br><br>' + meet.text;
+  sceneEl.innerHTML += '<br><br>' + text;
   const nextSd = STAGE_DATA[stageNum + 1];
   const isLast = stageNum === 53;
   const lbl = isLast ? '逢坂山を越え、京へ向かう' : (nextSd ? nextSd.name + 'へ向かう' : '先へ進む');
@@ -3932,7 +4107,6 @@ function nextStage() {
   fadeTransition(() => {
     state.currentStage += 1;
     state.commerceDone = false;
-    state.cargoOpenCount = 0;
     state.innTradeCount = 0;
     state.innMode = false;
 
@@ -4040,6 +4214,9 @@ function nextStage() {
     document.getElementById('scene-text').innerHTML = arrive;
     updateHeader();
 
+    // 忘れ物の届け先チェック
+    if (checkWasuremonoReward(state.currentStage, () => showStageChoices())) return;
+
     // 身につけ系イベント報酬チェック
     if (checkEncounterReward()) return;
 
@@ -4081,6 +4258,8 @@ function wakeUpMorning() {
   document.body.onclick = null;
   document.getElementById('tap-hint').style.display = 'none';
   fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     state.timeSlot = 'asa';
     state.innLog = { income: 0, buy: 0, inn: 0 };
     state.innMode = false;
@@ -4158,6 +4337,27 @@ function wakeUpMorning() {
       return;
     }
 
+    // 旅籠泊まり：忘れ物イベントチェック
+    if (state.lastInnType === 'inn') {
+      const ev = INN_EVENTS[state.currentStage];
+      if (ev && ev.type === 'wasuremono' && !state.innEventDone[ev.flag]) {
+        state.innEventDone[ev.flag] = 'pending';
+        const nextSd = STAGE_DATA[state.currentStage + 1];
+        const nextLabel = nextSd ? nextSd.name + 'へ向かう' : '先へ進む';
+        const stageForClosure = state.currentStage;
+        document.getElementById('scene-text').innerHTML += '<br><br>' + ev.morningText;
+        showChoices([
+          { label: ev.deliverChoiceLabel, fn: '', action: () => triggerWasuremonoDeliver(stageForClosure) },
+          { label: '急ぎ足で出発する', fn: '', action: () => {
+              state.innEventDone[INN_EVENTS[stageForClosure].flag] = 'skipped';
+              document.getElementById('scene-text').innerHTML = INN_EVENTS[stageForClosure].skipText;
+              showChoices([{ label: nextLabel, fn: '', action: () => showStageChoices() }]);
+          }},
+        ]);
+        return;
+      }
+    }
+
     showStageChoices();
   });
 }
@@ -4169,6 +4369,8 @@ function openMemo() {
   document.getElementById('memo-panel').classList.add('open');
   document.getElementById('memo-overlay').classList.add('open');
   renderMemo();
+  const mc = document.getElementById('memo-content');
+  mc.scrollTop = 0;
 }
 
 function closeMemo() {
@@ -4200,7 +4402,7 @@ function renderMemo() {
     content.innerHTML = '<div class="memo-empty">まだ記録がない</div>';
     return;
   }
-  content.innerHTML = entries.map(e => `
+  content.innerHTML = [...entries].reverse().map(e => `
     <div class="memo-entry">
       <div class="memo-entry-stage">${e.stage}</div>
       ${e.text}
@@ -4581,7 +4783,7 @@ const STAGE_DATA = {
   1: {
     name: '品川', ji: '第一次', yomi: 'しながわ',
     next: '川崎', nextJi: '第二次',
-    arriveText: `東海道は、思ったより人が多かった。<br><br>品川宿の街道沿いには、茶屋や小店が軒を連ねている。威勢のいい客引きの声。荷を担いだ飛脚。笠を深くかぶった武士。宗吉はその流れに混じりながら、少しだけ立ち止まった。<br><br>品川を過ぎれば、江戸ともお別れだ。<br><br>宗吉は荷を背負い直した。針、糸、油紙、簪（かんざし）。それだけが頼りだった。<br><br>今日中に川崎まで進むつもりだった。まずは品川で一稼ぎできるか——試してみるか。<br><br>そういえば、おみつへの土産も探さなくては。何がいいか、まだわからない。`,
+    arriveText: `東海道は、思ったより人が多かった。<br><br>品川宿の街道沿いには、茶屋や小店が軒を連ねている。威勢のいい客引きの声。荷を担いだ飛脚。笠を深くかぶった武士。宗吉はその流れに混じりながら、少しだけ立ち止まった。<br><br>品川を過ぎれば、江戸ともお別れだ。<br><br>今日中に川崎まで進むつもりだった。まずは品川で一稼ぎできるか——試してみるか。<br><br>そういえば、おみつへの土産も探さなくては。何がいいか、まだわからない。`,
     morningText: `夜が明けた。<br><br>橘屋の女将に礼を言い、宗吉は外へ出た。<br><br>冷えた朝の空気が頬を刺す。街道はもう賑わい始めている。さて——今日は川崎まで進もうか、それとももう一日品川で稼ぐか。`,
     travelText: `品川宿を後にした。<br><br>川崎まで三里ほど。冬の街道を黙々と歩いた。人の波が薄くなり、やがて田畑が広がり始めた。<br><br>多摩川の渡し場が見えてきた。`,
     innTextInn: `夕餉が運ばれた。飯と、味噌汁、焼いた鯵、大根の漬物。それだけだが、温かかった。<br><br>旅籠・橘屋の夜は静かだった。帳面を広げて、今日の収支を書き付けた。おみつは今頃、何をしているだろう。`,
@@ -4592,7 +4794,7 @@ const STAGE_DATA = {
   2: {
     name: '川崎', ji: '第二次', yomi: 'かわさき',
     next: '神奈川', nextJi: '第三次',
-    arriveText: `川崎宿に入った。<br><br>小さな宿場だ。茶屋が数軒、旅籠が数軒。渡しを行き来する旅人で、それなりの賑わいがある。<br><br>大師河原の平間寺へ詣でる者も混じっているのか、数珠を手にした男女がちらほら歩いていた。`,
+    arriveText: `川崎宿に入った。<br><br>小さな宿場だ。茶屋が数軒、旅籠が数軒。渡しを行き来する旅人で、それなりの賑わいがある。<br><br>大師河原の平間寺へ詣でる者も混じっているのか、数珠を手にした男女がちらほら歩いていた。<br><br>旅籠の軒先で、一人の旅人が立ち止まって暖簾を眺めていた。`,
     morningTextInn: `夜が明けた。<br><br>旅籠の朝飯は早かった。熱い飯と味噌汁だけを口に入れて、すぐ立った。旅籠の布団の温もりが、まだ体に残っている。宗吉は荷を確かめ、外へ出た。多摩川の川霧が街道を覆っている。`,
     morningTextCheap: `夜が明けた。<br><br>木賃宿の板の間から立ち上がると、体中が冷えていた。隣で眠っていた旅人はもう出発したようだ。宗吉は荷を確かめ、外へ出た。多摩川の川霧が街道を覆っている。`,
     travelText: `川崎宿を後にした。<br><br>神奈川まで二里ほど。海沿いの道に出ると、風が強くなった。`,
@@ -4681,7 +4883,7 @@ const STAGE_DATA = {
   10: {
     name: '箱根', ji: '第十次', yomi: 'はこね',
     next: '三島', nextJi: '第十一次',
-    arriveText: `箱根の関所は、峠の中腹にある。<br><br>「手形」<br><br>番士が手を出した。宗吉は荷を下ろして手形を探した。荷の奥に押し込んであった。出すのに手間取った。<br><br>「江戸から？　商人か」<br><br>「はい、行商で」<br><br>「荷の中身は」<br><br>宗吉は品目を一つずつ答えた。番士は荷を少しかき回した。簪が出てきた時、番士の顔が動いた。<br><br>「売り歩くのか、これを」<br><br>「はい」<br><br>「通れ」<br><br>それだけだった。峠道に戻ると、膝が少し震えていた。<br><br>関所を抜けると、視界が開けた。頂上近くの茶屋で一息ついた。老人が富士の方角を指した。宗吉は初めて立ち止まって、富士山を見た。`,
+    arriveText: `箱根の関所は、峠の中腹にある。<br><br>「手形」<br><br>番士が手を出した。宗吉は荷を下ろして手形を探した。荷の奥に押し込んであった。出すのに手間取った。<br><br>「江戸から？　商人か」<br><br>「はい、行商で」<br><br>「荷の中身は」<br><br>宗吉は品目を一つずつ答えた。番士は荷を少しかき回した。底まで確かめて、手を引いた。<br><br>「通れ」<br><br>それだけだった。峠道に戻ると、膝が少し震えていた。<br><br>関所を抜けると、視界が開けた。頂上近くの茶屋で一息ついた。老人が富士の方角を指した。宗吉は初めて立ち止まって、富士山を見た。`,
     travelText: `箱根を下り始めた。<br><br>三島まで四里ほど。下り坂は足に来る。`,
     innTextInn: `夕餉に薬草を煮込んだ汁が出た。湯治客向けなのか、少し苦い味がした。峠の宿らしい食事だった。<br><br>箱根の旅籠に泊まった。峠の夜は冷えた。薬草の匂いがする宿だった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯の汁も薬草入りだった。体の芯から温まる気がした。今日は三島まで下る。宗吉は荷を担ぎ、峠道へ向かった。`,
@@ -4718,7 +4920,7 @@ const STAGE_DATA = {
     travelText: `原宿を出た。<br><br>吉原まで三里ほど。田子の浦沿いの道に入ったとき、宗吉は足を止めた。<br><br>富士山が、左にある。<br><br>江戸を出てからずっと、富士は右手に見えていた。箱根でも、三島でも、原でも——いつも右だった。それがいつの間にか、左に移っている。<br><br>同じ山なのに、向きが変わる。当たり前のことだが、なぜか妙な気がした。<br><br>旅人の一人が「吉原の左富士ですよ」と教えてくれた。「この先に行くとまた右に戻る」<br><br>宗吉はしばらく立ったまま、左手の富士を見ていた。白い頂が、冬の空にくっきりと立っていた。`,
     innTextInn: `夕餉に干し芋の煮たものが出た。素朴な味だった。田舎の宿らしい。<br><br>原の旅籠に泊まった。絵師の言葉が、なんとなく頭に残っていた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食い終えて外へ出ると、富士が朝日を浴びていた。宗吉はしばらく眺めてから、歩き出した。`,
-    innTextCheap: `原の木賃宿に泊まった。<br><br>小さな宿で、夕飯が出なかった。持ち合わせの煮干しを一本食べて横になった。腹が鳴って、眠れなかった。`,
+    innTextCheap: `原の木賃宿に泊まった。<br><br>小さな宿で、夕飯が出なかった。横になっても腹が鳴って、眠れなかった。`,
     innCost: 200,
     cheapCost: 28,
   },
@@ -5110,7 +5312,7 @@ const STAGE_DATA = {
   49: {
     name: '土山', ji: '第四十九次', yomi: 'つちやま',
     next: '水口', nextJi: '第五十次',
-    arriveText: `鈴鹿峠を越えた。<br><br>急な登りと急な下りで、膝に来た。峠の頂で一度立ち止まり、来た方向を振り返った。山の向こうに伊勢の空が広がっていた。<br><br>近江国に入った。峠を越えると空気が変わる——そういう気がした。<br><br>土山宿は小さい。峠越えの旅人が一息つく場所だ。お六櫛という土山の名物を売っていた。女性向けのものだが、宗吉は一本手に取って眺めた。おみつへの土産に、と思ったが、手持ちの品と見比べて、棚に戻した。`,
+    arriveText: `鈴鹿峠を越えた。<br><br>急な登りと急な下りで、膝に来た。峠の頂で一度立ち止まり、来た方向を振り返った。山の向こうに伊勢の空が広がっていた。<br><br>近江国に入った。峠を越えると空気が変わる——そういう気がした。<br><br>土山宿は小さい。峠越えの旅人が一息つく場所だ。街道沿いに、小さな店が一軒ある。`,
     travelText: `土山を後にした。<br><br>水口まで三里ほど。近江の平野が広がる。<br><br>街道の向こうから、荷を積んだ馬を二頭引いた男たちが歩いてくる。先頭の男は年配で、目が鋭かった。江戸の方へ向かっている。近江商人だろう。<br><br>すれ違う瞬間、男が宗吉の荷にちらりと目をやった。何も言わなかった。ただそれだけだった。<br><br>宗吉は振り返らず、歩き続けた。`,
     innTextInn: `夕餉に近江の芋の煮物が出た。峠を越えて近江に入ると、食べ物の味が変わる気がした。<br><br>「峠は大丈夫でしたか」と女将が聞いた。「なんとか」と答えると、「皆そう言います」と笑った。<br><br>土山の旅籠に泊まった。鈴鹿峠を越えた。近江に入った。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、近江の空を見た。伊勢とは色が違う気がした。京まであと少しだ。宗吉は荷を担ぎ、外へ出た。`,
@@ -5206,6 +5408,7 @@ function startFromSave() {
   if (state.lastDinnerItem === undefined) state.lastDinnerItem = null;
   if (state.souvenirs === undefined) state.souvenirs = [];
   if (state.souvenirChosen === undefined) state.souvenirChosen = null;
+  if (state.innEventDone === undefined) state.innEventDone = {};
   document.getElementById('start-modal').classList.remove('open');
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
