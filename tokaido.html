@@ -2621,7 +2621,7 @@ function visitShrine(sh) {
   if (sv) {
     text += `<br><br>——${sv.name}を求めるか。（${sv.price}文）`;
     choices.push({
-      label: `「${sv.name}」を買う（${sv.price}文）`,
+      label: `「${sv.name}」を買う`,
       fn: '',
       action: () => {
         buySouvenir(sv.id);
@@ -2660,7 +2660,7 @@ function buySouvenir(id) {
   state.memos.miyage.push({ stage: sd ? sd.name : '', text: `${sv.name}（${sv.price}文）　${sv.memo}` });
   updateHeader();
   document.getElementById('scene-text').innerHTML =
-    `「${sv.name}」を買った。（${sv.price}文）<br><br>手帳の土産候補に書き留めた。`;
+    `「${sv.name}」を買った。<br><br>手帳の土産候補に書き留めた。`;
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
