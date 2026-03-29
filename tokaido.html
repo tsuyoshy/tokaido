@@ -842,7 +842,7 @@
   </div>
   <div id="header-icons">
     <button class="icon-btn" onclick="openMap()">地図</button>
-    <button class="icon-btn" onclick="openMemo()">手帳</button>
+    <button class="icon-btn" onclick="openMemo()">旅の手帳</button>
 
   </div>
 </div>
@@ -900,7 +900,7 @@
   <div id="inn-title">◆ 帳面　— 本日の収支</div>
   <div id="ledger">
     <div class="ledger-row"><span>売上</span><span id="ledger-income">＋0文</span></div>
-    <div class="ledger-row"><span>仕入れ</span><span id="ledger-buy">−0文</span></div>
+    <div class="ledger-row"><span>支出</span><span id="ledger-buy">−0文</span></div>
     <div class="ledger-row"><span>宿代</span><span id="ledger-inn">−35文</span></div>
     <div class="ledger-row ledger-total">
       <span>手元金</span><span id="ledger-total">800文</span>
@@ -1844,7 +1844,7 @@ const STAGE_ITEMS = {
   9:  [ // 小田原
     { name: '梅干し',   unit: '包', buy: 16, sell: 24, vol: 3, cat: '食料' },
     { name: '蒲鉾',     unit: '本', buy: 30, sell: 45, vol: 6, cat: '食料' },
-    { name: '練り羊羹', unit: '本', buy: 24, sell: 36, vol: 3, cat: '調味料' },
+    { name: '練り羊羹', unit: '本', buy: 24, sell: 36, vol: 3, cat: '食料' },
   ],
   10: [ // 箱根
     { name: '薬草', origin: [10], unit: '包', buy: 40, sell: 60, vol: 4, cat: '薬' },
@@ -2195,7 +2195,7 @@ function showChoices(choices) {
       };
     }, 400);
   } else {
-    const nums = ['一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、', '九、', '十、'];
+    const nums = ['一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、', '九、', '十、', '十一、', '十二、'];
     el.innerHTML = choices.map((c, i) =>
       `<button class="choice-btn" onclick="__choices[${i}].action()">
         <span class="choice-num">${nums[i]}</span>${c.label}
@@ -2395,7 +2395,7 @@ function showStageChoices() {
       choices.push({ label: '旅籠に泊まる（' + innCost + '文）', fn: '', action: () => goToInn(innCost) });
     } else {
       choices.push({ label: '旅籠に泊まる（' + innCost + '文）', fn: '', action: () => goToInn(innCost) });
-      choices.push({ label: '木賃宿にする（' + cheapCost + '文）', fn: '', action: () => goToInn(cheapCost) });
+      choices.push({ label: '木賃宿にする（' + cheapCost + '文）　安いが狭い', fn: '', action: () => goToInn(cheapCost) });
     }
   }
   showChoices(choices);
@@ -2916,6 +2916,7 @@ function acceptMessage() {
 // ── 伝言を断る ──
 function refuseMessage() {
   state.flags.kamiDone = true;
+  state.flags.shobeeDone = true; // 断ったので庄兵衛訪問は不要
   fadeTransition(() => {
     document.getElementById('scene-text').innerHTML =
       '「すみません、急ぎの旅で」<br><br>' +
@@ -3461,7 +3462,7 @@ function triggerGameOver(reason, innCost) {
     bodyText =
       `${sd.name}宿で夜が明けた。<br><br>` +
       `今日が藪入りのはずだった。しかし宗吉はまだ道の半ばにいる。<br><br>` +
-      `おみつは江戸で待っているだろう。今年は、会えなかった。`;
+      `おみつは京で待っているだろう。今年は、会えなかった。`;
   } else if (reason === 'broke') {
     titleText = '路銀が尽きた';
     bodyText =
@@ -3482,7 +3483,7 @@ function triggerGameOver(reason, innCost) {
   document.getElementById('gameover-stats').innerHTML =
     `通過した宿場　${stagesCleared} 次<br>` +
     `残り日数　${state.days} 日<br>` +
-    `所持金　${state.money} 文`;
+    `所持金　${state.money.toLocaleString()} 文`;
 
   screen.classList.add('show');
 }
@@ -3867,6 +3868,8 @@ const OLD_MERCHANT_MEETINGS = {
 function checkOldMerchant(stageNum, nextAction) {
   const meet = OLD_MERCHANT_MEETINGS[stageNum];
   if (!meet || state.flags[meet.flag]) return false;
+  // 廻船利用時は多摩川の渡し船で出会っていないので登場しない
+  if (state.flags.kaisenUsed) { state.flags[meet.flag] = true; return false; }
   state.flags[meet.flag] = true;
   const sceneEl = document.getElementById('scene-text');
   sceneEl.innerHTML += '<br><br>' + meet.text;
@@ -3883,6 +3886,7 @@ function nextStage() {
   fadeTransition(() => {
     state.currentStage += 1;
     state.commerceDone = false;
+    state.cargoOpenCount = 0;
     state.innTradeCount = 0;
     state.innMode = false;
 
@@ -4628,7 +4632,7 @@ const STAGE_DATA = {
   10: {
     name: '箱根', ji: '第十次', yomi: 'はこね',
     next: '三島', nextJi: '第十一次',
-    arriveText: `箱根の関所は、峠の中腹にある。<br><br>「手形」<br><br>番士が手を出した。宗吉は荷を下ろして手形を探した。荷の奥に押し込んであった。出すのに手間取った。<br><br>「江戸から？　商人か」<br><br>「はい、行商で」<br><br>「荷の中身は」<br><br>宗吉は品目を一つずつ答えた。番士は荷を少しかき回した。簪と紅が出てきた時、番士の顔が動いた。<br><br>「売り歩くのか、これを」<br><br>「はい」<br><br>「通れ」<br><br>それだけだった。峠道に戻ると、膝が少し震えていた。<br><br>関所を抜けると、視界が開けた。頂上近くの茶屋で一息ついた。老人が富士の方角を指した。宗吉は初めて立ち止まって、富士山を見た。`,
+    arriveText: `箱根の関所は、峠の中腹にある。<br><br>「手形」<br><br>番士が手を出した。宗吉は荷を下ろして手形を探した。荷の奥に押し込んであった。出すのに手間取った。<br><br>「江戸から？　商人か」<br><br>「はい、行商で」<br><br>「荷の中身は」<br><br>宗吉は品目を一つずつ答えた。番士は荷を少しかき回した。簪が出てきた時、番士の顔が動いた。<br><br>「売り歩くのか、これを」<br><br>「はい」<br><br>「通れ」<br><br>それだけだった。峠道に戻ると、膝が少し震えていた。<br><br>関所を抜けると、視界が開けた。頂上近くの茶屋で一息ついた。老人が富士の方角を指した。宗吉は初めて立ち止まって、富士山を見た。`,
     travelText: `箱根を下り始めた。<br><br>三島まで四里ほど。下り坂は足に来る。`,
     innTextInn: `夕餉に薬草を煮込んだ汁が出た。湯治客向けなのか、少し苦い味がした。峠の宿らしい食事だった。<br><br>箱根の旅籠に泊まった。峠の夜は冷えた。薬草の匂いがする宿だった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯の汁も薬草入りだった。体の芯から温まる気がした。今日は三島まで下る。宗吉は荷を担ぎ、峠道へ向かった。`,
@@ -5169,7 +5173,7 @@ const INTRO_TEXT =
   '「おみつに会いに行くんだろう。ならついでに、道中で商いをしてこい。東海道を歩けば、嫌でも覚える。それが修行というものだ」<br><br>' +
   '父は多くを言わない人だった。それだけで、行っていいということだった。<br><br>' +
   '妹のおみつが京にいる。呉服屋に奉公に上がって三年になる。正月の藪入りに顔を見せてやりたかった。<br><br>' +
-  '荷に針・糸・油紙・簪・櫛・紅。手元金、八百文。<br><br>' +
+  '荷に針・糸・油紙・簪。手元金、八百文。<br><br>' +
   '道中で商いをしながら、旅費を稼いで歩く。<br><br>' +
   '東海道、五十三次。藪入りまで、二十日。';
 
