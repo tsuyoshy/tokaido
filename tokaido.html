@@ -5181,6 +5181,9 @@ function startFresh() {
     fadeTransition(() => {
       const sd = currentStageData();
       document.getElementById('scene-text').innerHTML = sd.arriveText;
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
       showStageChoices();
     });
   });
@@ -5215,6 +5218,9 @@ if (!checkSaveOnStart()) {
     fadeTransition(() => {
       const sd = currentStageData();
       document.getElementById('scene-text').innerHTML = sd.arriveText;
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
       showStageChoices();
     });
   });
