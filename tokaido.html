@@ -3373,19 +3373,31 @@ function showFerryBarter() {
   const oilpaper = state.cargo.find(item => item.name === '油紙' && item.qty > 0);
   fadeTransition(() => {
     if (!oilpaper) {
-      // 油紙なし・金も足りない→渡れない
-      document.getElementById('scene-text').innerHTML =
-        '荷を広げてみせると、船頭はひととおり眺めて首を振った。<br><br>' +
-        '「油紙があれば一枚でいいんだがな。ないなら十文もらわんと」<br><br>' +
-        '宗吉は困った。十文もなく、油紙もない。<br><br>' +
-        '「……明日また来な」と船頭は言って、背を向けた。<br><br>' +
-        '今日はここで一泊するしかなかった。';
-      // 強制的に品川に留まらせる（選択肢は宿取るのみ）
-      const sd = currentStageData();
-      const innCost = sd.innCost || 200;
-      showChoices([
-        { label: '旅籠に泊まる（' + innCost + '文）', fn: '', action: () => goToInn(innCost) },
-      ]);
+      // 油紙なし
+      if (state.money >= 10) {
+        // 金はある→十文払えると伝える選択肢へ
+        document.getElementById('scene-text').innerHTML =
+          '荷を広げてみせると、船頭はひととおり眺めて首を振った。<br><br>' +
+          '「油紙があれば一枚でいいんだがな。ないなら十文もらわんと」<br><br>' +
+          '油紙はない。だが、十文なら手元にある。';
+        showChoices([
+          { label: '十文払う', fn: '', action: () => takeFerry() },
+          { label: 'やめる', fn: '', action: () => showTamaRiverChoice() },
+        ]);
+      } else {
+        // 油紙なし・金も足りない→渡れない
+        document.getElementById('scene-text').innerHTML =
+          '荷を広げてみせると、船頭はひととおり眺めて首を振った。<br><br>' +
+          '「油紙があれば一枚でいいんだがな。ないなら十文もらわんと」<br><br>' +
+          '宗吉は困った。十文もなく、油紙もない。<br><br>' +
+          '「……明日また来な」と船頭は言って、背を向けた。<br><br>' +
+          '今日はここで一泊するしかなかった。';
+        const sd = currentStageData();
+        const innCost = sd.innCost || 200;
+        showChoices([
+          { label: '旅籠に泊まる（' + innCost + '文）', fn: '', action: () => goToInn(innCost) },
+        ]);
+      }
       return;
     }
     // 油紙あり
