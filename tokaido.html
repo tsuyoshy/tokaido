@@ -4163,7 +4163,6 @@ function nextStage() {
           const paid = Math.min(ferryEntryL.cost, state.money);
           state.money -= paid;
           state.innLog.buy += paid;
-          arriveBody += '<br><br>' + ferryEntryL.text;
         }
         const lunchLine = canAffordLunch
           ? '昼飯は' + lunchName + 'を食べ、' + lunchCost + '文だった。'
@@ -4202,10 +4201,7 @@ function nextStage() {
       state.money -= paid;
       state.innLog.buy += paid;
       updateHeader();
-      arrive += '<br><br>' + ferryEntry.text;
     }
-
-    // 神奈川到着時、おきくの伝言を持っていれば追記
     if (state.currentStage === 3) {
       if (state.flags.kamiDone && !state.flags.shobeeDone) arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
     }
@@ -4239,7 +4235,6 @@ function showArriveText(sd) {
       state.money -= paid;
       state.innLog.buy += paid;
       updateHeader();
-      arrive += '<br><br>' + ferryEntry.text;
     }
     if (state.currentStage === 3) {
       if (state.flags.kamiDone && !state.flags.shobeeDone) arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
