@@ -4516,7 +4516,7 @@ const STAGE_DATA = {
   1: {
     name: '品川', ji: '第一次', yomi: 'しながわ',
     next: '川崎', nextJi: '第二次',
-    arriveText: `元禄十四年、師走。<br><br>東海道は、思ったより人が多かった。<br><br>品川宿の街道沿いには、茶屋や小店が軒を連ねている。威勢のいい客引きの声。荷を担いだ飛脚。笠を深くかぶった武士。宗吉はその流れに混じりながら、少しだけ立ち止まった。<br><br>品川を過ぎれば、江戸ともお別れだ。<br><br>宗吉は荷を背負い直した。針、糸、油紙、小間物。それだけが頼りだった。<br><br>藪入りまで、二十日。<br><br>今日中に川崎まで進むつもりだった。まずは品川で一稼ぎできるか——試してみるか。<br><br>そういえば、おみつへの土産も探さなくては。何がいいか、まだわからない。`,
+    arriveText: `東海道は、思ったより人が多かった。<br><br>品川宿の街道沿いには、茶屋や小店が軒を連ねている。威勢のいい客引きの声。荷を担いだ飛脚。笠を深くかぶった武士。宗吉はその流れに混じりながら、少しだけ立ち止まった。<br><br>品川を過ぎれば、江戸ともお別れだ。<br><br>宗吉は荷を背負い直した。針、糸、油紙、小間物。それだけが頼りだった。<br><br>今日中に川崎まで進むつもりだった。まずは品川で一稼ぎできるか——試してみるか。<br><br>そういえば、おみつへの土産も探さなくては。何がいいか、まだわからない。`,
     morningText: `夜が明けた。<br><br>橘屋の女将に礼を言い、宗吉は外へ出た。<br><br>冷えた朝の空気が頬を刺す。街道はもう賑わい始めている。さて——今日は川崎まで進もうか、それとももう一日品川で稼ぐか。`,
     travelText: `品川宿を後にした。<br><br>川崎まで三里ほど。冬の街道を黙々と歩いた。人の波が薄くなり、やがて田畑が広がり始めた。<br><br>多摩川の渡し場が見えてきた。`,
     innTextInn: `夕餉が運ばれた。飯と、味噌汁、焼いた鯵、大根の漬物。それだけだが、温かかった。<br><br>旅籠・橘屋の夜は静かだった。帳面を広げて、今日の収支を書き付けた。おみつは今頃、何をしているだろう。`,
@@ -5150,19 +5150,40 @@ function startFromSave() {
   wakeUpMorning();
 }
 
-function startFresh() {
-  document.getElementById('start-modal').classList.remove('open');
-  updateHeader();
+const INTRO_TEXT =
+  '元禄十四年、師走。<br><br>' +
+  '出発の朝、父は帳場に座っていた。<br><br>' +
+  'しばらく算盤を置いて、こちらを向いた。<br><br>' +
+  '「おみつに会いに行くんだろう。ならついでに、道中で商いをしてこい。東海道を歩けば、嫌でも覚える。それが修行というものだ」<br><br>' +
+  '父は多くを言わない人だった。それだけで、行っていいということだった。<br><br>' +
+  '妹のおみつが京にいる。呉服屋に奉公に上がって三年になる。正月の藪入りに顔を見せてやりたかった。<br><br>' +
+  '荷に針・糸・油紙・簪・櫛・紅。手元金、八百文。<br><br>' +
+  '道中で商いをしながら、旅費を稼いで歩く。<br><br>' +
+  '東海道、五十三次。藪入りまで、二十日。';
+
+function showIntro(onDone) {
   const sd = currentStageData();
   document.getElementById('stage-name').textContent = sd.name;
   document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
-  document.getElementById('scene-text').innerHTML = sd.arriveText;
+  document.getElementById('scene-text').innerHTML = INTRO_TEXT;
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
+  showChoices([{ label: '— 旅に出る —', fn: '', action: () => onDone() }]);
+}
+
+function startFresh() {
+  document.getElementById('start-modal').classList.remove('open');
+  updateHeader();
   loadMapImg();
   preloadNextImages(state.currentStage);
-  showStageChoices();
+  showIntro(() => {
+    fadeTransition(() => {
+      const sd = currentStageData();
+      document.getElementById('scene-text').innerHTML = sd.arriveText;
+      showStageChoices();
+    });
+  });
 }
 
 function checkSaveOnStart() {
@@ -5187,16 +5208,16 @@ updateHeader();
 drawRainCanvas();
 drawSnowCanvas();
 if (!checkSaveOnStart()) {
-  (function() {
-    const sd = currentStageData();
-    document.getElementById('stage-name').textContent = sd.name;
-    document.getElementById('stage-remaining').textContent = 'あと' + (53 - state.currentStage) + '次';
-    document.getElementById('scene-text').innerHTML = sd.arriveText;
-    window.scrollTo(0, 0);
-    document.body.scrollTop = 0;
-    document.documentElement.scrollTop = 0;
-  })();
-  showStageChoices();
+  updateHeader();
+  loadMapImg();
+  preloadNextImages(state.currentStage);
+  showIntro(() => {
+    fadeTransition(() => {
+      const sd = currentStageData();
+      document.getElementById('scene-text').innerHTML = sd.arriveText;
+      showStageChoices();
+    });
+  });
 }
 
 // ── 地図 ──
