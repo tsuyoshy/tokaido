@@ -1469,7 +1469,25 @@ function callCustomer() {
   // 客が来るか確率判定
   if (Math.random() > customerPct()) {
     document.getElementById('cargo-panel').style.display = 'none';
-    document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
+    // 天候・宿場規模に応じたフィードバックテキスト
+    const config = STAGE_CONFIG[state.currentStage] || DEFAULT_CONFIG;
+    const noCustomerTexts = {
+      weather: {
+        rain:   'しばらく待ったが、誰も足を止めなかった。雨のせいか、街道を行く人が少ない。',
+        snow:   'しばらく待ったが、誰も足を止めなかった。雪で旅人の足が遠のいている。',
+        cloudy: 'しばらく待ったが、誰も足を止めなかった。曇り空のせいか、人の流れが鈍い。',
+      },
+      size: {
+        small: 'しばらく待ったが、誰も足を止めなかった。小さな宿場で、通る旅人の数が少ない。',
+        mid:   'しばらく待ったが、誰も足を止めなかった。',
+        large: 'しばらく待ったが、誰も足を止めなかった。',
+      },
+    };
+    let noCustomerText = noCustomerTexts.size[config.size] || 'しばらく待ったが、誰も足を止めなかった。';
+    if (state.weather === 'rain' || state.weather === 'snow' || state.weather === 'cloudy') {
+      noCustomerText = noCustomerTexts.weather[state.weather] || noCustomerText;
+    }
+    document.getElementById('scene-text').innerHTML = noCustomerText;
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
     showChoices([
       { label: '', fn: '', action: () => showStageChoices() },
@@ -1498,10 +1516,42 @@ function callCustomer() {
     }
     if (matches.length > 0) break;
   }
-  // マッチしない場合は客が立ち去る
+  // マッチしない場合：この時間帯に何が求められていたかを宗吉の目線で示す
   if (!matches || matches.length === 0) {
     document.getElementById('cargo-panel').style.display = 'none';
-    document.getElementById('scene-text').innerHTML = 'しばらく待ったが、誰も足を止めなかった。';
+
+    // この時間帯に出やすい客カテゴリを集計して、足りないカテゴリを特定
+    const slotCustomers = CUSTOMERS.filter(c => !c.nightOnly && (!c.timeSlots || c.timeSlots.includes(curSlot)));
+    const wantedCats = [...new Set(slotCustomers.flatMap(c => c.wants))];
+    const haveCats   = new Set(available.map(item => item.cat).filter(Boolean));
+    const missingCats = wantedCats.filter(cat => !haveCats.has(cat));
+
+    // カテゴリ別の「足りない」ヒントテキスト
+    const catHints = {
+      '旅道具': '旅道具を探している旅人が多かったが、手持ちに合う品がなかった。',
+      '食料':   '食料を求める客が通ったが、宗吉の荷とは合わなかった。',
+      '薬':     '薬を探している様子の客がいたが、手持ちに薬の類がなかった。',
+      '女性向け':'女性向けの品を探している客が通ったが、手持ちになかった。',
+      '調味料': '調味料を欲しがっている客がいたが、手持ちに合う品がなかった。',
+      '雑貨':   '雑貨を見ている客がいたが、宗吉の荷では対応できなかった。',
+    };
+
+    // 時間帯ごとの補足テキスト
+    const slotHints = {
+      asa:  '朝は旅立ちの旅人が多い。旅道具や食料を急いで求める客が目につく。',
+      hiru: '昼になると通行人の種類が増える。食料、薬、雑貨と、動く品が広がる。',
+      yuu:  '夕方は女性向けや調味料を探す客が増えてくる。',
+    };
+
+    let mismatchText = 'しばらく待ったが、誰も足を止めなかった。';
+    if (missingCats.length > 0) {
+      const hint = catHints[missingCats[0]];
+      if (hint) mismatchText = hint;
+    }
+    const slotHint = slotHints[curSlot];
+    if (slotHint) mismatchText += `<br><br><span style="font-size:12px;opacity:0.55;">${slotHint}</span>`;
+
+    document.getElementById('scene-text').innerHTML = mismatchText;
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
     showChoices([
       { label: '', fn: '', action: () => showStageChoices() },
