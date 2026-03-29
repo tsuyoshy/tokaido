@@ -1437,7 +1437,7 @@ function callCustomer() {
   // 所持品で売れるものを確認
   const available = state.cargo.filter(item => item.qty > 0);
   if (available.length === 0) {
-    document.getElementById('scene-text').innerHTML = '宗吉は荷を広げた。<br><br>しかし、誰も足を止めなかった。';
+    document.getElementById('scene-text').innerHTML = '宗吉は荷を探ったが、売れるものが残っていなかった。<br><br>仕入れが必要だ。';
     showChoices([
       { label: '', fn: '', action: () => { document.getElementById("cargo-panel").style.display="none"; showStageChoices(); }},
     ]);
@@ -1483,9 +1483,20 @@ function callCustomer() {
         large: 'しばらく待ったが、誰も足を止めなかった。',
       },
     };
+    const slotHintsProbMiss = {
+      asa:  '朝は旅立ちの旅人が多い。旅道具や食料を急いで求める客が目につく。',
+      hiru: '昼になると通行人の種類が増える。食料、薬、雑貨と、動く品が広がる。',
+      yuu:  '夕方は女性向けや調味料を探す客が増えてくる。',
+    };
     let noCustomerText = noCustomerTexts.size[config.size] || 'しばらく待ったが、誰も足を止めなかった。';
     if (state.weather === 'rain' || state.weather === 'snow' || state.weather === 'cloudy') {
       noCustomerText = noCustomerTexts.weather[state.weather] || noCustomerText;
+    }
+    // mid・large宿場かつ晴れのとき（純粋な確率ハズレ）は時間帯ヒントを補足
+    const isProbMissOnly = (config.size !== 'small') && (state.weather === 'sunny');
+    if (isProbMissOnly) {
+      const slotHint = slotHintsProbMiss[state.timeSlot];
+      if (slotHint) noCustomerText += `<br><br><span style="font-size:12px;opacity:0.55;">${slotHint}</span>`;
     }
     document.getElementById('scene-text').innerHTML = noCustomerText;
     recordVisit(state.currentStage, '荷を広げたが、客は来なかった。');
@@ -1547,6 +1558,15 @@ function callCustomer() {
     if (missingCats.length > 0) {
       const hint = catHints[missingCats[0]];
       if (hint) mismatchText = hint;
+    } else {
+      // 全カテゴリ持っているのに15回試行でマッチしなかった稀なケース
+      // 時間帯に応じた一般的なテキストで代替
+      const generalMiss = {
+        asa:  '声をかけてみたが、今朝の旅人たちには合う品がなかったようだ。',
+        hiru: 'しばらく待ったが、今日の昼は荷と客の巡り合わせが悪かった。',
+        yuu:  '夕方まで待ったが、今日はうまく客と噛み合わなかった。',
+      };
+      mismatchText = generalMiss[curSlot] || 'しばらく待ったが、誰も足を止めなかった。';
     }
     const slotHint = slotHints[curSlot];
     if (slotHint) mismatchText += `<br><br><span style="font-size:12px;opacity:0.55;">${slotHint}</span>`;
@@ -1659,16 +1679,56 @@ const STAGES = [
 // ── 土産データ ──
 // cls: 'inori'祈り / 'jitsuyo'実用 / 'zeitaku'贅沢 / 'kinen'記念
 const SOUVENIR_DATA = [
-  { id: 'mamori',    stage: 6,  name: '遊行寺の守り札',     price: 10,  cls: 'inori',   cond: null,        memo: '遊行寺の門前で買った守り札。おみつの無事を祈って。' },
-  { id: 'tenugui',   stage: 7,  name: '藍染めの手拭い',     price: 40,  cls: 'jitsuyo', cond: null,        memo: '平塚で見かけた藍染めの手拭い。おみつに似合うかもしれない。' },
-  { id: 'mishima',   stage: 11, name: '三嶋大社の土鈴',     price: 15,  cls: 'inori',   cond: { shrine: 'mishimaShrine' }, memo: '三嶋大社の授与品。小さな土鈴。手の中に収まる。' },
-  { id: 'ocha',      stage: 24, name: '島田茶',             price: 25,  cls: 'jitsuyo', cond: null,        memo: '金谷の茶農家からもらった茶。奉公先でも飲めるだろう。' },
-  { id: 'arima',     stage: 40, name: '有松絞りの手拭い',   price: 80,  cls: 'zeitaku', cond: { money: 100 }, memo: '鳴海の有松絞り。高かった。それだけの物だと思う。' },
-  { id: 'atsuta',    stage: 41, name: '熱田神宮の御守',     price: 20,  cls: 'inori',   cond: { shrine: 'atsutaShrine' }, memo: '熱田神宮で求めた御守。おみつを守ってくれるように。' },
-  { id: 'asa',       stage: 50, name: '近江麻の小布',       price: 150, cls: 'zeitaku', cond: { money: 200 }, memo: '水口で買った近江麻。商売がうまくいった証として。' },
-  { id: 'otsue',     stage: 53, name: '大津絵',             price: 24,  cls: 'kinen',   cond: null,        memo: '大津で買った大津絵。旅の終わりの記念に。' },
-  { id: 'ema',       stage: 29, name: '掛川の小絵馬',       price: 0,   cls: 'kinen',   cond: { event: 'kakegawaEma' }, memo: '掛川祭りの手伝いをして、浜松の旅籠でもらった小絵馬。' },
-  { id: 'choji',     stage: 49, name: '丁子の香木',         price: 0,   cls: 'inori',   cond: { event: 'chojiKoboku' }, memo: '亀山で薬屋の老人を助けて、土山の茶屋でもらった丁子の香木。' },
+  { id: 'mamori',  stage: 6,  name: '遊行寺の守り札',   price: 10,  cls: 'inori',   cond: null,
+    memo: '遊行寺の門前で買った守り札。おみつの無事を祈って。',
+    memory: '藤沢の遊行寺の門前で買った。托鉢の僧が何人も立っていた。十文だった。',
+    omitsu: 'おみつは札を表と裏、ゆっくり眺めるだろう。「ずっと持ってきてくれたんだ」と言うかもしれない。',
+  },
+  { id: 'tenugui', stage: 7,  name: '藍染めの手拭い',   price: 40,  cls: 'jitsuyo', cond: null,
+    memo: '平塚で見かけた藍染めの手拭い。おみつに似合うかもしれない。',
+    memory: '平塚の店先で、深い藍の色が目についた。おみつに似合うと思って、四十文出した。',
+    omitsu: '手拭いを広げて、藍の色を確かめるだろう。実用的な品だ——奉公先でも使える。',
+  },
+  { id: 'mishima', stage: 11, name: '三嶋大社の土鈴',   price: 15,  cls: 'inori',   cond: { shrine: 'mishimaShrine' },
+    memo: '三嶋大社の授与品。小さな土鈴。手の中に収まる。',
+    memory: '三嶋大社に参拝した。柏手を打って、何を祈るか迷っていたら、社務所の土鈴が目についた。',
+    omitsu: '手の中に収まる小ささだ。そっと振れば音がする。おみつは喜ぶと思う。',
+  },
+  { id: 'ocha',    stage: 24, name: '島田茶',           price: 25,  cls: 'jitsuyo', cond: null,
+    memo: '金谷の茶農家からもらった茶。奉公先でも飲めるだろう。',
+    memory: '金谷の茶農家から分けてもらった。丘の上まで茶畑が続いていた。',
+    omitsu: '飲めば旅のことを思い出してもらえるかもしれない。飲み切ったらそれまでだが、それでいい。',
+  },
+  { id: 'arima',   stage: 40, name: '有松絞りの手拭い', price: 80,  cls: 'zeitaku', cond: { money: 100 },
+    memo: '鳴海の有松絞り。高かった。それだけの物だと思う。',
+    memory: '鳴海の軒先で、丸い絞り模様の布が目に入った。八十文——迷ったが、買った。',
+    omitsu: '高いものだとわかるだろう。「どうしたの、これ」と言うかもしれない。それでいい。',
+  },
+  { id: 'atsuta',  stage: 41, name: '熱田神宮の御守',   price: 20,  cls: 'inori',   cond: { shrine: 'atsutaShrine' },
+    memo: '熱田神宮で求めた御守。おみつを守ってくれるように。',
+    memory: '七里の海を渡る前に、熱田神宮に参拝した。拝殿の前でおみつの顔が浮かんだ。',
+    omitsu: '御守を両手で受け取るだろう。「ずっと持ちます」と言いそうな気がする。',
+  },
+  { id: 'asa',     stage: 50, name: '近江麻の小布',     price: 150, cls: 'zeitaku', cond: { money: 200 },
+    memo: '水口で買った近江麻。商売がうまくいった証として。',
+    memory: '水口の問屋で目の詰まった麻布を見た。百五十文——この旅で一番高い買い物だった。',
+    omitsu: '近江麻とわかれば、質のよさもわかるはずだ。「大切にします」と言うだろう。',
+  },
+  { id: 'otsue',   stage: 53, name: '大津絵',           price: 24,  cls: 'kinen',   cond: null,
+    memo: '大津で買った大津絵。旅の終わりの記念に。',
+    memory: '大津の街道沿いの店で買った。鬼が豆を撒いている、素朴な絵だった。',
+    omitsu: '旅の終わりに買ったと言えば、喜んでくれると思う。東海道を歩いた証だ。',
+  },
+  { id: 'ema',     stage: 29, name: '掛川の小絵馬',     price: 0,   cls: 'kinen',   cond: { event: 'kakegawaEma' },
+    memo: '掛川祭りの手伝いをして、浜松の旅籠でもらった小絵馬。',
+    memory: '掛川で祭りの手伝いをした。布紐を帯に結んでもらって、浜松の旅籠で女将にもらった絵馬だ。',
+    omitsu: '「手伝いをしたら、もらった」と言えば、おみつは笑うだろう。「兄さんらしい」と言いそうだ。',
+  },
+  { id: 'choji',   stage: 49, name: '丁子の香木',       price: 0,   cls: 'inori',   cond: { event: 'chojiKoboku' },
+    memo: '亀山で薬屋の老人を助けて、土山の茶屋でもらった丁子の香木。',
+    memory: '亀山で荷を運ぶのを手伝った老人が、帯に巾着を差してくれた。土山の茶屋で香木として受け取った。',
+    omitsu: '鼻を近づければ、すぐにわかるだろう。奉公先で丁子を使うと言っていた。',
+  },
 ];
 
 const SOUVENIR_CLASS_LABEL = {
@@ -2497,18 +2557,36 @@ function showSouvenirChoice() {
   let text = `京へ向かう前に、宗吉は荷の中を確かめた。<br><br>`;
 
   if (purchased.length === 0) {
-    text += `おみつへの土産——何も買わなかった。<br><br>手ぶらで行くのも、悪くはないか。`;
+    text += `おみつへの土産——何も買わなかった。<br><br>`;
+    text += `手ぶらで会いに行く。それでも、おみつは来てくれただけでよかったと言うだろう。`;
   } else {
-    text += `おみつへの土産の候補が、`;
-    text += purchased.length === 1 ? `一つある。` : `${purchased.length}つある。`;
+    text += purchased.length === 1
+      ? `おみつへの土産になりそうな品が、一つある。`
+      : `おみつへの土産になりそうな品が、${purchased.length}つある。`;
     text += `<br><br>`;
-    text += purchased.map(sv =>
-      `・${sv.name}（${sv.price}文）`
-    ).join('<br>');
-    text += `<br><br>どれを持っていくか、今ここで決める。`;
+
+    // 各土産の思い出＋おみつ予想を並べる
+    text += purchased.map(sv => {
+      const priceLabel = sv.price > 0 ? `（${sv.price}文）` : `（もらいもの）`;
+      return [
+        `<div style="border-top:1px solid rgba(200,160,40,.2);padding:14px 0 4px;">`,
+        `<span style="font-size:13px;color:#e8c040;letter-spacing:0.1em;">${sv.name}</span>`,
+        `<span style="font-size:11px;opacity:0.5;margin-left:8px;">${priceLabel}</span>`,
+        `<br><br>`,
+        `<span style="font-size:13px;line-height:2.1;">${sv.memory}</span>`,
+        `<br><br>`,
+        `<span style="font-size:12px;opacity:0.65;line-height:2.0;font-style:italic;">${sv.omitsu}</span>`,
+        `</div>`,
+      ].join('');
+    }).join('');
+
+    text += `<br>どれを持っていくか、今ここで決める。`;
   }
 
   document.getElementById('scene-text').innerHTML = text;
+  window.scrollTo(0, 0);
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
 
   const choices = purchased.map(sv => ({
     label: `「${sv.name}」を持っていく`,
