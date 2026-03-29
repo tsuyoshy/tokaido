@@ -779,12 +779,20 @@
   /* ── タップヒント ── */
   #tap-hint {
     display: none;
-    padding: 16px 16px 0;
-    color: rgba(232,216,128,0.75);
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    padding: 8px 20px;
+    background: rgba(10,9,0,0.72);
+    border: 1px solid rgba(200,160,40,0.28);
+    border-radius: 20px;
+    color: rgba(232,216,128,0.85);
     font-size: 13px;
     letter-spacing: 0.15em;
     pointer-events: none;
-    text-align: center;
+    white-space: nowrap;
     animation: pulse 1.8s infinite;
   }
 
@@ -878,7 +886,7 @@
     東海道は、思ったより人が多かった。<br><br>
     品川宿の街道沿いには、茶屋や小店が軒を連ねている。威勢のいい客引きの声。荷を担いだ飛脚。笠を深くかぶった武士。宗吉はその流れに混じりながら、少しだけ立ち止まった。<br><br>
     品川を過ぎれば、江戸ともお別れだ。<br><br>
-    宗吉は荷を背負い直した。針、糸、油紙、小間物。それだけが頼りだった。<br><br>
+    宗吉は荷を背負い直した。針、糸、油紙、簪（かんざし）。それだけが頼りだった。<br><br>
     <span class="highlight">藪入りまで、二十日。</span><br><br>
     今日中に川崎まで進むつもりだった。まずは品川で一稼ぎできるか——試してみるか。<br><br>そういえば、おみつへの土産も探さなくては。何がいいか、まだわからない。
   </div>
@@ -892,6 +900,9 @@
 
 <!-- 選択肢（商売完了後に表示） -->
 <div id="choices" class="hidden"></div>
+
+<!-- タップヒント（choices・inn両方から使用。画面下部に固定表示） -->
+<div id="tap-hint">— タップして続ける —</div>
 
 <div class="divider"></div>
 
@@ -908,7 +919,6 @@
   </div>
   <div id="night-text"></div>
   <div id="inn-days"></div>
-  <div id="tap-hint">— タップして続ける —</div>
 </div>
 
 <!-- セーブデータ選択モーダル -->
@@ -1008,7 +1018,7 @@ const state = {
   weather: 'sunny',
   cargo: [
     { name: '針',           unit: '本', qty: 10, buy: 4,  sell: 6,  vol: 0, cat: '女性向け' },
-    { name: '糸',           unit: '束', qty: 3,  buy: 8,  sell: 12, vol: 0, cat: '旅道具' },
+    { name: '糸',           unit: '束', qty: 3,  buy: 8,  sell: 12, vol: 0, cat: '女性向け' },
     { name: '油紙',         unit: '枚', qty: 4,  buy: 8,  sell: 12, vol: 2, cat: '旅道具' },
     { name: '簪（かんざし）', unit: '本', qty: 1,  buy: 32, sell: 50, vol: 0, cat: '女性向け' },
   ],
@@ -2175,25 +2185,58 @@ function stageName() {
 }
 
 // ── 選択肢表示（1つならタップ進行） ──
+// タップ進行時は divider が画面内に入るまで tap-hint を表示しない。
+// テキストが短く最初から全部見えている場合は即時表示。
+let _tapHintObserver = null; // IntersectionObserver を保持
+
 function showChoices(choices) {
   const el = document.getElementById('choices');
   const hint = document.getElementById('tap-hint');
 
-  // 既存のタップイベントを解除
+  // 既存のタップイベント・Observerを解除
   document.body.onclick = null;
   hint.style.display = 'none';
+  if (_tapHintObserver) { _tapHintObserver.disconnect(); _tapHintObserver = null; }
 
   if (choices.length === 1) {
     el.innerHTML = '';
     el.classList.add('hidden');
-    hint.style.display = 'block';
-    setTimeout(() => {
-      document.body.onclick = () => {
-        document.body.onclick = null;
-        hint.style.display = 'none';
-        choices[0].action();
-      };
-    }, 400);
+
+    const sentinel = document.querySelector('.divider');
+    const activateHint = () => {
+      if (hint.style.display === 'block') return; // 二重起動防止
+      hint.style.display = 'block';
+      setTimeout(() => {
+        document.body.onclick = () => {
+          document.body.onclick = null;
+          hint.style.display = 'none';
+          choices[0].action();
+        };
+      }, 200);
+    };
+
+    if (sentinel) {
+      // IntersectionObserver: dividerが画面内に入ったら表示
+      _tapHintObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          _tapHintObserver.disconnect();
+          _tapHintObserver = null;
+          activateHint();
+        }
+      }, { threshold: 0.5 });
+      _tapHintObserver.observe(sentinel);
+
+      // すでに画面内なら即時表示（テキストが短い場合）
+      const rect = sentinel.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        _tapHintObserver.disconnect();
+        _tapHintObserver = null;
+        activateHint();
+      }
+    } else {
+      // sentinel がない場合は従来通り即時
+      activateHint();
+    }
   } else {
     const nums = ['一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、', '九、', '十、', '十一、', '十二、'];
     el.innerHTML = choices.map((c, i) =>
@@ -2669,7 +2712,7 @@ function openCargo() {
   const volUsed = currentVol();
   list.innerHTML =
     `<div class="cargo-sell-item" style="font-size:11px;opacity:0.6;">
-      <span>荷の容量</span><span>${volUsed} / ${state.maxVol}</span>
+      <span>荷の嵩</span><span>${volUsed} / ${state.maxVol}</span>
     </div>` +
     state.cargo
       .filter(item => item.qty > 0)
@@ -2990,7 +3033,7 @@ function openBuy() {
 
     // 仕入れ品あり → 一覧表示
     const free = freeVol();
-    const volInfo = free > 0 ? `荷の空き：${free}` : '<span style="color:#e85040;">荷が満杯だ</span>';
+    const volInfo = free > 0 ? `荷の空き：${free} / ${state.maxVol}` : '<span style="color:#e85040;">荷が満杯だ</span>';
 
     document.getElementById('scene-text').innerHTML =
       '宗吉は問屋を見て回った。気になるものがあった。<br><br>' +
@@ -3009,7 +3052,7 @@ function openBuy() {
         : `仕入${buyPrice}文`;
       const canBuy = state.money >= buyPrice && (item.vol === 0 || freeVol() >= item.vol);
       return `<div class="buy-item${canBuy ? '' : ' disabled'}" onclick="doBuy(${i})">
-        <span>${item.name}　${priceLabel}${item.vol > 0 ? `　体積${item.vol}` : ''}</span>
+        <span>${item.name}　${priceLabel}${item.vol > 0 ? `　嵩${item.vol}` : ''}</span>
         <span class="buy-item-arrow">▶</span>
       </div>`;
     }).join('') +
@@ -3047,7 +3090,7 @@ function doBuy(itemIdx) {
 
     document.getElementById('scene-text').innerHTML =
       `${item.name}　${buyPrice}文/${item.unit}${discountNote}<br><br>` +
-      `所持金：${state.money.toLocaleString()}文　荷の空き：${freeVol()}<br><br>` +
+      `所持金：${state.money.toLocaleString()}文　荷の空き：${freeVol()} / ${state.maxVol}<br><br>` +
       `何${item.unit}仕入れますか？`;
 
     // 1〜maxQtyの選択肢を生成（最大3択＋やめる）
@@ -3092,7 +3135,7 @@ function confirmBuy(itemIdx, qty) {
   fadeTransition(() => {
     document.getElementById('scene-text').innerHTML =
       `${item.name}を${qty}${item.unit}仕入れた。${total}文。<br><br>` +
-      `荷の容量：${currentVol()} / ${state.maxVol}`;
+      `荷の嵩：${currentVol()} / ${state.maxVol}`;
     showChoices([
       { label: 'さらに仕入れる', fn: '', action: () => openBuy() },
       { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } },
@@ -3311,6 +3354,9 @@ function goNext() {
 
 // ── 多摩川・渡し選択 ──
 function showTamaRiverChoice() {
+  // ステージバーを「品川 → 川崎」と表示
+  document.getElementById('stage-name').textContent = '品川 → 川崎';
+  document.getElementById('stage-remaining').textContent = 'あと52次';
   // 六郷の渡し画像に切り替え
   const illusImg = document.getElementById('illus-img');
   illusImg.style.opacity = '0';
@@ -3584,7 +3630,7 @@ function openCargoForInn() {
   const volUsed = currentVol();
   list.innerHTML =
     `<div class="cargo-sell-item" style="font-size:11px;opacity:0.6;">
-      <span>荷の容量</span><span>${volUsed} / ${state.maxVol}</span>
+      <span>荷の嵩</span><span>${volUsed} / ${state.maxVol}</span>
     </div>` +
     state.cargo
       .filter(item => item.qty > 0)
@@ -3924,7 +3970,8 @@ function nextStage() {
       const lunchEntry = LUNCH_DATA[state.currentStage];
       if (lunchEntry) {
         const [lunchName, lunchCost] = lunchEntry;
-        const actualCost = Math.min(lunchCost, state.money);
+        const canAffordLunch = state.money >= lunchCost;
+        const actualCost = canAffordLunch ? lunchCost : 0;
         state.money -= actualCost;
         state.innLog.buy += actualCost;
         updateHeader();
@@ -3939,7 +3986,9 @@ function nextStage() {
           state.innLog.buy += paid;
           arriveBody += '<br><br>' + ferryEntryL.text;
         }
-        const lunchLine = '昼飯は' + lunchName + 'を食べ、' + lunchCost + '文だった。';
+        const lunchLine = canAffordLunch
+          ? '昼飯は' + lunchName + 'を食べ、' + lunchCost + '文だった。'
+          : '銭が足りないので、昼飯は抜いた。腹が減った。';
         // arriveTextの最初の文の後に昼食テキストを挿入
         const firstBreak = arriveBody.indexOf('<br><br>');
         let combined;
@@ -4532,7 +4581,7 @@ const STAGE_DATA = {
   1: {
     name: '品川', ji: '第一次', yomi: 'しながわ',
     next: '川崎', nextJi: '第二次',
-    arriveText: `東海道は、思ったより人が多かった。<br><br>品川宿の街道沿いには、茶屋や小店が軒を連ねている。威勢のいい客引きの声。荷を担いだ飛脚。笠を深くかぶった武士。宗吉はその流れに混じりながら、少しだけ立ち止まった。<br><br>品川を過ぎれば、江戸ともお別れだ。<br><br>宗吉は荷を背負い直した。針、糸、油紙、小間物。それだけが頼りだった。<br><br>今日中に川崎まで進むつもりだった。まずは品川で一稼ぎできるか——試してみるか。<br><br>そういえば、おみつへの土産も探さなくては。何がいいか、まだわからない。`,
+    arriveText: `東海道は、思ったより人が多かった。<br><br>品川宿の街道沿いには、茶屋や小店が軒を連ねている。威勢のいい客引きの声。荷を担いだ飛脚。笠を深くかぶった武士。宗吉はその流れに混じりながら、少しだけ立ち止まった。<br><br>品川を過ぎれば、江戸ともお別れだ。<br><br>宗吉は荷を背負い直した。針、糸、油紙、簪（かんざし）。それだけが頼りだった。<br><br>今日中に川崎まで進むつもりだった。まずは品川で一稼ぎできるか——試してみるか。<br><br>そういえば、おみつへの土産も探さなくては。何がいいか、まだわからない。`,
     morningText: `夜が明けた。<br><br>橘屋の女将に礼を言い、宗吉は外へ出た。<br><br>冷えた朝の空気が頬を刺す。街道はもう賑わい始めている。さて——今日は川崎まで進もうか、それとももう一日品川で稼ぐか。`,
     travelText: `品川宿を後にした。<br><br>川崎まで三里ほど。冬の街道を黙々と歩いた。人の波が薄くなり、やがて田畑が広がり始めた。<br><br>多摩川の渡し場が見えてきた。`,
     innTextInn: `夕餉が運ばれた。飯と、味噌汁、焼いた鯵、大根の漬物。それだけだが、温かかった。<br><br>旅籠・橘屋の夜は静かだった。帳面を広げて、今日の収支を書き付けた。おみつは今頃、何をしているだろう。`,
@@ -5173,7 +5222,7 @@ const INTRO_TEXT =
   '「おみつに会いに行くんだろう。ならついでに、道中で商いをしてこい。東海道を歩けば、嫌でも覚える。それが修行というものだ」<br><br>' +
   '父は多くを言わない人だった。それだけで、行っていいということだった。<br><br>' +
   '妹のおみつが京にいる。呉服屋に奉公に上がって三年になる。正月の藪入りに顔を見せてやりたかった。<br><br>' +
-  '荷に針・糸・油紙・簪。手元金、八百文。<br><br>' +
+  '荷に針・糸・油紙・簪（かんざし）。手元金、八百文。<br><br>' +
   '道中で商いをしながら、旅費を稼いで歩く。<br><br>' +
   '東海道、五十三次。藪入りまで、二十日。';
 
