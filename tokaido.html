@@ -1617,6 +1617,8 @@ const SOUVENIR_DATA = [
   { id: 'atsuta',    stage: 41, name: '熱田神宮の御守',     price: 20,  cls: 'inori',   cond: { shrine: 'atsutaShrine' }, memo: '熱田神宮で求めた御守。おみつを守ってくれるように。' },
   { id: 'asa',       stage: 50, name: '近江麻の小布',       price: 150, cls: 'zeitaku', cond: { money: 200 }, memo: '水口で買った近江麻。商売がうまくいった証として。' },
   { id: 'otsue',     stage: 53, name: '大津絵',             price: 24,  cls: 'kinen',   cond: null,        memo: '大津で買った大津絵。旅の終わりの記念に。' },
+  { id: 'ema',       stage: 29, name: '掛川の小絵馬',       price: 0,   cls: 'kinen',   cond: { event: 'kakegawaEma' }, memo: '掛川祭りの手伝いをして、浜松の旅籠でもらった小絵馬。' },
+  { id: 'choji',     stage: 49, name: '丁子の香木',         price: 0,   cls: 'inori',   cond: { event: 'chojiKoboku' }, memo: '亀山で薬屋の老人を助けて、土山の茶屋でもらった丁子の香木。' },
 ];
 
 const SOUVENIR_CLASS_LABEL = {
@@ -1658,6 +1660,37 @@ const SHRINE_DATA = [
     souvenirId: 'atsuta',
   },
 ];
+
+// ── 身につけ系イベントデータ ──
+// triggerStage: 出会いの宿場 / rewardStage: 土産解放の宿場
+// wearFlag: 「身につけている」フラグ / rewardFlag: 土産解放済みフラグ
+const ENCOUNTER_DATA = [
+  {
+    id: 'kakegawa',
+    triggerStage: 26,
+    rewardStage: 29,
+    wearFlag: 'kakegawaWear',
+    rewardFlag: 'kakegawaEma',
+    triggerLabel: '祭りの準備を手伝う',
+    triggerText: `城下町の通りを歩いていると、神社の境内から威勢のいい声が聞こえた。<br><br>男たちが祭りの幟を立てている。一人が長い竿を支えきれずにいた。宗吉は荷を下ろして、ひと肩貸した。<br><br>「助かった。兄さん、江戸の人か？」<br><br>「ああ、京へ向かっているところだ」<br><br>「そうか。ならこれを」と男が言って、祭りの法被の端切れで作った小さな布紐を宗吉の帯に結んだ。「道中の守りに、持っていけ」<br><br>宗吉は礼を言って、荷を担ぎ直した。帯に結ばれた布紐が、歩くたびに揺れた。`,
+    wearText: `掛川の男が結んでくれた布紐が、帯に揺れている。`,
+    rewardText: `旅籠の女将が膳を運んできたとき、宗吉の帯に目が止まった。<br><br>「その布紐——掛川の祭りのものじゃないですか」<br><br>「ああ。手伝ったら結んでくれた」<br><br>女将が少し目を細めた。「うちの旦那の実家が掛川なんですよ。ご縁があったんですね」<br><br>しばらくして、女将が小さな絵馬を持ってきた。「うちにあった掛川の絵馬です。おみやげにどうぞ」<br><br>宗吉は受け取って、手の中で確かめた。素朴な木の板に、馬が一頭描かれていた。`,
+    rewardSouvenirId: 'ema',
+  },
+  {
+    id: 'kameYama',
+    triggerStage: 46,
+    rewardStage: 49,
+    wearFlag: 'kameYamaWear',
+    rewardFlag: 'chojiKoboku',
+    triggerLabel: '薬屋の老人を助ける',
+    triggerText: `城下の薬屋の前で、老人が重い荷物をひきずっているのを見かけた。<br><br>宗吉は声をかけて、荷を運ぶのを手伝った。店の中まで運び入れると、老人は息をつきながら礼を言った。<br><br>「鈴鹿越えのお人かね。気をつけて行きなされ」<br><br>老人は懐から小さな巾着を取り出して、宗吉の帯に差してくれた。「いい香りがする。旅の疲れが少し楽になるよ」<br><br>巾着の口から、かすかに甘い香りが漂った。丁子だ、と宗吉は思った。帯に差した巾着が、ぽとりと揺れた。`,
+    wearText: `亀山の老人がくれた香袋が、帯に揺れている。丁子の香りがかすかにする。`,
+    rewardText: `茶屋の縁台に腰を下ろして一息ついていると、茶を運んできた女将が鼻をくんとさせた。<br><br>「いい香りがしますねえ。丁子ですか」<br><br>「亀山でもらった」と宗吉は答えた。<br><br>「まあ。亀山の薬屋さんですか。あそこの香は本物ですよ」女将がそう言って、奥へ引っ込んだ。しばらくして、小さな布包みを持って戻ってきた。「うちも少し分けてもらっていてね。よかったらお持ちなさい」<br><br>布包みを開くと、乾いた丁子の木片が数枚入っていた。手に取ると、香りが指に移った。`,
+    rewardSouvenirId: 'choji',
+  },
+];
+
 const STAGE_ITEMS = {
   1:  [ // 品川
     { name: '干し鰯', origin: [1], unit: '個', buy: 8,  sell: 13,  vol: 3, cat: '食料' },
@@ -2105,6 +2138,9 @@ function triggerEnding() {
       } else if (chosenSv.id === 'atsuta') {
         // 熱田神宮の御守
         souvenirScene += `おみつは御守を両手で受け取った。「熱田神宮……」と小さく言った。<br><br>「宮宿で参拝した。七里の海を渡る前に」<br><br>おみつはしばらく御守を見ていた。それから顔を上げた。「海、大丈夫だった？」<br><br>「なんとか」<br><br>「よかった」とおみつは言った。声が柔らかかった。御守を胸のあたりで抱えた。「ずっと持ちます」と言った。`;
+      } else if (chosenSv.id === 'choji') {
+        // 丁子の香木
+        souvenirScene += `おみつは布包みを受け取って、口を開けた。それから顔を上げた。<br><br>「いい香り」<br><br>「亀山の薬屋でもらった。土山の茶屋で」<br><br>おみつはもう一度、鼻を近づけた。「丁子だ」と言った。「どうしてわかる」と宗吉は聞いた。「奉公先で使うから」とおみつは答えた。<br><br>宗吉は、おみつがもうそういうことを知っている年になったのだと、その時初めて気がついた。`;
       } else {
         // inori汎用
         souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
@@ -2121,8 +2157,13 @@ function triggerEnding() {
       // 贅沢B
       souvenirScene += `おみつは布を受け取った。両手で持って、光に透かした。<br><br>「有松絞り……？」<br><br>「鳴海で買った」<br><br>おみつはしばらく黙っていた。畳んで、また広げた。それを二度繰り返した。<br><br>「高かったでしょ」<br><br>「まあ」<br><br>「もう」と言って、おみつは笑った。でも大事そうに布を抱えた。「大切にします」と言った。`;
     } else if (svCls === 'kinen') {
-      // 記念A
-      souvenirScene += `おみつは大津絵を受け取って、じっと見た。鬼が豆を撒いている絵だった。<br><br>「東海道、歩いたの」<br><br>「歩いた」<br><br>おみつはもう一度絵を見た。それから宗吉の顔を見た。笑っていた。「大事にします」と言った。<br><br>宗吉はその時、自分が五十三の宿場を歩いてきたことを、初めてちゃんと実感した気がした。`;
+      if (chosenSv.id === 'ema') {
+        // 掛川の小絵馬
+        souvenirScene += `おみつは絵馬を受け取って、表と裏を見た。<br><br>「馬の絵だ。どこの？」<br><br>「掛川。祭りの手伝いをしたら、浜松の旅籠でもらった」<br><br>おみつは少し首を傾けた。「手伝い？」<br><br>「ちょっとな」<br><br>おみつはまた絵馬を見た。「兄さん、旅の間、こういうことばっかりしてたんでしょ」と言った。笑いながら言った。宗吉は否定しなかった。`;
+      } else {
+        // 記念汎用（大津絵など）
+        souvenirScene += `おみつは大津絵を受け取って、じっと見た。鬼が豆を撒いている絵だった。<br><br>「東海道、歩いたの」<br><br>「歩いた」<br><br>おみつはもう一度絵を見た。それから宗吉の顔を見た。笑っていた。「大事にします」と言った。<br><br>宗吉はその時、自分が五十三の宿場を歩いてきたことを、初めてちゃんと実感した気がした。`;
+      }
     }
   } else {
     // 手ぶらA
@@ -2205,6 +2246,9 @@ function showStageChoices() {
     // 神社・寺立ち寄り選択肢
     const shrineChoice = getShrineChoice();
     if (shrineChoice) choices.push(shrineChoice);
+    // 身につけ系イベント選択肢
+    const encounterChoice = getEncounterChoice();
+    if (encounterChoice) choices.push(encounterChoice);
 
     choices.push({ label: '宿を取る', fn: '', action: () => selectInn() });
     choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
@@ -2233,11 +2277,58 @@ function getSouvenirChoice() {
   if (state.souvenirs.includes(sv.id)) return null; // 購入済み
   if (sv.cond && sv.cond.money && state.money < sv.cond.money) return null; // 所持金不足
   if (sv.cond && sv.cond.shrine && !state.flags[sv.cond.shrine]) return null; // 参拝前は非表示
+  if (sv.cond && sv.cond.event && !state.flags[sv.cond.event]) return null; // イベントフラグ未達
+  // 無料土産（もらい物）は「もらう」ラベル
+  if (sv.price === 0) {
+    return {
+      label: `「${sv.name}」をもらう`,
+      fn: '',
+      action: () => receiveSouvenir(sv.id),
+    };
+  }
   return {
     label: `土産に「${sv.name}」を買う（${sv.price}文）`,
     fn: '',
     action: () => buySouvenir(sv.id),
   };
+}
+
+// ── 身につけ系イベント選択肢を返す ──
+function getEncounterChoice() {
+  // triggerStage：出会いイベント
+  const enc = ENCOUNTER_DATA.find(e => e.triggerStage === state.currentStage);
+  if (enc && !state.flags[enc.wearFlag]) {
+    return {
+      label: enc.triggerLabel,
+      fn: '',
+      action: () => visitEncounter(enc),
+    };
+  }
+  return null;
+}
+
+// ── 身につけ系イベント：出会い処理 ──
+function visitEncounter(enc) {
+  state.flags[enc.wearFlag] = true;
+  document.getElementById('scene-text').innerHTML = enc.triggerText;
+  showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+}
+
+// ── 身につけ系イベント：報酬チェック（到着時に呼ぶ）──
+function checkEncounterReward() {
+  const enc = ENCOUNTER_DATA.find(e => e.rewardStage === state.currentStage);
+  if (!enc) return false;
+  if (!state.flags[enc.wearFlag]) return false;  // 身につけていない
+  if (state.flags[enc.rewardFlag]) return false;  // 既に報酬済み
+  // 報酬シーン表示
+  state.flags[enc.rewardFlag] = true;
+  document.getElementById('scene-text').innerHTML = enc.rewardText;
+  showChoices([{
+    label: `「${SOUVENIR_DATA.find(s => s.id === enc.rewardSouvenirId).name}」をもらう`,
+    fn: '',
+    action: () => receiveSouvenir(enc.rewardSouvenirId),
+  }]);
+  return true;
 }
 
 // ── 神社・寺立ち寄り選択肢を返す ──
@@ -2301,6 +2392,19 @@ function buySouvenir(id) {
   updateHeader();
   document.getElementById('scene-text').innerHTML =
     `「${sv.name}」を買った。（${sv.price}文）<br><br>手帳の土産候補に書き留めた。`;
+  showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+}
+
+// ── 土産をもらう（無料・イベント経由）──
+function receiveSouvenir(id) {
+  const sv = SOUVENIR_DATA.find(s => s.id === id);
+  if (!sv) return;
+  state.souvenirs.push(sv.id);
+  const sd = currentStageData();
+  state.memos.miyage.push({ stage: sd ? sd.name : '', text: `${sv.name}　${sv.memo}` });
+  updateHeader();
+  document.getElementById('scene-text').innerHTML =
+    `「${sv.name}」をもらった。<br><br>手帳の土産候補に書き留めた。`;
   showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
 }
 
@@ -3417,6 +3521,7 @@ function nextStage() {
         }
         document.getElementById('scene-text').innerHTML = combined;
         updateHeader();
+        if (checkEncounterReward()) return;
         showStageChoices();
         return;
       }
@@ -3447,6 +3552,9 @@ function nextStage() {
     document.getElementById('scene-text').innerHTML = arrive;
     updateHeader();
 
+    // 身につけ系イベント報酬チェック
+    if (checkEncounterReward()) return;
+
     showStageChoices();
   });
 }
@@ -3472,6 +3580,10 @@ function showArriveText(sd) {
     }
     document.getElementById('scene-text').innerHTML = arrive;
     updateHeader();
+
+    // 身につけ系イベント報酬チェック
+    if (checkEncounterReward()) return;
+
     showStageChoices();
   });
 }
