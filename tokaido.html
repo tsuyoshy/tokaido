@@ -1272,121 +1272,155 @@ function nextWeather(currentWeather, stageNum) {
 // ── 状態表示更新 ──
 
 // ── 客データ ──
+// timeSlots: 出現しやすい時間帯（'asa'朝/'hiru'昼/'yuu'夕）。全時間帯に出る客はnull
+// hint: 客登場時に添えるシグナル文（財布の重さ・身なりの読み合い）
 const CUSTOMERS = [
   {
     name: '宿の主人',
     intro: '主人が帳場から顔を上げた。「何かお持ちでございますか。拝見してもよろしいですか」',
+    hint: null,
     wants: ['食料', '調味料', '旅道具', '雑貨', '薬', '女性向け'],
     prob: { low: 1.0, mid: 1.0, high: 0.90 },
     reject: '「本日はご遠慮いたします。またの機会に」と主人は穏やかに言った。',
     nightOnly: true,
+    timeSlots: null,
   },
   {
     name: '旅の女',
     intro: '「あの、少しよろしいですか」と、編み笠の女が足を止めた。',
+    hint: '荷物は少ない。旅慣れた様子だが、財布は重そうだ。',
     wants: ['女性向け', '食料'],
     prob: { low: 1.0, mid: 0.9, high: 0.5 },
     reject: '「少し高いですね」と言って、足早に立ち去った。',
+    timeSlots: ['asa', 'hiru'],
   },
   {
     name: '行商人',
     intro: '荷を担いだ行商人が、じろりと荷を見た。',
+    hint: '同業者らしい目つきだ。値切るのが当たり前の顔をしている。',
     wants: ['食料', '旅道具'],
     prob: { low: 1.0, mid: 0.7, high: 0.2 },
     reject: '「もう少し負けてくれや」と言って、荷を担いで去った。',
+    timeSlots: ['asa', 'hiru', 'yuu'],
   },
   {
     name: '武士',
     intro: '「ちと、見せてみよ」と通りがかりの武士が立ち止まった。',
+    hint: '身なりは整っているが、財布に手を当てる素振りはない。値段には敏感そうだ。',
     wants: ['食料', '調味料'],
     prob: { low: 1.0, mid: 0.8, high: 0.1 },
     reject: '「高い」と一言残して、去った。',
+    timeSlots: ['asa', 'hiru'],
   },
   {
     name: '百姓',
     intro: '「すまんが」と、日に焼けた男が声をかけてきた。',
+    hint: '手拭いで汗を拭きながら立っている。懐は豊かではなさそうだ。',
     wants: ['食料', '雑貨'],
     prob: { low: 1.0, mid: 0.6, high: 0.1 },
     reject: '「そりゃ無理だ」と首を振って、去っていった。',
+    timeSlots: ['hiru', 'yuu'],
   },
   {
     name: '僧侶',
     intro: '托鉢姿の僧が、静かに足を止めた。',
+    hint: '穏やかな顔をしている。高値を押しつけるには気が引ける相手だ。',
     wants: ['食料', '薬', '雑貨'],
     prob: { low: 1.0, mid: 0.9, high: 0.4 },
     reject: '静かに頭を下げて、去った。',
+    timeSlots: ['asa', 'hiru'],
   },
   {
     name: '大工',
     intro: '「おい、油紙はあるか」と、墨のついた男が言った。',
+    hint: '仕事帰りの様子で、急いでいる。必要なものなら多少高くても買いそうだ。',
     wants: ['旅道具', '雑貨'],
     fixed: '油紙',
     prob: { low: 1.0, mid: 0.75, high: 0.15 },
     reject: '「もうちょっと安くならんか」と言って、去った。',
+    timeSlots: ['hiru', 'yuu'],
   },
   {
     name: '飛脚',
     intro: '走り疲れた様子の飛脚が、荷をのぞき込んだ。',
+    hint: '息を切らしている。急ぎの仕事の途中らしく、長話はできなさそうだ。',
     wants: ['旅道具', '食料'],
     prob: { low: 1.0, mid: 0.85, high: 0.3 },
     reject: '「急いでるんで」と言って、走り去った。',
+    timeSlots: ['asa', 'hiru'],
   },
   {
     name: '商家の女中',
     intro: '「奥様に頼まれていて」と、小柄な女が言った。',
+    hint: '買い物かごを下げている。主人の財布で買うのか、値段をあまり気にしていない様子だ。',
     wants: ['女性向け', '食料', '調味料'],
     prob: { low: 1.0, mid: 0.9, high: 0.6 },
     reject: '「予算が決まっていて」と困った顔をして、去った。',
+    timeSlots: ['hiru', 'yuu'],
   },
   {
     name: '老婆',
     intro: 'しわだらけの老婆が、荷をそっと触ろうとした。',
+    hint: '着物は古いが、丁寧に手入れされている。お金はあるが使い方には厳しそうだ。',
     wants: ['食料', '女性向け', '薬'],
     prob: { low: 1.0, mid: 0.8, high: 0.2 },
     reject: '「もう少し安ければねえ」とつぶやきながら、去っていった。',
+    timeSlots: ['hiru', 'yuu'],
   },
   {
     name: '若い男',
     intro: '「ちょっと見せてくれ」と、若い男が気軽な口調で言った。',
+    hint: '気軽に声をかけてきたが、懐の様子は読めない。衝動買いする顔つきではある。',
     wants: ['食料', '旅道具'],
     prob: { low: 1.0, mid: 0.65, high: 0.25 },
     reject: '「また今度」と言って、去った。',
+    timeSlots: ['asa', 'hiru', 'yuu'],
   },
   {
     name: '旅の僧',
     intro: '「少し分けてもらえぬか」と、穏やかに言った。',
+    hint: '旅の垢がついた草鞋を履いている。長旅のようだが、物腰に余裕がある。',
     wants: ['食料', '薬', '雑貨'],
     prob: { low: 1.0, mid: 0.85, high: 0.35 },
     reject: '「不足しておりまして」と静かに頭を下げ、去った。',
+    timeSlots: ['asa', 'hiru'],
   },
   {
     name: '産婆',
     intro: '「急いでいるんだけどね」と、がっしりした女が立ち止まった。',
+    hint: '往診帰りらしい。薬や道具が必要なら値段より早さを優先しそうだ。',
     wants: ['薬', '旅道具'],
     prob: { low: 1.0, mid: 0.9, high: 0.5 },
     reject: '「もう少し安ければねえ」と言って、足早に去った。',
+    timeSlots: ['asa', 'hiru', 'yuu'],
   },
   {
     name: '魚売り',
     intro: '魚の匂いをさせた魚売りが、油紙をじっと見た。',
+    hint: '仕事道具として必要なものを探している顔だ。値段より実用性を見ている。',
     wants: ['旅道具', '雑貨'],
     fixed: '油紙',
     prob: { low: 1.0, mid: 0.7, high: 0.15 },
     reject: '「今日は懐が寂しくてな」と笑って、去った。',
+    timeSlots: ['asa', 'hiru'],
   },
   {
     name: '旅籠の女将',
     intro: '「うちで使えるものはあるかい」と、女将が声をかけた。',
+    hint: '商売人の目をしている。まとめ買いするかもしれないが、値段も見ている。',
     wants: ['食料', '女性向け', '調味料', '雑貨'],
     prob: { low: 1.0, mid: 0.85, high: 0.45 },
     reject: '「もう少し勉強してくれたらねえ」と言って、去った。',
+    timeSlots: ['hiru', 'yuu'],
   },
   {
     name: '薬売り',
     intro: '薬売りの男が、じっと荷をのぞき込んだ。',
+    hint: '同業者の目線で荷を見ている。相場は知っているはずだ。',
     wants: ['薬', '旅道具', '食料'],
     prob: { low: 1.0, mid: 0.75, high: 0.3 },
     reject: '「なかなか商売上手だな」と笑って、去った。',
+    timeSlots: ['hiru', 'yuu'],
   },
 ];
 
@@ -1445,10 +1479,19 @@ function callCustomer() {
     return;
   }
 
-  // カテゴリベースで所持品と合う客を選ぶ（最大10回試行）
+  // 時間帯ウェイトを考慮して客プールを構築
+  // 現在の時間帯に合う客は重みを上げる（3:1）
+  const curSlot = state.timeSlot;
+  const weightedPool = [];
+  CUSTOMERS.filter(c => !c.nightOnly).forEach(c => {
+    const weight = (!c.timeSlots || c.timeSlots.includes(curSlot)) ? 3 : 1;
+    for (let w = 0; w < weight; w++) weightedPool.push(c);
+  });
+
+  // カテゴリベースで所持品と合う客を選ぶ（最大15回試行）
   let customer, matches, targetItem;
-  for (let i = 0; i < 10; i++) {
-    customer = CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)];
+  for (let i = 0; i < 15; i++) {
+    customer = weightedPool[Math.floor(Math.random() * weightedPool.length)];
     // fixedが指定されている場合はその品目が所持品にあるか確認
     if (customer.fixed) {
       matches = available.filter(item => item.name === customer.fixed);
@@ -1479,8 +1522,10 @@ function callCustomer() {
   hint.style.display = 'none';
 
   // introに品名が含まれる場合はrequestを省略
+  // hintがあれば読み合いシグナルとして追記
   const showRequest = !customer.fixed;
-  el.innerHTML = `<div style="padding:16px 0 8px;font-size:15px;line-height:2;color:#e8d880;">${customer.intro}${showRequest ? '<br><br>' + request : ''}</div>`;
+  const hintText = customer.hint ? `<br><br><span style="font-size:13px;opacity:0.65;font-style:italic;">${customer.hint}</span>` : '';
+  el.innerHTML = `<div style="padding:16px 0 8px;font-size:15px;line-height:2;color:#e8d880;">${customer.intro}${showRequest ? '<br><br>' + request : ''}${hintText}</div>`;
   el.classList.remove('hidden');
   hint.style.display = 'block';
 
@@ -2095,6 +2140,13 @@ function showNotify(msg) {
   setTimeout(() => el.classList.remove('show'), 2500);
 }
 
+// 時間帯ごとの客傾向ヒント
+const TIME_SLOT_HINT = {
+  asa:  '朝：旅人・飛脚・武士が多い',
+  hiru: '昼：各層まんべんなく',
+  yuu:  '夕：地元の商家・職人が多い',
+};
+
 // ── 宿場の共通選択肢を表示 ──
 function showStageChoices() {
   const remaining = 3 - state.cargoOpenCount;
@@ -2102,7 +2154,8 @@ function showStageChoices() {
   if (state.timeSlot !== 'yoru') {
     // 朝・昼・夕は移動可能
     if (remaining > 0) {
-      choices.push({ label: `荷を広げ、通行人に声をかける（あと${remaining}回）`, fn: '', action: () => openCargo() });
+      const timeHint = TIME_SLOT_HINT[state.timeSlot] ? `　※${TIME_SLOT_HINT[state.timeSlot]}` : '';
+      choices.push({ label: `荷を広げ、通行人に声をかける（あと${remaining}回）${timeHint}`, fn: '', action: () => openCargo() });
     }
     choices.push({ label: '仕入れを探す', fn: '', action: () => openBuy() });
     // 神奈川：伝言を持っている＆まだ庄兵衛に会っていない
@@ -2605,6 +2658,7 @@ function openBuy() {
     buyList.innerHTML = items.map((item, i) => {
       const buyPrice = currentBuyPrice(item);
       const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
+
       const priceLabel = isDiscount
         ? `仕入<span style="color:#e8c040;">${buyPrice}文</span><span style="font-size:10px;opacity:0.6;">（産地値引）</span>`
         : `仕入${buyPrice}文`;
@@ -2645,6 +2699,7 @@ function doBuy(itemIdx) {
     document.getElementById('cargo-panel').style.display = 'none';
     const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
     const discountNote = isDiscount ? '　<span style="color:#e8c040;font-size:11px;">産地値引き</span>' : '';
+
     document.getElementById('scene-text').innerHTML =
       `${item.name}　${buyPrice}文/${item.unit}${discountNote}<br><br>` +
       `所持金：${state.money.toLocaleString()}文　荷の空き：${freeVol()}<br><br>` +
@@ -3038,24 +3093,24 @@ function cheapInnMorningDesc(name) {
   const descs = {
     '干し鰯':           '昨日の残りの干し鰯を一本、かじった。',
     '煮干し':           '昨日の残りの煮干しを数本、口に入れた。',
-    '海苔':             '昨日の残りの海苔を一枚、糒に巻いて食べた。',
+    '海苔':             '昨日の残りの海苔を一枚、乾飯に巻いて食べた。',
     'するめ':           '昨日の残りのするめを少し引きちぎって噛んだ。',
     '干しエビ':         '昨日の残りの干しエビをひとつまみ、口に入れた。',
     '干し海老':         '昨日の残りの干し海老をひとつまみ、口に入れた。',
-    '桜えび':           '昨日の残りの桜えびを糒に混ぜて食べた。',
-    '干し桜えび':       '昨日の残りの干し桜えびを糒に混ぜて食べた。',
+    '桜えび':           '昨日の残りの桜えびを乾飯に混ぜて食べた。',
+    '干し桜えび':       '昨日の残りの干し桜えびを乾飯に混ぜて食べた。',
     '干し芋':           '昨日の残りの干し芋を一切れ、かじった。甘みがあった。',
     '干し柿':           '昨日の残りの干し柿を一つ、かじった。',
-    '梅干し':           '昨日の残りの梅干しを一粒、糒と食べた。',
+    '梅干し':           '昨日の残りの梅干しを一粒、乾飯と食べた。',
     '干し鯵':           '昨日の残りの干し鯵を少しかじった。',
     '干物':             '昨日の残りの干物を少しかじった。',
     '吉田の干物':       '昨日の残りの干物を少しかじった。',
     '熱田の干物':       '昨日の残りの干物を少しかじった。',
     'わかめ':           '昨日の残りのわかめを少し口に入れた。',
-    '塩辛':             '昨日の残りの塩辛を糒の上に乗せて食べた。',
+    '塩辛':             '昨日の残りの塩辛を乾飯の上に乗せて食べた。',
     '三ヶ日みかん干し': '昨日の残りのみかん干しをかじった。',
     '焼き蛤干し':       '昨日の残りの焼き蛤干しを一つ、かじった。',
-    '矢作の川海苔':     '昨日の残りの川海苔を糒と食べた。',
+    '矢作の川海苔':     '昨日の残りの川海苔を乾飯と食べた。',
     '水口かんぴょう':   '昨日の残りのかんぴょうを口に入れた。',
   };
   return descs[name] || '昨日の残りの' + name + 'を少し食べた。';
@@ -3080,11 +3135,11 @@ function showCheapInnDinner(paid) {
       '薪代を払い、囲炉裏の前に座った。<br><br>' +
       foodDesc;
   } else {
-    // 対象食料なし → 糒のみ
+    // 対象食料なし → 乾飯のみ
     state.lastDinnerItem = null;
     dinnerText =
       '薪代を払い、囲炉裏の前に座った。<br><br>' +
-      '湯を借りて、糒をふやかした。梅干しもない。それだけの夕飯だった。';
+      '湯を借りて、乾飯をふやかした。梅干しもない。それだけの夕飯だった。';
   }
 
   // 夕食テキストを表示してからタップで帳面へ
@@ -3110,15 +3165,15 @@ function cheapInnFoodDesc(name) {
     '煮干し':     '煮干しを湯に入れて、薄い汁にした。出汁だけで、具はない。',
     '鰹節':       '鰹節を削って、湯に入れた。旨い出汁が取れた。飯にかけて食べた。',
     '干し貝柱':   '干し貝柱を湯でもどした。上品な出汁が出た。贅沢な一椀だった。',
-    '海苔':       '海苔を炙って、糒と一緒に食べた。磯の香りが口に広がった。',
+    '海苔':       '海苔を炙って、乾飯と一緒に食べた。磯の香りが口に広がった。',
     'するめ':     'するめを火で炙った。固いが、噛むほどに味が出た。',
     '干しエビ':   '干しエビを湯に入れて、汁にした。薄いが、温かかった。',
     '干し海老':   '干し海老を湯に入れて、汁にした。薄いが、温かかった。',
-    '桜えび':     '桜えびを糒に混ぜた。ほんのり海の味がした。',
-    '干し桜えび': '干し桜えびを糒に混ぜた。ほんのり海の味がした。',
+    '桜えび':     '桜えびを乾飯に混ぜた。ほんのり海の味がした。',
+    '干し桜えび': '干し桜えびを乾飯に混ぜた。ほんのり海の味がした。',
     '干し芋':     '干し芋を湯でもどした。甘くて、腹に溜まった。',
     '干し柿':     '干し柿を一つ、かじった。甘みが疲れた体に沁みた。',
-    '梅干し':     '梅干しを一粒、糒と一緒に食べた。酸っぱさが口に広がった。',
+    '梅干し':     '梅干しを一粒、乾飯と一緒に食べた。酸っぱさが口に広がった。',
     '塩鯛':       '塩鯛を少し裂いて、湯に入れた。塩気のある汁になった。',
     '干し鯵':     '干し鯵を一枚、囲炉裏で炙った。脂が落ちて煙が上がった。',
     '干物':       '干物を囲炉裏で炙った。焦げた匂いが漂った。',
@@ -3127,13 +3182,13 @@ function cheapInnFoodDesc(name) {
     'わかめ':     'わかめを湯で戻して、汁にした。磯の香りがした。',
     '昆布':       '昆布を湯に入れた。出汁だけで、具はないが、温まった。',
     '削り節':     '削り節を湯に入れて、出汁の汁を作った。飯にかけた。',
-    '塩辛':       '塩辛を少し、糒の上に乗せた。塩気が強かったが、飯が進んだ。',
+    '塩辛':       '塩辛を少し、乾飯の上に乗せた。塩気が強かったが、飯が進んだ。',
     '安倍川餅':   '安倍川餅を一つ食べた。甘みが体に染みた。',
     '蒲鉾':       '蒲鉾を薄く切って食べた。弾力があって、旨かった。',
     '干し鰻':     '干し鰻を少し炙った。甘辛い匂いが立ちのぼった。贅沢な夕飯になった。',
     '三ヶ日みかん干し': 'みかんの干したものを食べた。甘酸っぱさが口の中に広がった。',
     '焼き蛤干し': '焼き蛤干しを湯でもどした。磯の風味が広がった。',
-    '矢作の川海苔': '川海苔を炙って、糒と食べた。川の香りがした。',
+    '矢作の川海苔': '川海苔を炙って、乾飯と食べた。川の香りがした。',
     '水口かんぴょう': 'かんぴょうを湯でもどして食べた。素朴な甘みがあった。',
     '金谷茶':     '金谷茶を一杯入れた。茶の香りが温かく漂った。',
     '掛川茶':     '掛川茶を一杯入れた。茶の香りが温かく漂った。',
@@ -3402,7 +3457,7 @@ function wakeUpMorning() {
         }
         morningFoodText = cheapInnMorningDesc(morningFood.name) + '<br><br>';
       } else {
-        morningFoodText = '朝飯はなかった。糒も切れている。腹が鳴った。<br><br>';
+        morningFoodText = '朝飯はなかった。乾飯も切れている。腹が鳴った。<br><br>';
       }
       const baseText = sd.morningTextCheap ||
         `夜が明けた。<br><br>宗吉は荷を背負い直した。さて、今日もひと仕事だ。`;
