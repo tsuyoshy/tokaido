@@ -3999,6 +3999,9 @@ function showInnLedgerAndSleep(paid, isInn) {
   document.getElementById('scene-text').innerHTML = '';
   const innArea = document.getElementById('inn-area');
   innArea.classList.remove('hidden');
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 
   // tap-hint を帳面コンテンツの末尾へ移動（inn-area 表示後）
   const hint = document.getElementById('tap-hint');
