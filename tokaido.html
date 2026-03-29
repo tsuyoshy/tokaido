@@ -2512,7 +2512,9 @@ function doSell(idx, price, customer) {
   // 購入確率
   const sellNow = currentSellPrice(item);
   const probKey = price < sellNow ? 'low' : price === sellNow ? 'mid' : 'high';
-  const prob = customer ? customer.prob[probKey] : { low: 1.0, mid: 0.85, high: 0.45 }[probKey];
+  // 品川女将が自分で提示した値（item.sell以下）に下げた場合は必ず買う
+  const isKamiAccepted = (state.currentStage === 1 && !customer && price <= item.sell);
+  const prob = isKamiAccepted ? 1.0 : customer ? customer.prob[probKey] : { low: 1.0, mid: 0.85, high: 0.45 }[probKey];
   const bought = Math.random() < prob;
 
   let sold, result;
