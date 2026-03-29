@@ -1611,12 +1611,14 @@ const STAGES = [
 // ── 土産データ ──
 // cls: 'inori'祈り / 'jitsuyo'実用 / 'zeitaku'贅沢 / 'kinen'記念
 const SOUVENIR_DATA = [
-  { id: 'mamori',  stage: 6,  name: '遊行寺の守り札',   price: 10,  cls: 'inori',   cond: null,        memo: '遊行寺の門前で買った守り札。おみつの無事を祈って。' },
-  { id: 'tenugui', stage: 7,  name: '藍染めの手拭い',   price: 40,  cls: 'jitsuyo', cond: null,        memo: '平塚で見かけた藍染めの手拭い。おみつに似合うかもしれない。' },
-  { id: 'ocha',    stage: 24, name: '島田茶',           price: 25,  cls: 'jitsuyo', cond: null,        memo: '金谷の茶農家からもらった茶。奉公先でも飲めるだろう。' },
-  { id: 'arima',   stage: 40, name: '有松絞りの手拭い', price: 80,  cls: 'zeitaku', cond: { money: 100 }, memo: '鳴海の有松絞り。高かった。それだけの物だと思う。' },
-  { id: 'asa',     stage: 50, name: '近江麻の小布',     price: 150, cls: 'zeitaku', cond: { money: 200 }, memo: '水口で買った近江麻。商売がうまくいった証として。' },
-  { id: 'otsue',   stage: 53, name: '大津絵',           price: 24,  cls: 'kinen',   cond: null,        memo: '大津で買った大津絵。旅の終わりの記念に。' },
+  { id: 'mamori',    stage: 6,  name: '遊行寺の守り札',     price: 10,  cls: 'inori',   cond: null,        memo: '遊行寺の門前で買った守り札。おみつの無事を祈って。' },
+  { id: 'tenugui',   stage: 7,  name: '藍染めの手拭い',     price: 40,  cls: 'jitsuyo', cond: null,        memo: '平塚で見かけた藍染めの手拭い。おみつに似合うかもしれない。' },
+  { id: 'mishima',   stage: 11, name: '三嶋大社の土鈴',     price: 15,  cls: 'inori',   cond: { shrine: 'mishimaShrine' }, memo: '三嶋大社の授与品。小さな土鈴。手の中に収まる。' },
+  { id: 'ocha',      stage: 24, name: '島田茶',             price: 25,  cls: 'jitsuyo', cond: null,        memo: '金谷の茶農家からもらった茶。奉公先でも飲めるだろう。' },
+  { id: 'arima',     stage: 40, name: '有松絞りの手拭い',   price: 80,  cls: 'zeitaku', cond: { money: 100 }, memo: '鳴海の有松絞り。高かった。それだけの物だと思う。' },
+  { id: 'atsuta',    stage: 41, name: '熱田神宮の御守',     price: 20,  cls: 'inori',   cond: { shrine: 'atsutaShrine' }, memo: '熱田神宮で求めた御守。おみつを守ってくれるように。' },
+  { id: 'asa',       stage: 50, name: '近江麻の小布',       price: 150, cls: 'zeitaku', cond: { money: 200 }, memo: '水口で買った近江麻。商売がうまくいった証として。' },
+  { id: 'otsue',     stage: 53, name: '大津絵',             price: 24,  cls: 'kinen',   cond: null,        memo: '大津で買った大津絵。旅の終わりの記念に。' },
 ];
 
 const SOUVENIR_CLASS_LABEL = {
@@ -1626,6 +1628,38 @@ const SOUVENIR_CLASS_LABEL = {
   kinen:   '記念',
 };
 
+
+// ── 神社・寺イベントデータ ──
+// flag: お参り済みフラグ名 / saisen: 賽銭（文）/ souvenirId: 参拝後に解放される土産ID（null=なし）
+const SHRINE_DATA = [
+  {
+    stage: 11,
+    flag: 'mishimaShrine',
+    name: '三嶋大社',
+    saisen: 10,
+    visitText: `宿場の入り口に、三嶋大社の大鳥居が立っていた。<br><br>宗吉は少し迷ってから、鳥居をくぐった。参道の玉砂利を踏んで、拝殿の前に立つ。賽銭を入れて、柏手を打った。<br><br>何を祈ったのか、うまく言葉にできなかった。ただ手を合わせて、目を閉じていた。<br><br>顔を上げると、社務所に土鈴が並んでいた。旅人が一つ買って、荷の中にしまっているのが見えた。`,
+    afterText: `三嶋大社を後にした。賽銭は十文。`,
+    souvenirId: 'mishima',
+  },
+  {
+    stage: 17,
+    flag: 'seikenjShrine',
+    name: '清見寺',
+    saisen: 10,
+    visitText: `清見寺の山門が街道沿いに立っていた。<br><br>境内に入ると、海が見えた。駿河湾の青さが、寺の庭越しに広がっている。しばらく、ただ眺めていた。<br><br>本堂の前で手を合わせた。賽銭を入れる。鐘の残響がまだ空気の中にあった。<br><br>「重そうですね」と声をかけられた。振り返ると、墨染めの僧が立っていた。荷のことを言っているのか、それとも別のことを言っているのか——宗吉には判断がつかなかった。`,
+    afterText: `清見寺を後にした。賽銭は十文。`,
+    souvenirId: null,
+  },
+  {
+    stage: 41,
+    flag: 'atsutaShrine',
+    name: '熱田神宮',
+    saisen: 20,
+    visitText: `熱田神宮の大鳥居をくぐった。<br><br>杜が深い。参道の両側に大木が並んでいる。宮宿の賑わいが嘘のように、境内は静かだった。<br><br>拝殿に向かって歩きながら、宗吉は何度も神宮の柱を見上げた。この先に七里の海がある。無事に渡れるか、まだわからない。<br><br>賽銭を入れて、手を合わせた。おみつの顔が浮かんだ。祈りというより、ただ顔が浮かんだ——それだけだった。<br><br>社務所に御守が並んでいた。`,
+    afterText: `熱田神宮を後にした。賽銭は二十文。`,
+    souvenirId: 'atsuta',
+  },
+];
 const STAGE_ITEMS = {
   1:  [ // 品川
     { name: '干し鰯', origin: [1], unit: '個', buy: 8,  sell: 13,  vol: 3, cat: '食料' },
@@ -2063,9 +2097,20 @@ function triggerEnding() {
   if (chosenSv) {
     souvenirScene += `宗吉は懐から「${chosenSv.name}」を出した。<br><br>`;
     if (svCls === 'inori') {
-      // 祈りB
-      souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「藤沢で買ったの？」<br><br>「ああ」<br><br>おみつはまた札を見た。「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
-      if (state.money <= 200) souvenirScene += `<br><br>「兄さん、無理したでしょ」<br><br>宗吉は首を振った。おみつは、それ以上聞かなかった。`;
+      if (chosenSv.id === 'mamori') {
+        // 遊行寺の守り札
+        souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「藤沢で買ったの？」<br><br>「ああ」<br><br>おみつはまた札を見た。「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
+        if (state.money <= 200) souvenirScene += `<br><br>「兄さん、無理したでしょ」<br><br>宗吉は首を振った。おみつは、それ以上聞かなかった。`;
+      } else if (chosenSv.id === 'mishima') {
+        // 三嶋大社の土鈴
+        souvenirScene += `おみつは土鈴を受け取って、そっと振った。かすかな音がした。<br><br>「三嶋大社の？」<br><br>「ああ。箱根の先で、立ち寄った」<br><br>おみつはもう一度振った。「かわいい」と言った。しばらくして「こういうの、初めてもらった」と言った。<br><br>宗吉は何も言わなかった。おみつが喜ぶ顔を、ただ見ていた。`;
+      } else if (chosenSv.id === 'atsuta') {
+        // 熱田神宮の御守
+        souvenirScene += `おみつは御守を両手で受け取った。「熱田神宮……」と小さく言った。<br><br>「宮宿で参拝した。七里の海を渡る前に」<br><br>おみつはしばらく御守を見ていた。それから顔を上げた。「海、大丈夫だった？」<br><br>「なんとか」<br><br>「よかった」とおみつは言った。声が柔らかかった。御守を胸のあたりで抱えた。「ずっと持ちます」と言った。`;
+      } else {
+        // inori汎用
+        souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
+      }
     } else if (svCls === 'jitsuyo') {
       if (chosenSv.id === 'ocha') {
         // 実用・お茶専用テキスト（B案）
@@ -2168,6 +2213,9 @@ function showStageChoices() {
     // 土産購入選択肢
     const souvenirChoice = getSouvenirChoice();
     if (souvenirChoice) choices.push(souvenirChoice);
+    // 神社・寺立ち寄り選択肢
+    const shrineChoice = getShrineChoice();
+    if (shrineChoice) choices.push(shrineChoice);
 
     choices.push({ label: '宿を取る', fn: '', action: () => selectInn() });
     choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
@@ -2189,17 +2237,63 @@ function showStageChoices() {
   showChoices(choices);
 }
 
-// ── 土産購入選択肢を返す（該当宿場・未購入・所持金チェック）──
+// ── 土産購入選択肢を返す（該当宿場・未購入・所持金チェック・参拝条件チェック）──
 function getSouvenirChoice() {
   const sv = SOUVENIR_DATA.find(s => s.stage === state.currentStage);
   if (!sv) return null;
   if (state.souvenirs.includes(sv.id)) return null; // 購入済み
   if (sv.cond && sv.cond.money && state.money < sv.cond.money) return null; // 所持金不足
+  if (sv.cond && sv.cond.shrine && !state.flags[sv.cond.shrine]) return null; // 参拝前は非表示
   return {
     label: `土産に「${sv.name}」を買う（${sv.price}文）`,
     fn: '',
     action: () => buySouvenir(sv.id),
   };
+}
+
+// ── 神社・寺立ち寄り選択肢を返す ──
+function getShrineChoice() {
+  const sh = SHRINE_DATA.find(s => s.stage === state.currentStage);
+  if (!sh) return null;
+  if (state.flags[sh.flag]) return null; // 参拝済み
+  if (state.money < sh.saisen) return null; // 賽銭が払えない
+  return {
+    label: `${sh.name}に立ち寄る`,
+    fn: '',
+    action: () => visitShrine(sh),
+  };
+}
+
+// ── 神社・寺参拝処理 ──
+function visitShrine(sh) {
+  state.money -= sh.saisen;
+  state.flags[sh.flag] = true;
+  updateHeader();
+
+  let text = sh.visitText;
+  // 土産品が解放される場合は案内テキストを追加
+  const sv = sh.souvenirId ? SOUVENIR_DATA.find(s => s.id === sh.souvenirId) : null;
+
+  const choices = [];
+  if (sv) {
+    text += `<br><br>——${sv.name}を求めるか。（${sv.price}文）`;
+    choices.push({
+      label: `「${sv.name}」を買う（${sv.price}文）`,
+      fn: '',
+      action: () => {
+        buySouvenir(sv.id);
+      },
+    });
+    choices.push({ label: 'そのまま立ち去る', fn: '', action: () => {
+      document.getElementById('scene-text').innerHTML = sh.afterText;
+      showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+    }});
+  } else {
+    choices.push({ label: 'つづける', fn: '', action: () => showStageChoices() });
+  }
+
+  document.getElementById('scene-text').innerHTML = text;
+  showChoices(choices);
 }
 
 // ── 土産を購入する ──
@@ -2972,15 +3066,10 @@ function goToInn(selectedCost) {
       // ── 旅籠：夕食描写＋選択肢。帳面は眠る時に表示 ──
       state.innTradeCount = 0;
       document.getElementById('inn-area').classList.add('hidden');
-      let dinnerText = sd.innTextInn
-        ? sd.innTextInn
-        : '旅籠の中は暖かくて気持ちがいい。';
-      // ① 老婆（伊勢参り）：藤沢の旅籠で初登場
-      if (state.currentStage === 6 && !state.flags.obaSeen) {
-        state.flags.obaSeen = true;
-        dinnerText += '<br><br>囲炉裏のそばに、白髪の老婆が一人いた。荷が小さい。「伊勢へ行くんですよ」と老婆は宗吉に話しかけた。「一度だけでいいから、と思って」七十は超えているだろう。「遠いですね」と宗吉は言った。老婆は笑った。「遠いから行く甲斐があるんだよ」';
-      }
-      document.getElementById('scene-text').innerHTML = dinnerText + '<br><br>今日はこれからどうする？';
+      const dinnerText = sd.innTextInn
+        ? sd.innTextInn + '<br><br>今日はこれからどうする？'
+        : '旅籠の中は暖かくて気持ちがいい。<br><br>今日はこれからどうする？';
+      document.getElementById('scene-text').innerHTML = dinnerText;
       showInnChoices();
     } else {
       // ── 木賃宿：食料チェック→夕食描写→帳面＋独白＋翌朝ボタン ──
@@ -3335,64 +3424,6 @@ function nextStage() {
           const hasMessage = state.memos.michi.some(m => m.text.includes('庄兵衛'));
           if (hasMessage) combined += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
         }
-
-        // ── ① 旅人再会イベント（昼食ルート） ──
-        if (state.currentStage === 10 && !state.flags.samuraiSeen) {
-          state.flags.samuraiSeen = true;
-          combined += '<br><br>関所を過ぎて少し歩いたところで、若い侍が石の上に腰を下ろしていた。荷を置いて、膝に手をついて、息を整えている。宗吉と目が合った。「峠は……きつい」と侍は言った。それだけだった。';
-        }
-        if (state.currentStage === 11 && state.flags.samuraiSeen && !state.flags.samuraiDone) {
-          state.flags.samuraiDone = true;
-          combined += '<br><br>三嶋大社の境内に、箱根で息を切らしていた侍がいた。峠を下りきった顔をしていた。参拝を済ませたのか、手を合わせて立っていた。宗吉には気づかなかった。';
-        }
-        if (state.currentStage === 9 && state.flags.obaSeen && !state.flags.obaMidDone) {
-          state.flags.obaMidDone = true;
-          combined += '<br><br>宿場の茶屋の前に、藤沢で会った老婆が腰を下ろしていた。足元に草鞋の替えが置いてある。宗吉に気づいて、小さく手を挙げた。「まだ歩けてますよ」と老婆は言った。宗吉はうなずいた。';
-        }
-        if (state.currentStage === 26 && state.flags.obaSeen && !state.flags.obaFarDone && Math.random() < 0.5) {
-          state.flags.obaFarDone = true;
-          combined += '<br><br>向こうから来る旅人の流れに、見覚えのある後ろ姿があった。あの老婆だ——と思ったが、確信が持てなかった。声をかけるより先に、人混みに消えた。伊勢まで、もう少しのはずだ。';
-        }
-        if (state.currentStage === 2 && !state.flags.kozoSeen) {
-          state.flags.kozoSeen = true;
-          combined += '<br><br>多摩川を渡ってきたところで、同い年くらいの男が荷を下ろして座り込んでいた。荷が大きすぎる。見るからに重そうだった。「何を売ってるんですか」と宗吉は聞いた。「反物。でも多すぎた」と男は言って笑った。「半分、誰かに売りたいくらいだ」';
-        }
-        if (state.currentStage === 5 && state.flags.kozoSeen && !state.flags.kozoMidDone) {
-          state.flags.kozoMidDone = true;
-          combined += '<br><br>宿場の外れで、荷を広げている男がいた。川崎で会った行商人だ。通りすがりの旅人に反物を見せている。「売れましたか」と声をかけた。男は振り返って「二反だけ」と言った。「それでも荷が減った」笑っていた。';
-        }
-        if (state.currentStage === 53 && state.flags.kozoSeen && !state.flags.kozoDone) {
-          state.flags.kozoDone = true;
-          combined += '<br><br>琵琶湖を眺めながら歩いていると、前に見覚えのある後ろ姿があった。川崎で出会った行商人だ。荷はずいぶん軽くなっている。声をかけると振り返った。「あんたも京まで来たか」「ええ」「長かったな」「長かったですね」それだけ言って、二人とも歩き続けた。';
-        }
-        // ── ③ 荷物→独白（昼食ルート） ──
-        {
-          const driedFish = ['干物','干し鯵','干し鰯','干し貝柱','干し鰻','吉田の干物','熱田の干物','削り節','煮干し','するめ','干しエビ','干し海老','桜えび','干し桜えび'];
-          const hasDried = state.cargo.some(i => driedFish.includes(i.name) && i.qty > 0);
-          const hasCloth = state.cargo.some(i => ['遠州木綿','三河木綿','尾張木綿','伊勢木綿','近江麻','藍染め布','晒し木綿'].includes(i.name) && i.qty > 0);
-          const hasMedicine = state.cargo.some(i => ['薬草','膏薬','湯花','鈴鹿の薬草'].includes(i.name) && i.qty > 0);
-          if (state.currentStage === 10) {
-            if (hasDried && state.flags.shobeeDone) combined += '<br><br>（山の人間は魚に飢えている——庄兵衛の言葉を思い出した。荷に干物がある）';
-            else if (!hasDried && state.flags.shobeeDone) combined += '<br><br>（山の人間は魚に飢えている——庄兵衛はそう言っていた。荷を確かめると、干物がない）';
-          }
-          if (state.currentStage === 25) {
-            if (hasDried && state.flags.shobeeDone) combined += '<br><br>（日坂の急坂を越えてきた。荷の干物が、ここでは値が出るはずだ）';
-            else if (!hasDried && state.flags.shobeeDone) combined += '<br><br>（日坂の急坂を越えてきた。山間の宿場——干物があれば、と思った）';
-          }
-          if (state.currentStage === 48) {
-            if (hasDried && state.flags.shobeeDone) combined += '<br><br>（鈴鹿の山が近い。海から遠いこの先では、干物は重宝されるはずだ——庄兵衛の言葉の意味が、今になってわかる気がした）';
-            else if (!hasDried && state.flags.shobeeDone) combined += '<br><br>（鈴鹿の山が近い。干物があれば——と思ったが、もう遅い）';
-          }
-          if (hasCloth && state.currentStage === 38) combined += '<br><br>（荷の反物が重い。岡崎まで来れば、産地から離れた分だけ値が出るはずだ）';
-          if (hasCloth && state.currentStage === 52) {
-            const hasOmiAsa = state.cargo.some(i => i.name === '近江麻' && i.qty > 0);
-            if (hasOmiAsa) combined += '<br><br>（近江麻の産地に近づいてきた。ここで売るより、もう少し待つべきか——迷った）';
-          }
-          if (hasMedicine && state.currentStage === 49) combined += '<br><br>（峠越えで足が笑っている。荷に膏薬がある——自分で使うのか、売るのか、少し迷った）';
-          const hasTobought = state.cargo.some(i => ['金谷茶','掛川茶'].includes(i.name) && i.qty > 0);
-          if (hasTobought && state.currentStage === 46) combined += '<br><br>（荷の茶が、ここまで来るとずいぶん産地から離れた。「遠くへ行くほど値が上がる」——旅籠の女将の言葉通りかもしれない）';
-        }
-
         if (state.timeSlot === 'yoru') {
           combined += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
           state.justArrived = true;
@@ -3424,101 +3455,6 @@ function nextStage() {
         arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
       }
     }
-
-    // ── ① 旅人再会イベント ──
-
-    // 人物A「若い侍」：箱根で初登場、三島で再会
-    if (state.currentStage === 10 && !state.flags.samuraiSeen) {
-      state.flags.samuraiSeen = true;
-      arrive += '<br><br>関所を過ぎて少し歩いたところで、若い侍が石の上に腰を下ろしていた。荷を置いて、膝に手をついて、息を整えている。宗吉と目が合った。「峠は……きつい」と侍は言った。それだけだった。';
-    }
-    if (state.currentStage === 11 && state.flags.samuraiSeen && !state.flags.samuraiDone) {
-      state.flags.samuraiDone = true;
-      arrive += '<br><br>三嶋大社の境内に、箱根で息を切らしていた侍がいた。峠を下りきった顔をしていた。参拝を済ませたのか、手を合わせて立っていた。宗吉には気づかなかった。';
-    }
-
-    // 人物B「老婆」：藤沢の旅籠で初登場（goToInn側）、小田原で再会、掛川で遠目に
-    if (state.currentStage === 9 && state.flags.obaSeen && !state.flags.obaMidDone) {
-      state.flags.obaMidDone = true;
-      arrive += '<br><br>宿場の茶屋の前に、藤沢で会った老婆が腰を下ろしていた。足元に草鞋の替えが置いてある。宗吉に気づいて、小さく手を挙げた。「まだ歩けてますよ」と老婆は言った。宗吉はうなずいた。';
-    }
-    if (state.currentStage === 26 && state.flags.obaSeen && !state.flags.obaFarDone && Math.random() < 0.5) {
-      state.flags.obaFarDone = true;
-      arrive += '<br><br>向こうから来る旅人の流れに、見覚えのある後ろ姿があった。あの老婆だ——と思ったが、確信が持てなかった。声をかけるより先に、人混みに消えた。伊勢まで、もう少しのはずだ。';
-    }
-
-    // 人物C「荷を積みすぎた行商人」：川崎で初登場、戸塚で再会、大津で最後
-    if (state.currentStage === 2 && !state.flags.kozoSeen) {
-      state.flags.kozoSeen = true;
-      arrive += '<br><br>多摩川を渡ってきたところで、同い年くらいの男が荷を下ろして座り込んでいた。荷が大きすぎる。見るからに重そうだった。「何を売ってるんですか」と宗吉は聞いた。「反物。でも多すぎた」と男は言って笑った。「半分、誰かに売りたいくらいだ」';
-    }
-    if (state.currentStage === 5 && state.flags.kozoSeen && !state.flags.kozoMidDone) {
-      state.flags.kozoMidDone = true;
-      arrive += '<br><br>宿場の外れで、荷を広げている男がいた。川崎で会った行商人だ。通りすがりの旅人に反物を見せている。「売れましたか」と声をかけた。男は振り返って「二反だけ」と言った。「それでも荷が減った」笑っていた。';
-    }
-    if (state.currentStage === 53 && state.flags.kozoSeen && !state.flags.kozoDone) {
-      state.flags.kozoDone = true;
-      arrive += '<br><br>琵琶湖を眺めながら歩いていると、前に見覚えのある後ろ姿があった。川崎で出会った行商人だ。荷はずいぶん軽くなっている。声をかけると振り返った。「あんたも京まで来たか」「ええ」「長かったな」「長かったですね」それだけ言って、二人とも歩き続けた。';
-    }
-
-    // ── ③ 荷物→独白（仕入れた品が宿場のセリフを変える） ──
-    {
-      const driedFish = ['干物','干し鯵','干し鰯','干し貝柱','干し鰻','吉田の干物','熱田の干物','削り節','煮干し','するめ','干しエビ','干し海老','桜えび','干し桜えび'];
-      const hasDried = state.cargo.some(i => driedFish.includes(i.name) && i.qty > 0);
-      const hasCloth = state.cargo.some(i => ['遠州木綿','三河木綿','尾張木綿','伊勢木綿','近江麻','藍染め布','晒し木綿'].includes(i.name) && i.qty > 0);
-      const hasMedicine = state.cargo.some(i => ['薬草','膏薬','湯花','鈴鹿の薬草'].includes(i.name) && i.qty > 0);
-      const hasTea = state.cargo.some(i => ['金谷茶','掛川茶','宇津の茶','削り節'].includes(i.name) && i.qty > 0);
-
-      // 山間宿場（箱根・日坂・坂下）：干物あり→庄兵衛の言葉 / なし→庄兵衛を知っていれば後悔
-      if (state.currentStage === 10) {
-        if (hasDried && state.flags.shobeeDone) {
-          arrive += '<br><br>（山の人間は魚に飢えている——庄兵衛の言葉を思い出した。荷に干物がある）';
-        } else if (!hasDried && state.flags.shobeeDone) {
-          arrive += '<br><br>（山の人間は魚に飢えている——庄兵衛はそう言っていた。荷を確かめると、干物がない）';
-        }
-      }
-      if (state.currentStage === 25) {
-        if (hasDried && state.flags.shobeeDone) {
-          arrive += '<br><br>（日坂の急坂を越えてきた。荷の干物が、ここでは値が出るはずだ）';
-        } else if (!hasDried && state.flags.shobeeDone) {
-          arrive += '<br><br>（日坂の急坂を越えてきた。山間の宿場——干物があれば、と思った）';
-        }
-      }
-      if (state.currentStage === 48) {
-        if (hasDried && state.flags.shobeeDone) {
-          arrive += '<br><br>（鈴鹿の山が近い。海から遠いこの先では、干物は重宝されるはずだ——庄兵衛の言葉の意味が、今になってわかる気がした）';
-        } else if (!hasDried && state.flags.shobeeDone) {
-          arrive += '<br><br>（鈴鹿の山が近い。干物があれば——と思ったが、もう遅い）';
-        }
-      }
-
-      // 反物を持って産地外の宿場へ：独白
-      if (hasCloth) {
-        if (state.currentStage === 38) { // 岡崎（三河木綿の産地外）
-          arrive += '<br><br>（荷の反物が重い。岡崎まで来れば、産地から離れた分だけ値が出るはずだ）';
-        }
-        if (state.currentStage === 52) { // 草津（近江麻の産地、荷があれば安く売れるかもしれない不安）
-          const hasOmiAsa = state.cargo.some(i => i.name === '近江麻' && i.qty > 0);
-          if (hasOmiAsa) {
-            arrive += '<br><br>（近江麻の産地に近づいてきた。ここで売るより、もう少し待つべきか——迷った)';
-          }
-        }
-      }
-
-      // 薬を持って疲弊した宿場へ：独白
-      if (hasMedicine && state.currentStage === 49) { // 土山（鈴鹿越え直後）
-        arrive += '<br><br>（峠越えで足が笑っている。荷に膏薬がある——自分で使うのか、売るのか、少し迷った）';
-      }
-
-      // 茶を持って遠方へ来た独白
-      if (hasTea && state.currentStage === 46) { // 亀山（掛川茶の産地から遠い）
-        const hasTobought = state.cargo.some(i => ['金谷茶','掛川茶'].includes(i.name) && i.qty > 0);
-        if (hasTobought) {
-          arrive += '<br><br>（荷の茶が、ここまで来るとずいぶん産地から離れた。「遠くへ行くほど値が上がる」——旅籠の女将の言葉通りかもしれない）';
-        }
-      }
-    }
-
     // 夜に到着した場合（3宿場移動後）は日暮れを告げる
     if (state.timeSlot === 'yoru') {
       arrive += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
