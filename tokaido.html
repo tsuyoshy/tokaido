@@ -1012,7 +1012,7 @@ const state = {
     { name: '油紙',         unit: '枚', qty: 4,  buy: 8,  sell: 12, vol: 2, cat: '旅道具' },
     { name: '簪（かんざし）', unit: '本', qty: 1,  buy: 32, sell: 50, vol: 0, cat: '女性向け' },
   ],
-  maxVol: 100,
+  maxVol: 50,
   memos: { shobai: [], miyage: [] },
   flags: {},
   souvenirs: [],        // 購入済み土産のid配列
@@ -2228,7 +2228,7 @@ function showNotify(msg) {
 
 // ── 宿場の共通選択肢を表示 ──
 function showStageChoices() {
-  const remaining = 3 - state.cargoOpenCount;
+  const remaining = 5 - state.cargoOpenCount;
   const choices = [];
   if (state.timeSlot !== 'yoru') {
     // 朝・昼・夕は移動可能
@@ -2502,7 +2502,7 @@ function openCargo() {
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
   // 回数制限チェック
-  if (state.cargoOpenCount >= 3) {
+  if (state.cargoOpenCount >= 5) {
     showNotify(state.timeSlot === 'yoru' ? '今夜はもう話しかけられない' : '今日はもう荷を広げられない');
     return;
   }
@@ -3199,6 +3199,24 @@ function takeFerry() {
       '「十三年前の大水で流れた。それからずっとこうだ」<br><br>' +
       '宗吉には、橋のある多摩川を知らない。<br><br>' +
       '船が岸につき、宗吉は川崎側に降り立った。';
+    showChoices([{ label: '', fn: '', action: () => showFerryMerchant() }]);
+  });
+}
+
+// ── 渡し船で出会う老行商人 ──
+function showFerryMerchant() {
+  fadeTransition(() => {
+    document.getElementById('scene-text').innerHTML =
+      '岸に上がると、同じ船に乗っていた老人が声をかけてきた。荷を二つ担いだ、日に焼けた行商人だ。<br><br>' +
+      '「京まで行くのかい。若いな」<br><br>' +
+      '宗吉がうなずくと、老人は少し目を細めた。<br><br>' +
+      '「一日に何度も荷を広げるのは体に悪い。五回が限度だと思いな」<br><br>' +
+      '「時間帯によって来る客が違う。朝は旅人や飛脚——旅道具や食いものを急いで買う連中だ。' +
+      '昼になると武士や僧侶も出てくる。食いものや薬が動く。' +
+      '夕方は仕事帰りの職人や商家の女中——油紙とか女もの、調味料を探してる」<br><br>' +
+      '老人は荷を担ぎ直しながら言った。<br><br>' +
+      '「朝に売り切るな。夕方まで残しておく品もある」<br><br>' +
+      'それだけ言って、老人は足早に川崎宿の方へ歩いていった。';
     showChoices([{ label: '', fn: '', action: () => afterTamaRiver() }]);
   });
 }
@@ -3367,7 +3385,7 @@ function goToInn(selectedCost) {
 
 // ── 旅籠：主人への選択肢を表示 ──
 function showInnChoices() {
-  const remaining = 3 - state.innTradeCount;
+  const remaining = 2 - state.innTradeCount;
   if (remaining <= 0) {
     document.getElementById('scene-text').innerHTML = '旅籠の中は暖かくて気持ちがいい。<br><br>今日はもう眠ることにする。';
     sleepAtInn();
@@ -3381,7 +3399,7 @@ function showInnChoices() {
 
 // ── 旅籠：主人に話しかける → 商売フェーズ ──
 function openInnTrade() {
-  if (state.innTradeCount >= 3) {
+  if (state.innTradeCount >= 2) {
     showInnChoices();
     return;
   }
@@ -3645,7 +3663,6 @@ function nextStage() {
   fadeTransition(() => {
     state.currentStage += 1;
     state.commerceDone = false;
-    state.cargoOpenCount = 0;
     state.innTradeCount = 0;
     state.innMode = false;
 
@@ -3792,6 +3809,7 @@ function wakeUpMorning() {
     state.innLog = { income: 0, buy: 0, inn: 0 };
     state.innMode = false;
     state.innTradeCount = 0;
+    state.cargoOpenCount = 0;
 
     // 日数切れチェック（セーブロード後の安全弁）
     if (state.days <= 0 && state.currentStage <= 53) {
