@@ -3997,10 +3997,12 @@ function showInnLedgerAndSleep(paid, isInn) {
   // 旅籠選択肢を隠して翌朝へ
   document.getElementById('choices').classList.add('hidden');
   document.getElementById('scene-text').innerHTML = '';
-  document.getElementById('inn-area').classList.remove('hidden');
+  const innArea = document.getElementById('inn-area');
+  innArea.classList.remove('hidden');
 
-  // 全画面タップでも翌朝へ進めるようにする
+  // tap-hint を帳面コンテンツの末尾へ移動（inn-area 表示後）
   const hint = document.getElementById('tap-hint');
+  innArea.appendChild(hint);
   hint.style.display = 'block';
   setTimeout(() => {
     document.body.onclick = () => {
@@ -4256,7 +4258,13 @@ function showArriveText(sd) {
 // ── 宿泊後の朝：同じ宿場で目覚める ──
 function wakeUpMorning() {
   document.body.onclick = null;
-  document.getElementById('tap-hint').style.display = 'none';
+  const _hint = document.getElementById('tap-hint');
+  _hint.style.display = 'none';
+  // tap-hint を inn-area 内に移動していた場合、inn-area 直前（元の位置）へ戻す
+  const _innArea = document.getElementById('inn-area');
+  if (_innArea && _innArea.contains(_hint)) {
+    _innArea.parentNode.insertBefore(_hint, _innArea);
+  }
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
