@@ -1707,7 +1707,8 @@ function callCustomer() {
   // introに品名が含まれる場合はrequestを省略
   // hintがあれば読み合いシグナルとして追記
   const showRequest = !customer.fixed;
-  const hintText = customer.hint ? `<br><br><span style="font-size:13px;opacity:0.65;font-style:italic;">${customer.hint}</span>` : '';
+  const rank = getMerchantRank();
+  const hintText = (customer.hint && rank !== 'novice') ? `<br><br><span style="font-size:13px;opacity:0.65;font-style:italic;">${customer.hint}</span>` : '';
   el.innerHTML = `<div style="padding:16px 0 8px;font-size:15px;line-height:2;color:#e8d880;">${customer.intro}${showRequest ? '<br><br>' + request : ''}${hintText}</div>`;
   el.classList.remove('hidden');
   hint.style.display = 'block';
