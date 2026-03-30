@@ -2575,6 +2575,19 @@ function triggerEnding() {
   document.getElementById('tap-hint').style.display = 'none';
   document.body.onclick = null;
 
+  // ── エンド評価 ──
+  let endRating;
+  if (isTrueEnd) {
+    endRating = '優';
+  } else if (chosenSv && rank === 'expert') {
+    endRating = '良';
+  } else {
+    endRating = '可';
+  }
+
+  // ── 商人ランク表示 ──
+  const rankLabel = rank === 'expert' ? '熟練' : rank === 'middle' ? '一人前' : '不慣れ';
+
   const endText =
     `大津を過ぎると、逢坂山が見えてきた。<br><br>` +
     `山を越えれば、京だ。<br><br>` +
@@ -2588,9 +2601,9 @@ function triggerEnding() {
     `${chichiNote}` +
     `${trueEndScene}<br><br>` +
     `<span style="font-size:11px;opacity:0.45;line-height:2.2;">` +
-    `通過した宿場 ${stagesCleared} 次　残り日数 ${state.days} 日　手元金 ${state.money.toLocaleString()} 文　商売 ${totalSold} 件` +
+    `通過した宿場 ${stagesCleared} 次　残り日数 ${state.days} 日　手元金 ${state.money.toLocaleString()} 文　商売 ${totalSold} 件　商人ランク：${rankLabel}` +
     (chosenSv ? `　土産【${SOUVENIR_CLASS_LABEL[svCls]}】${chosenSv.name}` : `　土産なし`) +
-    (isTrueEnd ? `　真のエンド` : '') +
+    `　エンド評価：${endRating}` +
     `</span>`;
 
   document.getElementById('scene-text').innerHTML = endText;
