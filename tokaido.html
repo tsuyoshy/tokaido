@@ -917,7 +917,7 @@
   <div id="start-box">
     <h2>東海道商い旅</h2>
     <div id="start-save-info"></div>
-    <button class="start-btn primary" id="btn-continue" onclick="startFromSave()">— 旅を続ける —</button>
+    <button class="start-btn primary" id="btn-continue" onclick="startFromSave()">— 続きからはじめる —</button>
     <button class="start-btn" onclick="startFresh()">— 最初からはじめる —</button>
   </div>
 </div>
@@ -2293,7 +2293,7 @@ function showChoices(choices) {
       activateHint();
     }
   } else {
-    const nums = ['一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、', '九、', '十、', '十一、', '十二、'];
+    const nums = ['一、', '二、', '三、', '四、', '五、', '六、', '七、', '八、', '九、', '十、', '十一、', '十二、', '十三、', '十四、', '十五、', '十六、', '十七、', '十八、', '十九、', '二十、'];
     el.innerHTML = choices.map((c, i) =>
       `<button class="choice-btn" onclick="__choices[${i}].action()">
         <span class="choice-num">${nums[i]}</span>${c.label}
@@ -2558,9 +2558,9 @@ function getSouvenirChoice() {
 
 // ── 身につけ系イベント選択肢を返す ──
 function getEncounterChoice() {
-  // triggerStage：出会いイベント
+  // triggerStage：出会いイベント（到着当日のみ。翌朝は脈絡がないため非表示）
   const enc = ENCOUNTER_DATA.find(e => e.triggerStage === state.currentStage);
-  if (enc && !state.flags[enc.wearFlag]) {
+  if (enc && !state.flags[enc.wearFlag] && state.timeSlot !== 'asa') {
     return {
       label: enc.triggerLabel,
       fn: '',
@@ -2677,10 +2677,11 @@ function receiveSouvenir(id) {
   updateHeader();
   document.getElementById('scene-text').innerHTML =
     `「${sv.name}」をもらった。<br><br>手帳の土産候補に書き留めた。`;
-  showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+  const next = state.innMode ? () => showInnChoices() : () => showStageChoices();
+  showChoices([{ label: 'つづける', fn: '', action: next }]);
 }
 
-// ── 大津翌朝：土産最終選択シーン ──
+// ── 大津出発時：土産最終選択シーン ──
 function showSouvenirChoice() {
   const purchased = state.souvenirs
     .map(id => SOUVENIR_DATA.find(s => s.id === id))
@@ -2747,7 +2748,7 @@ function confirmSouvenir(id) {
   }
 
   document.getElementById('scene-text').innerHTML = text;
-  showChoices([{ label: '京へ向かう', fn: '', action: () => showStageChoices() }]);
+  showChoices([{ label: '京へ向かう', fn: '', action: () => triggerEnding() }]);
 }
 
 // ── 宿の種類を選ぶ ──
@@ -3717,7 +3718,10 @@ function openCargoForInn() {
   // innModeをON → closeCargo()がreturnToInnChoicesへ分岐する
   state.innMode = true;
 
-  const available = state.cargo.filter(item => item.qty > 0);
+  const available = state.cargo.filter(item =>
+    item.qty > 0 &&
+    !(item.origin && item.origin.includes(state.currentStage))
+  );
 
   // 所持品パネルを生成・表示
   const list = document.getElementById('cargo-sell-list');
@@ -4110,6 +4114,8 @@ function checkOldMerchant(stageNum, nextAction) {
 // ── 次の宿場へ ──
 function nextStage() {
   fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     state.currentStage += 1;
     state.commerceDone = false;
     state.innTradeCount = 0;
@@ -4117,7 +4123,11 @@ function nextStage() {
 
     // 京都到達チェック（大津→京）
     if (state.currentStage > 53) {
-      triggerEnding();
+      if (state.souvenirChosen === null) {
+        showSouvenirChoice();
+      } else {
+        triggerEnding();
+      }
       return;
     }
 
@@ -4264,8 +4274,6 @@ function wakeUpMorning() {
     _innArea.parentNode.insertBefore(_hint, _innArea);
   }
   fadeTransition(() => {
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
     state.timeSlot = 'asa';
     state.innLog = { income: 0, buy: 0, inn: 0 };
     state.innMode = false;
@@ -4280,6 +4288,8 @@ function wakeUpMorning() {
 
     document.getElementById('inn-area').classList.add('hidden');
     document.getElementById('cargo-panel').style.display = 'none';
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
 
     const sd = currentStageData();
     document.getElementById('stage-name').textContent = sd.name;
@@ -4336,12 +4346,6 @@ function wakeUpMorning() {
     document.getElementById('scene-text').innerHTML = morningText;
 
     updateHeader();
-
-    // 大津（53）の翌朝は土産最終選択シーンを挿入
-    if (state.currentStage === 53 && state.souvenirChosen === null) {
-      showSouvenirChoice();
-      return;
-    }
 
     // 旅籠泊まり：忘れ物イベントチェック
     if (state.lastInnType === 'inn') {
@@ -4427,13 +4431,24 @@ function shukubaUrl(stageNum, key) {
 
 // ── 次の宿場画像をプリロード（現在+1, +2）──
 function preloadNextImages(currentStage) {
-  [1, 2].forEach(offset => {
+  [1, 2, 3, 4, 5].forEach(offset => {
     const next = currentStage + offset;
     const key = STAGE_FILENAMES[next];
     if (!key) return;
     const img = new Image();
     img.src = shukubaUrl(next, key);
   });
+}
+
+// ── 道中印を全件バックグラウンドで直列プリロード ──
+async function preloadAllStamps() {
+  for (const [id, key] of Object.entries(STAGE_FILENAMES)) {
+    await new Promise(resolve => {
+      const img = new Image();
+      img.onload = img.onerror = resolve;
+      img.src = `${STAMPS_BASE}${String(id).padStart(2,'0')}_${key}.png`;
+    });
+  }
 }
 
 // ── 宿場ファイル名マッピング（shukuba挿絵・stamps道中印共通） ──
@@ -4814,7 +4829,7 @@ const STAGE_DATA = {
     next: '保土ヶ谷', nextJi: '第四次',
     arriveText: `神奈川宿は港町だ。<br><br>湊には廻船が何艘も碇を下ろしており、廻船問屋の蔵が軒を連ねている。荷揚げをする人夫の掛け声が、潮の香りとともに響いてきた。`,
     travelText: `神奈川宿を後にした。<br><br>保土ヶ谷へは丘を越えていく。街道が少しずつ上り坂になってきた。`,
-    innTextInn: `夕餉に、焼いた鯛の切り身が出た。港町らしい一品だった。宗吉は少しゆっくり食べた。<br><br>神奈川の旅籠に泊まった。港の音が遠くに聞こえた。明日は保土ヶ谷まで進もう。`,
+    innTextInn: `夕餉に、焼いた鯛の切り身が出た。港町らしい一品だった。宗吉は少しゆっくり食べた。<br><br>神奈川の旅籠に泊まった。港の音が遠くに聞こえた。先はまだある。`,
     morningTextInn: `夜が明けた。<br><br>飯と漬物、薄い味噌汁。旅籠の朝は簡素だ。「お立ちの方はお早めに」と声がかかった。宗吉は荷を背負い、外へ出た。潮の匂いが漂っている。`,
     innTextCheap: `神奈川の木賃宿に泊まった。<br><br>板の間の節穴から、夜風が入ってくる。藁を詰めた布団は湿っていて、体が温まらなかった。`,
     innCost: 240,
@@ -4999,11 +5014,11 @@ const STAGE_DATA = {
   20: {
     name: '丸子', ji: '第二十次', yomi: 'まりこ',
     next: '岡部', nextJi: '第廿一次',
-    arriveText: `丸子宿はとろろ汁で知られる。<br><br>宇津ノ谷峠の麓の小さな宿場だ。茶屋の縁台に旅人が腰を下ろして、麦飯にとろろをかけていた。とろろ汁の香りが街道に漂っている。<br><br>明日の峠越えのために、今夜は早く寝たほうがいい。`,
+    arriveText: `丸子宿はとろろ汁で知られる。<br><br>宇津ノ谷峠の麓の小さな宿場だ。茶屋の縁台に旅人が腰を下ろして、麦飯にとろろをかけていた。とろろ汁の香りが街道に漂っている。<br><br>峠が近い。早めに休んだほうがいい。`,
     travelText: `丸子を後にした。<br><br>岡部まで宇津ノ谷峠を越える。山道が急だ。`,
-    innTextInn: `夕餉に麦飯ととろろ汁が出た。丸子の名物だという。とろろの粘りが腹に重く、温かかった。<br><br>「明日の峠はどんな道ですか」と宿の主人に聞いた。「急な登りですが、一里ほどで抜けられます。足元さえ気をつければ」<br><br>囲炉裏の向かいに、四十がらみの男が座っていた。荷の少ない旅姿で、どこか急いでいる様子だった。<br><br>「京の方まで行くので」と男はぽつりと言った。「娘が奉公に出ていて、正月に一度だけ帰れる。それが藪入りで」<br><br>宗吉は箸を止めた。<br><br>「この時期に、みなそういう旅をしているのか」と思った。「おみつも今ごろ、会いに来る誰かを待っているだろうか。それとも待っていないか。——待っていてほしい、とは思った。」<br><br>丸子の旅籠に泊まった。明日は宇津ノ谷峠を越える。早く寝ることにした。`,
+    innTextInn: `夕餉に麦飯ととろろ汁が出た。丸子の名物だという。とろろの粘りが腹に重く、温かかった。<br><br>「明日の峠はどんな道ですか」と宿の主人に聞いた。「急な登りですが、一里ほどで抜けられます。足元さえ気をつければ」<br><br>囲炉裏の向かいに、四十がらみの男が座っていた。荷の少ない旅姿で、どこか急いでいる様子だった。<br><br>「京の方まで行くので」と男はぽつりと言った。「娘が奉公に出ていて、正月に一度だけ帰れる。それが藪入りで」<br><br>宗吉は箸を止めた。<br><br>「この時期に、みなそういう旅をしているのか」と思った。「おみつも今ごろ、会いに来る誰かを待っているだろうか。それとも待っていないか。——待っていてほしい、とは思った。」<br><br>丸子の旅籠に泊まった。峠越えを前に、早く寝ることにした。`,
     morningTextInn: `夜が明けた。<br><br>朝飯は冷や飯と漬物。簡素だが、十分だった。今日は宇津ノ谷峠を越える。宗吉は荷を担ぎ直して外へ出た。山の頂が白く霞んでいた。`,
-    innTextCheap: `丸子の木賃宿に泊まった。<br><br>明日の峠越えが頭から離れなかった。布団に入っても目が冴えて、結局いつ眠ったかわからなかった。とろろ汁の香りが、宿の中にまだ漂っていた。`,
+    innTextCheap: `丸子の木賃宿に泊まった。<br><br>峠越えのことが頭から離れなかった。布団に入っても目が冴えて、結局いつ眠ったかわからなかった。とろろ汁の香りが、宿の中にまだ漂っていた。`,
     innCost: 200,
     cheapCost: 28,
   },
@@ -5023,7 +5038,7 @@ const STAGE_DATA = {
     next: '島田', nextJi: '第廿三次',
     arriveText: `藤枝宿は中くらいの宿場だ。<br><br>問屋場が賑わっている。街道の両側に店が並び、軒先に藍染めの布が干してある。染め物屋が多い町で、藍の色が青く、鮮やかだった。<br><br>少し離れたところで、荷を広げた行商人が反物を広げていた。女性客が値段をきいていた。反物の相場は難しい——宗吉には、まだよくわからない。`,
     travelText: `藤枝を後にした。<br><br>島田まで二里ほど。大井川が近づいてくる。川を渡れるかどうか——それだけが気がかりだ。`,
-    innTextInn: `夕餉に青菜の煮物と飯が豊かに出た。今日はよく歩いた。腹が減っていた分、旨かった。<br><br>明日は大井川の川越えだ。水深次第では足止めになる。天気が崩れなければいい。藤枝の旅籠に泊まった。`,
+    innTextInn: `夕餉に青菜の煮物と飯が豊かに出た。今日はよく歩いた。腹が減っていた分、旨かった。<br><br>大井川が近い。水深次第では足止めになる。天気が崩れなければいい。藤枝の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>天気は問題なさそうだ。朝飯を早々に済ませた。今日は大井川の川越えがある。宗吉は荷を担ぎ、外へ出た。`,
     innTextCheap: `藤枝の木賃宿に泊まった。<br><br>隣に泊まった巡礼の一行が、夜通しお経を唱えていた。止めるわけにもいかず、耳を塞いで横になった。声は低く、抑えた調子だったが、それがかえって眠れなかった。`,
     innCost: 210,
@@ -5058,7 +5073,7 @@ const STAGE_DATA = {
     travelText: `日坂を後にした。<br><br>掛川まで二里ほど。坂を下ると、遠州の平野が広がってくる。足取りが少し楽になった。`,
     innTextInn: `夕餉は飯と汁と漬物。山間の宿らしい質素な食事だったが、体が温まった。<br><br>坂を越えてくると、なんでもない一膳がありがたく感じる。茶屋の親父の言葉を思い出した。くたびれ顔——そうかもしれない。日坂の旅籠に泊まった。夜は静かだった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、今日の道を考えた。掛川まで二里ほど、坂を下れば楽になる。城下町だ。仕入れもできる。宗吉は立ち上がり、外へ出た。山の冷たい空気が頬を刺した。`,
-    innTextCheap: `日坂の木賃宿に泊まった。<br><br>山間の小さな宿で、行灯の灯りが一つだけだった。帳面をつけようとしたが、暗くて字が見えなかった。明日の掛川で書けばいい——そう思って、横になった。`,
+    innTextCheap: `日坂の木賃宿に泊まった。<br><br>山間の小さな宿で、行灯の灯りが一つだけだった。帳面をつけようとしたが、暗くて字が見えなかった。次の宿場で書けばいい——そう思って、横になった。`,
     innCost: 200,
     cheapCost: 28,
   },
@@ -5087,7 +5102,7 @@ const STAGE_DATA = {
   28: {
     name: '見付', ji: '第廿八次', yomi: 'みつけ',
     next: '浜松', nextJi: '第廿九次',
-    arriveText: `天竜川の渡し場に着いた。<br><br>川幅が広く、流れが速い。渡し船が何艘も往来していた。船頭に渡し賃を払い、揺れる船の縁を掴んで対岸へ渡った。<br><br>見付宿は遠江国の大きな宿場だ。浜松まで四里——今日はここまでにして、明日浜松を目指すか。`,
+    arriveText: `天竜川の渡し場に着いた。<br><br>川幅が広く、流れが速い。渡し船が何艘も往来していた。船頭に渡し賃を払い、揺れる船の縁を掴んで対岸へ渡った。<br><br>見付宿は遠江国の大きな宿場だ。浜松まで四里——今日はここまでにするか。`,
     travelText: `見付を後にした。<br><br>浜松まで四里ほど。遠州の風が強い。荷が揺れた。`,
     innTextInn: `夕餉に天竜川の川魚の煮付けが出た。川の宿らしい、脂の乗った一品だった。<br><br>「今日は流れが速かったですね」と女将が言った。「増水の季節は船が出ないこともあるんですよ」<br><br>見付の旅籠に泊まった。天竜川を渡れた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を早々に済ませた。今日は浜松へ進む。四里の道だ。宗吉は荷を担ぎ、外へ出た。`,
@@ -5109,11 +5124,11 @@ const STAGE_DATA = {
   30: {
     name: '舞阪', ji: '第三十次', yomi: 'まいさか',
     next: '新居', nextJi: '第三十一次',
-    arriveText: `舞阪宿は浜名湖畔の小さな宿場だ。<br><br>今切の渡し場がある。湖の向こうに新居の関所が霞んで見える。<br><br>鰻の漁が盛んで、干し鰻が軒先に吊るされていた。浜名湖の水が夕方の光を受けて、橙色に光っていた。明日は関所だ。手形は荷の奥に入れてある。`,
+    arriveText: `舞阪宿は浜名湖畔の小さな宿場だ。<br><br>今切の渡し場がある。湖の向こうに新居の関所が霞んで見える。<br><br>鰻の漁が盛んで、干し鰻が軒先に吊るされていた。浜名湖の水が夕方の光を受けて、橙色に光っていた。この先に関所がある。手形は荷の奥に入れてある。`,
     travelText: `舞阪を後にした。<br><br>今切の渡しで新居へ渡る。`,
-    innTextInn: `夕餉に浜名湖の海老の汁が出た。甘みのある出汁が旨かった。<br><br>窓から湖を見ると、夕日が沈むところだった。橙から赤へ、赤から紫へ。宿場の灯りが一つずつ点いていった。<br><br>舞阪の旅籠に泊まった。明日は新居の関所だ。`,
+    innTextInn: `夕餉に浜名湖の海老の汁が出た。甘みのある出汁が旨かった。<br><br>窓から湖を見ると、夕日が沈むところだった。橙から赤へ、赤から紫へ。宿場の灯りが一つずつ点いていった。<br><br>舞阪の旅籠に泊まった。新居の関所が近い。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら湖を眺めた。静かな朝だった。今日は今切の渡しで関所を越える。宗吉は手形を確かめて、荷を担いだ。`,
-    innTextCheap: `舞阪の木賃宿に泊まった。<br><br>湖に近い宿は湿気がひどかった。布団が重く、朝まで体が温まらなかった。明日の関所のことを考えながら、横になっていた。`,
+    innTextCheap: `舞阪の木賃宿に泊まった。<br><br>湖に近い宿は湿気がひどかった。布団が重く、朝まで体が温まらなかった。関所のことを考えながら、横になっていた。`,
     innCost: 200,
     cheapCost: 30,
   },
@@ -5232,9 +5247,9 @@ const STAGE_DATA = {
     next: '桑名', nextJi: '第四十二次',
     arriveText: `宮宿は熱田神宮の門前町だ。<br><br>大きな鳥居が見える。神宮の杜が濃く茂っている。参拝者と旅人が混じり合って、宿場は賑やかだった。<br><br>七里の渡しの出発点でもある。波止場に船が並んでいた。海路で桑名まで七里——船に乗るのは久しぶりだ。多摩川の渡しとは規模が違う。尾張木綿の大きな問屋がある。`,
     travelText: `七里の渡しの船に乗った。<br><br>伊勢湾を渡り、桑名へ向かう。`,
-    innTextInn: `夕餉に熱田の干物の焼いたものが出た。神宮の門前町らしく、きちんとした膳だった。<br><br>明日は七里の海を舟で渡る。荷が濡れないよう、油紙で包み直した。宗吉は早めに横になった。<br><br>宮の旅籠に泊まった。`,
+    innTextInn: `夕餉に熱田の干物の焼いたものが出た。神宮の門前町らしく、きちんとした膳だった。<br><br>七里の海を舟で渡ることになる。荷が濡れないよう、油紙で包み直した。宗吉は早めに横になった。<br><br>宮の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、今日の渡海を考えた。七里の海を舟で渡る。宗吉は荷を確かめ、波止場へ向かった。`,
-    innTextCheap: `宮の木賃宿に泊まった。<br><br>明日の海路が頭から離れなかった。多摩川の渡しとは比べものにならない。寝返りのたびに、七里という距離が重くのしかかった。`,
+    innTextCheap: `宮の木賃宿に泊まった。<br><br>海路のことが頭から離れなかった。多摩川の渡しとは比べものにならない。寝返りのたびに、七里という距離が重くのしかかった。`,
     innCost: 260,
     cheapCost: 40,
   },
@@ -5274,7 +5289,7 @@ const STAGE_DATA = {
   45: {
     name: '庄野', ji: '第四十五次', yomi: 'しょうの',
     next: '亀山', nextJi: '第四十六次',
-    arriveText: `庄野宿は鈴鹿の山麓の静かな宿場だ。<br><br>広重の絵で知られる白雨——突然の夕立が多いという。今日は晴れているが、山の方から風が吹いていた。<br><br>薬草の産地が近く、宿場の端に薬草を扱う小店がある。鈴鹿峠を前にした旅人が、ここで体を整えていくという。明日は亀山まで進む。峠はその先だ。`,
+    arriveText: `庄野宿は鈴鹿の山麓の静かな宿場だ。<br><br>広重の絵で知られる白雨——突然の夕立が多いという。今日は晴れているが、山の方から風が吹いていた。<br><br>薬草の産地が近く、宿場の端に薬草を扱う小店がある。鈴鹿峠を前にした旅人が、ここで体を整えていくという。亀山まで進めば、峠はその先だ。`,
     travelText: `庄野を後にした。<br><br>亀山まで三里ほど。鈴鹿の山に分け入っていく。`,
     innTextInn: `夕餉は飯と汁と漬物、野菜の煮物が一皿。山の宿らしい質素な食事だった。<br><br>無口な主人が黙って膳を出してくれた。余計なことを言わない人間というのは、こちらも楽だった。<br><br>庄野の旅籠に泊まった。山が深くなってきた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べ終えて外へ出た。今日は亀山へ向かう。鈴鹿峠はその先だ。まだある。宗吉は荷を担いだ。`,
@@ -5296,7 +5311,7 @@ const STAGE_DATA = {
   47: {
     name: '関', ji: '第四十七次', yomi: 'せき',
     next: '坂下', nextJi: '第四十八次',
-    arriveText: `関宿に着いた。<br><br>古い宿場の面影が残る町だ。江戸の頃よりずっと前から街道が通っていたという。町並みが整然として、軒の高さが揃っている。<br><br>鍛冶屋の音が聞こえた。関の刃物の産地だ。切れ味がいいと評判の刃物が、店先に並んでいた。亀山ろうそくもここで買える。明日は坂下から鈴鹿峠を越える。`,
+    arriveText: `関宿に着いた。<br><br>古い宿場の面影が残る町だ。江戸の頃よりずっと前から街道が通っていたという。町並みが整然として、軒の高さが揃っている。<br><br>鍛冶屋の音が聞こえた。関の刃物の産地だ。切れ味がいいと評判の刃物が、店先に並んでいた。亀山ろうそくもここで買える。この先、坂下から鈴鹿峠を越えていく。`,
     travelText: `関を後にした。<br><br>坂下まで二里ほど。峠の麓が近い。`,
     innTextInn: `夕餉に一汁二菜、飯は多めだった。古い宿場は落ち着く。<br><br>宿の主人が刃物の話をした。「関の刃物は折れない、曲がらない、よく切れる。三拍子そろっている」<br><br>宗吉はその言葉を聞きながら、自分の商売を考えた。折れず、曲がらず、よく稼ぐ——そんな商人になれるだろうか。<br><br>関の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、今日の峠越えを考えた。鈴鹿越えは体力を使う。宗吉は腹いっぱい食べて立った。`,
@@ -5307,9 +5322,9 @@ const STAGE_DATA = {
   48: {
     name: '坂下', ji: '第四十八次', yomi: 'さかした',
     next: '土山', nextJi: '第四十九次',
-    arriveText: `坂下宿は鈴鹿峠の麓だ。<br><br>山が目の前に迫っている。宿場を抜けると、もう峠道が始まる。旅人が一息入れていく場所だ。<br><br>茶屋の主人が「今日越えるか」と声をかけてきた。「明日の朝に越える」と答えると、「それがいい。朝早いほうが凍らない」と言った。<br><br>薬草が安く手に入る。峠越えの前に、膏薬を確かめておいた。`,
+    arriveText: `坂下宿は鈴鹿峠の麓だ。<br><br>山が目の前に迫っている。宿場を抜けると、もう峠道が始まる。旅人が一息入れていく場所だ。<br><br>茶屋の主人が「今日越えるか」と声をかけてきた。宗吉は峠の方を見た。「朝早いほうが凍らない」と主人は言った。<br><br>薬草が安く手に入る。峠越えの前に、膏薬を確かめておいた。`,
     travelText: `坂下を後にした。<br><br>鈴鹿峠を越えて土山へ向かう。峠は急だが、距離はさほどない。`,
-    innTextInn: `夕餉に鈴鹿の薬草を煮込んだ汁が出た。峠前の宿らしく、体に力がつく味だった。<br><br>明日は峠越えだ。荷を一度広げて、重さを確かめた。軽くできるものはないか——そう思いながら、結局何も捨てられなかった。<br><br>坂下の旅籠に泊まった。`,
+    innTextInn: `夕餉に鈴鹿の薬草を煮込んだ汁が出た。峠前の宿らしく、体に力がつく味だった。<br><br>峠が近い。荷を一度広げて、重さを確かめた。軽くできるものはないか——そう思いながら、結局何も捨てられなかった。<br><br>坂下の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>まだ暗いうちから旅人の声がした。朝飯をしっかり食った。今日は鈴鹿峠を越える。宗吉は荷を締め直し、峠道へ向かった。`,
     innTextCheap: `坂下の木賃宿に泊まった。<br><br>峠越えの前夜は宿が混んでいた。早く寝ようとしたのに、あとから来た旅人がいつまでも話し込んでいた。峠の話ばかりだった。`,
     innCost: 200,
@@ -5353,20 +5368,20 @@ const STAGE_DATA = {
     next: '大津', nextJi: '第五十三次',
     arriveText: `草津宿は東海道と中山道の追分だ。<br><br>大きな道標が立っている。「右 東海道 江戸」「左 中山道 江戸」——二本の街道が、どちらも江戸へ戻っていく。<br><br>宗吉はその道標を少し眺めた。自分が歩いてきた道が、ここで中山道と合わさる。旅人が多かった。近江米と近江麻の問屋がある。<br><br>京まで、あと大津ひとつだ。`,
     travelText: `草津を後にした。<br><br>大津まで三里ほど。逢坂山が見えてきた。`,
-    innTextInn: `夕餉に近江米の飯が出た。白くて粒が立っていて、今まで食べた中で一番旨い飯だった気がした——疲れているせいかもしれないが。<br><br>明日は大津だ。大津の次は逢坂山を越えれば、京だ。<br><br>草津の旅籠に泊まった。`,
+    innTextInn: `夕餉に近江米の飯が出た。白くて粒が立っていて、今まで食べた中で一番旨い飯だった気がした——疲れているせいかもしれないが。<br><br>大津が近い。逢坂山を越えれば、京だ。<br><br>草津の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯も近江米の飯だった。本当に旨い。今日は大津まで進む。宗吉は腹を満たして立った。`,
-    innTextCheap: `草津の木賃宿に泊まった。<br><br>旅の終わりが近いせいか、宿の粗さが余計に目についた。染みだらけの天井を眺めながら、長いこと起きていた。明日が大津だ。`,
+    innTextCheap: `草津の木賃宿に泊まった。<br><br>旅の終わりが近いせいか、宿の粗さが余計に目についた。染みだらけの天井を眺めながら、長いこと起きていた。大津はもうすぐだ。`,
     innCost: 230,
     cheapCost: 36,
   },
   53: {
     name: '大津', ji: '第五十三次', yomi: 'おおつ',
     next: '京', nextJi: '終着',
-    arriveText: `大津宿に着いた。<br><br>琵琶湖が目に飛び込んだ。<br><br>湖というより、海のように広い。水の色が空の色に溶けて、どこまでが湖でどこからが空なのかわからなかった。江戸を出て以来、海を何度か見てきた。駿河湾も、遠州灘も、伊勢湾も。だが、これは湖だという。<br><br>大津は近江最大の宿場で、京の玄関口だ。大津絵が名物で、街道沿いの店に旅人の土産として並んでいた。福や縁起を描いた素朴な絵だ。<br><br>明日は逢坂山を越えれば——京だ。`,
+    arriveText: `大津宿に着いた。<br><br>琵琶湖が目に飛び込んだ。<br><br>湖というより、海のように広い。水の色が空の色に溶けて、どこまでが湖でどこからが空なのかわからなかった。江戸を出て以来、海を何度か見てきた。駿河湾も、遠州灘も、伊勢湾も。だが、これは湖だという。<br><br>大津は近江最大の宿場で、京の玄関口だ。大津絵が名物で、街道沿いの店に旅人の土産として並んでいた。福や縁起を描いた素朴な絵だ。<br><br>逢坂山を越えれば——京だ。`,
     travelText: `大津を後にした。<br><br>逢坂山を越えれば——京だ。`,
-    innTextInn: `夕餉に近江米の飯と、琵琶湖で揚がった小魚の焼いたものが出た。<br><br>京を目の前にした最後の夜だった。宗吉は飯を食いながら、江戸を出た日のことを考えた。品川の橘屋。女将のおきく。針を買った女将。多摩川の渡し。<br><br>あれからずっと歩いてきた。<br><br>大津の旅籠に泊まった。明日は京に入る。おみつのことを考えたら、なかなか眠れなかった。`,
+    innTextInn: `夕餉に近江米の飯と、琵琶湖で揚がった小魚の焼いたものが出た。<br><br>京を目の前にした最後の夜だった。宗吉は飯を食いながら、江戸を出た日のことを考えた。品川の橘屋。女将のおきく。針を買った女将。多摩川の渡し。<br><br>あれからずっと歩いてきた。<br><br>大津の旅籠に泊まった。京はもう目の前だ。おみつのことを考えたら、なかなか眠れなかった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べたが、味がよくわからなかった。心がもう先に行っていた。<br><br>宗吉は荷を担ぎ、逢坂山へ向かった。`,
-    innTextCheap: `大津の木賃宿に泊まった。<br><br>明日は京に入る。おみつのことを考えたら、なかなか眠れなかった。最後の夜だというのに、隣の男の鼾だけが立派だった。`,
+    innTextCheap: `大津の木賃宿に泊まった。<br><br>京はもう目の前だ。おみつのことを考えたら、なかなか眠れなかった。最後の夜だというのに、隣の男の鼾だけが立派だった。`,
     innCost: 260,
     cheapCost: 42,
   },
@@ -5421,6 +5436,7 @@ function startFromSave() {
   document.documentElement.scrollTop = 0;
   loadMapImg();
   preloadNextImages(state.currentStage);
+  preloadAllStamps();
   wakeUpMorning();
 }
 
@@ -5451,6 +5467,7 @@ function startFresh() {
   updateHeader();
   loadMapImg();
   preloadNextImages(state.currentStage);
+  preloadAllStamps();
   showIntro(() => {
     fadeTransition(() => {
       const sd = currentStageData();
