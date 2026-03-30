@@ -879,7 +879,9 @@
     元禄十四年、師走。<br><br>
     出発の朝、父は帳場に座っていた。<br><br>
     しばらく算盤を置いて、こちらを向いた。<br><br>
-    「おみつに会いに行くんだろう。ならついでに、道中で商いをしてこい。東海道を歩けば、嫌でも覚える。それが修行というものだ」
+    「おみつに会いに行くんだろう。ならついでに、道中で商いをしてこい。東海道を歩けば、嫌でも覚える。それが修行というものだ」<br><br>
+    父は少し間を置いてから、付け加えた。<br><br>
+    「客の様子をよく見ろ。顔を見れば、何が要るかわかる。値の折り合いもわかる。——それだけわかれば、商売はできる」
   </div>
 </div>
 
@@ -1278,8 +1280,14 @@ function nextWeather(currentWeather, stageNum) {
 const CUSTOMERS = [
   {
     name: '宿の主人',
+    ctype: 'D',
     intro: '主人が帳場から顔を上げた。「何かお持ちでございますか。拝見してもよろしいですか」',
     hint: null,
+    reads: [
+      '',
+      '帳場から出てきた。商売人の顔だ。',
+      '帳場から出てきた。商売人の顔で、品を見ている。何でも引き取る気があるが、値は見ている。',
+    ],
     wants: ['食料', '調味料', '旅道具', '雑貨', '薬', '女性向け', '嗜好品'],
     prob: { low: 1.0, mid: 1.0, high: 0.90 },
     reject: '「本日はご遠慮いたします。またの機会に」と主人は穏やかに言った。',
@@ -1288,8 +1296,14 @@ const CUSTOMERS = [
   },
   {
     name: '旅の女',
+    ctype: 'C',
     intro: '「あの、少しよろしいですか」と、編み笠の女が足を止めた。',
     hint: '荷物は少ない。旅慣れた様子だが、財布は重そうだ。',
+    reads: [
+      '',
+      '財布は重そうだ。品を見る目がある。',
+      '財布は重そうだ。品を見る目がある。何を強調するかで、印象が変わる相手だ。',
+    ],
     wants: ['女性向け', '食料', '嗜好品'],
     prob: { low: 1.0, mid: 0.9, high: 0.65 },
     reject: '「少し高いですね」と言って、足早に立ち去った。',
@@ -1297,35 +1311,65 @@ const CUSTOMERS = [
   },
   {
     name: '行商人',
+    ctype: 'A',
     intro: '荷を担いだ行商人が、じろりと荷を見た。',
     hint: '同業者らしい目つきだ。値切るのが当たり前の顔をしている。',
+    reads: [
+      '',
+      '同業者の目だ。値切るつもりでいる。',
+      '同業者の目だ。値切るつもりでいる。ただ、ここで手に入れなければ次を探す手間がある——それはわかっているはずだ。',
+    ],
     wants: ['食料', '旅道具'],
     prob: { low: 1.0, mid: 0.7, high: 0.2 },
     reject: '「もう少し負けてくれや」と言って、荷を担いで去った。',
+    offerRate: 0.85,
+    offerText: (itemName) => `「${itemName}、少し負けてくれんか。その値じゃ買えんよ」`,
     timeSlots: ['asa', 'hiru', 'yuu'],
   },
   {
     name: '武士',
+    ctype: 'A',
     intro: '「ちと、見せてみよ」と通りがかりの武士が立ち止まった。',
     hint: '身なりは整っているが、財布に手を当てる素振りはない。値段には敏感そうだ。',
+    reads: [
+      '',
+      '財布には手を当てない。値段を見ている。',
+      '財布には手を当てない。値段を見ている。ただ、気に入れば買う——その顔だ。',
+    ],
     wants: ['食料', '調味料', '嗜好品'],
     prob: { low: 1.0, mid: 0.8, high: 0.1 },
     reject: '「高い」と一言残して、去った。',
+    offerRate: 0.88,
+    offerText: (itemName) => `「${itemName}か。もう少し下げられぬか」`,
     timeSlots: ['asa', 'hiru'],
   },
   {
     name: '百姓',
+    ctype: 'A',
     intro: '「すまんが」と、日に焼けた男が声をかけてきた。',
     hint: '手拭いで汗を拭きながら立っている。懐は豊かではなさそうだ。',
+    reads: [
+      '',
+      '懐は薄そうだ。相場では買えないかもしれない。',
+      '懐は薄そうだ。相場では買えないかもしれない。値切りに応じれば確実だが、単価は下がる。',
+    ],
     wants: ['食料', '雑貨'],
     prob: { low: 1.0, mid: 0.6, high: 0.1 },
     reject: '「そりゃ無理だ」と首を振って、去っていった。',
+    offerRate: 0.80,
+    offerText: (itemName) => `「${itemName}か……もうちょっと安うならんか」`,
     timeSlots: ['hiru', 'yuu'],
   },
   {
     name: '僧侶',
+    ctype: 'E',
     intro: '托鉢姿の僧が、静かに足を止めた。',
     hint: '穏やかな顔をしている。高値を押しつけるには気が引ける相手だ。',
+    reads: [
+      '',
+      '穏やかな顔だ。懐は豊かではないだろう。',
+      '穏やかな顔だ。懐は豊かではないだろう。どう出るかは、自分が決めることだ。',
+    ],
     wants: ['食料', '薬', '雑貨'],
     prob: { low: 1.0, mid: 0.9, high: 0.4 },
     reject: '静かに頭を下げて、去った。',
@@ -1333,8 +1377,14 @@ const CUSTOMERS = [
   },
   {
     name: '大工',
+    ctype: 'B',
     intro: '「おい、油紙はあるか」と、墨のついた男が言った。',
     hint: '仕事帰りの様子で、急いでいる。今すぐ必要なものなら、多少高くても買うだろう。',
+    reads: [
+      '',
+      '急いでいる。今すぐ必要なものなら買う顔だ。',
+      '急いでいる。今すぐ必要なものなら買う顔だ。迷わせれば逃げる——すぐ出すのが正解だ。',
+    ],
     wants: ['旅道具', '雑貨'],
     fixed: '油紙',
     prob: { low: 1.0, mid: 0.90, high: 0.55 },
@@ -1343,8 +1393,14 @@ const CUSTOMERS = [
   },
   {
     name: '飛脚',
+    ctype: 'B',
     intro: '走り疲れた様子の飛脚が、荷をのぞき込んだ。',
     hint: '息を切らしている。急ぎの仕事の途中らしく、必要なものはさっさと買って行くつもりだろう。',
+    reads: [
+      '',
+      '息を切らしている。急いでいる。',
+      '息を切らしている。急いでいる。迷わせれば走り去る——すぐ出せば標準で確実に売れる。',
+    ],
     wants: ['旅道具', '食料'],
     prob: { low: 1.0, mid: 0.95, high: 0.55 },
     reject: '「急いでるんで」と言って、走り去った。',
@@ -1352,8 +1408,14 @@ const CUSTOMERS = [
   },
   {
     name: '商家の女中',
+    ctype: 'C',
     intro: '「奥様に頼まれていて」と、小柄な女が言った。',
     hint: '買い物かごを下げている。主人の財布で買うのか、値段をあまり気にしていない様子だ。',
+    reads: [
+      '',
+      '主人の財布で買っている。値段はあまり気にしていない。',
+      '主人の財布で買っている。値段はあまり気にしていない。品の説明次第で、印象が変わる相手だ。',
+    ],
     wants: ['女性向け', '食料', '調味料', '嗜好品'],
     prob: { low: 1.0, mid: 0.9, high: 0.75 },
     reject: '「予算が決まっていて」と困った顔をして、去った。',
@@ -1361,17 +1423,31 @@ const CUSTOMERS = [
   },
   {
     name: '老婆',
+    ctype: 'A',
     intro: 'しわだらけの老婆が、荷をそっと触ろうとした。',
     hint: '着物は古いが、丁寧に手入れされている。お金はあるが使い方には厳しそうだ。',
+    reads: [
+      '',
+      '着物は丁寧に手入れされている。金はあるが、使い方に厳しい。',
+      '着物は丁寧に手入れされている。金はあるが、使い方に厳しい。標準と応じるが拮抗する相手だ。',
+    ],
     wants: ['食料', '女性向け', '薬', '嗜好品'],
     prob: { low: 1.0, mid: 0.8, high: 0.2 },
     reject: '「もう少し安ければねえ」とつぶやきながら、去っていった。',
+    offerRate: 0.82,
+    offerText: (itemName) => `「${itemName}ねえ……もう少し安くしてもらえないかしら」`,
     timeSlots: ['hiru', 'yuu'],
   },
   {
     name: '若い男',
+    ctype: null,
     intro: '「ちょっと見せてくれ」と、若い男が気軽な口調で言った。',
     hint: '気軽に声をかけてきた。懐の様子は読めないが、欲しいと思ったら迷わず買いそうだ。',
+    reads: [
+      '',
+      '懐の様子が読めない。',
+      '懐の様子が読めない。欲しければ迷わず買う——が、気が変わるのも早い。',
+    ],
     wants: ['食料', '旅道具'],
     prob: { low: 1.0, mid: 0.65, high: 0.50 },
     reject: '「また今度」と言って、去った。',
@@ -1379,8 +1455,14 @@ const CUSTOMERS = [
   },
   {
     name: '旅の僧',
+    ctype: 'E',
     intro: '旅の僧が立ち止まった。「少し分けてもらえぬか」と、穏やかに言った。',
     hint: '旅の垢がついた草鞋を履いている。長旅のようだが、物腰に余裕がある。懐も同様かもしれない。',
+    reads: [
+      '',
+      '長旅の垢がある。懐は豊かではないだろう。',
+      '長旅の垢がある。懐は豊かではないだろう。物腰に余裕がある——信心ある旅人だ。',
+    ],
     wants: ['食料', '薬', '雑貨'],
     prob: { low: 1.0, mid: 0.85, high: 0.55 },
     reject: '「不足しておりまして」と静かに頭を下げ、去った。',
@@ -1388,8 +1470,14 @@ const CUSTOMERS = [
   },
   {
     name: '産婆',
+    ctype: 'B',
     intro: '「急いでいるんだけどね」と、がっしりした女が立ち止まった。',
     hint: '往診帰りらしい。急いでいる。必要な薬や道具なら、値段より手に入ることを優先しそうだ。',
+    reads: [
+      '',
+      '往診帰りだ。急いでいる。',
+      '往診帰りだ。急いでいる。必要なものなら値段より手に入ることを優先する——すぐ出すのが正解だ。',
+    ],
     wants: ['薬', '旅道具'],
     prob: { low: 1.0, mid: 0.95, high: 0.65 },
     reject: '「もう少し安ければねえ」と言って、足早に去った。',
@@ -1397,8 +1485,14 @@ const CUSTOMERS = [
   },
   {
     name: '魚売り',
+    ctype: 'B',
     intro: '魚の匂いをさせた魚売りが、油紙をじっと見た。',
     hint: '仕事道具として油紙を探している顔だ。必要と決めたなら、多少高くても買うだろう。',
+    reads: [
+      '',
+      '仕事道具を探している顔だ。必要と決めたなら買う。',
+      '仕事道具を探している顔だ。必要と決めたなら買う——ただし迷わせれば次を探しに行く。',
+    ],
     wants: ['旅道具', '雑貨'],
     fixed: '油紙',
     prob: { low: 1.0, mid: 0.85, high: 0.50 },
@@ -1407,8 +1501,14 @@ const CUSTOMERS = [
   },
   {
     name: '旅籠の女将',
+    ctype: 'D',
     intro: '「うちで使えるものはあるかい」と、女将が声をかけた。',
     hint: '商売人の目をしている。まとめ買いするかもしれないが、値段も見ている。',
+    reads: [
+      '',
+      '商売人の目だ。値段も見ている。',
+      '商売人の目だ。値段も見ている。複数品を出せば、まとめて引き取る気があるかもしれない。',
+    ],
     wants: ['食料', '女性向け', '調味料', '雑貨', '嗜好品'],
     prob: { low: 1.0, mid: 0.85, high: 0.45 },
     reject: '「もう少し勉強してくれたらねえ」と言って、去った。',
@@ -1416,11 +1516,19 @@ const CUSTOMERS = [
   },
   {
     name: '薬売り',
+    ctype: 'A',
     intro: '薬売りの男が、じっと荷をのぞき込んだ。',
     hint: '同業者の目線で荷を見ている。相場は知っているはずだ。',
+    reads: [
+      '',
+      '同業者の目だ。相場を知っている。',
+      '同業者の目だ。相場を知っている。標準では渋る可能性が高い——応じるか見極めが必要だ。',
+    ],
     wants: ['薬', '旅道具', '食料'],
     prob: { low: 1.0, mid: 0.75, high: 0.3 },
     reject: '「なかなか商売上手だな」と笑って、去った。',
+    offerRate: 0.87,
+    offerText: (itemName) => `「${itemName}か。相場はわかってるよ。もう少し負けてくれ」`,
     timeSlots: ['hiru', 'yuu'],
   },
 ];
@@ -2190,7 +2298,10 @@ const WEATHER_MODIFIER = { sunny: 1.0, cloudy: 0.9, rain: 0.75, snow: 0.6 };
 function customerPct() {
   const config = STAGE_CONFIG[state.currentStage] || DEFAULT_CONFIG;
   const weatherMod = WEATHER_MODIFIER[state.weather] || 1.0;
-  return config.basePct * weatherMod;
+  // 熟練度ボーナス：客の呼び込み方・立ち方が変わる
+  const rank = getMerchantRank();
+  const rankBonus = rank === 'expert' ? 0.10 : rank === 'middle' ? 0.05 : 0.0;
+  return Math.min(0.98, config.basePct * weatherMod + rankBonus);
 }
 
 
@@ -2315,10 +2426,35 @@ function updateHeader() {
   applyWeatherEffect(state.weather);
 }
 
+// ── 商人熟練度 ──
+// 0〜14件：不慣れ(novice) / 15〜34件：一人前(middle) / 35件〜：熟練(expert)
+function getMerchantRank() {
+  const n = state.memos.shobai.length;
+  if (n >= 35) return 'expert';
+  if (n >= 15) return 'middle';
+  return 'novice';
+}
+
+// ── ランクアップ時の気づきテキスト ──
+function getRankUpText(newRank) {
+  if (newRank === 'middle') {
+    return `しばらく荷を担いで歩きながら、宗吉はふと気づいた。<br><br>` +
+           `客の顔が、少し読めるようになってきた気がする。<br><br>` +
+           `——父が言っていた。客の様子をよく見ろ、と。そういうことか、と思った。`;
+  }
+  if (newRank === 'expert') {
+    return `その日の商売を終えて、宗吉は宿の縁側に腰を下ろした。<br><br>` +
+           `いつの間にか、値段を言う前に相手の出方がわかるようになっていた。<br><br>` +
+           `まだ完全ではない。でも、旅の前とは違う目で客を見ている自分がいた。`;
+  }
+  return null;
+}
+
 // ── 京都エンディング ──
 function triggerEnding() {
   const totalSold = state.memos.shobai.length;
   const stagesCleared = Object.keys(state.visited).length;
+  const rank = getMerchantRank();
 
   // 土産クラスを取得
   const chosenSv = state.souvenirChosen
@@ -2326,73 +2462,99 @@ function triggerEnding() {
     : null;
   const svCls = chosenSv ? chosenSv.cls : null;
 
-  // おみつのセリフ（所持金ベース）
-  let omitsuLine = '兄さん、変わったね。';
-  if (state.money >= 2000) omitsuLine = '兄さん、変わったね。——顔つきが、違う。';
-  else if (state.money <= 200) omitsuLine = '兄さん、変わったね。——苦労したの、顔に出てる。';
+  // ── 真のエンド判定 ──
+  // 土産あり × 所持金1500文以上 × 熟練（35件以上）
+  const isTrueEnd = chosenSv && state.money >= 1500 && rank === 'expert';
 
-  // おみつが手元の金に気づく一節（贅沢土産かつ高収入の場合）
+  // ── おみつのセリフ（所持金×熟練度） ──
+  let omitsuLine;
+  if (state.money >= 2000) {
+    omitsuLine = rank === 'expert'
+      ? '兄さん、変わったね。——目が、変わった。'
+      : '兄さん、変わったね。——顔つきが、違う。';
+  } else if (state.money <= 200) {
+    omitsuLine = rank === 'expert'
+      ? '兄さん、変わったね。——苦労したの、顔に出てる。でも、なんか違う。'
+      : '兄さん、変わったね。——苦労したの、顔に出てる。';
+  } else {
+    omitsuLine = rank === 'expert'
+      ? '兄さん、変わったね。——なんか、落ち着いた。'
+      : '兄さん、変わったね。';
+  }
+
+  // ── 宗吉の内心（熟練なら父の言葉を回収） ──
+  const chichiNote = rank === 'expert'
+    ? `宗吉は何も言えなかった。<br><br>——父が言っていた。客の様子をよく見ろ、と。五十三の宿場で、少しずつわかってきた気がした。`
+    : `宗吉は何も言えなかった。`;
+
+  // ── おみつが手元の金に気づく一節（贅沢土産かつ高収入） ──
   const richAndZeitaku = state.money >= 2000 && svCls === 'zeitaku';
   const richNotice = richAndZeitaku
     ? `おみつはふと宗吉の顔を見た。何かに気づいたような顔をした。「……ずいぶん稼いだんだね」と言った。「旅の間、ずっと商売してたの？」「まあ」おみつは少し黙った。「兄さん、商売人みたいな顔になってる」と言った。「前はそんな顔じゃなかった」宗吉は何も言わなかった。おみつが笑った。「褒めてるんだよ」と言った。<br><br>`
     : '';
 
-  // 土産シーンのテキスト（クラスで分岐）
+  // ── 土産シーン（熟練度で宗吉の観察テキストが増える） ──
+  // expertのみ観察一節を末尾に追加。おみつの台詞は変えない。
   let souvenirScene = '';
   if (chosenSv) {
     souvenirScene += `宗吉は懐から「${chosenSv.name}」を出した。<br><br>`;
     if (svCls === 'inori') {
       if (chosenSv.id === 'mamori') {
-        // 遊行寺の守り札
         souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「藤沢で買ったの？」<br><br>「ああ」<br><br>おみつはまた札を見た。「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
         if (state.money <= 200) souvenirScene += `<br><br>「兄さん、無理したでしょ」<br><br>宗吉は首を振った。おみつは、それ以上聞かなかった。`;
+        if (rank === 'expert') souvenirScene += `<br><br>声が詰まっていた。泣いていないのに、泣いているのと同じ顔だった。宗吉はそれを、ただ見ていた。`;
       } else if (chosenSv.id === 'mishima') {
-        // 三嶋大社の土鈴
         souvenirScene += `おみつは土鈴を受け取って、そっと振った。かすかな音がした。<br><br>「三嶋大社の？」<br><br>「ああ。箱根の先で、立ち寄った」<br><br>おみつはもう一度振った。「かわいい」と言った。しばらくして「こういうの、初めてもらった」と言った。<br><br>宗吉は何も言わなかった。おみつが喜ぶ顔を、ただ見ていた。`;
+        if (rank === 'expert') souvenirScene += `<br><br>「初めてもらった」と言うとき、おみつは少し遠くを見るような顔をした。その顔の意味が、宗吉にはわかった気がした。`;
       } else if (chosenSv.id === 'atsuta') {
-        // 熱田神宮の御守
         souvenirScene += `おみつは御守を両手で受け取った。「熱田神宮……」と小さく言った。<br><br>「宮宿で参拝した。七里の海を渡る前に」<br><br>おみつはしばらく御守を見ていた。それから顔を上げた。「海、大丈夫だった？」<br><br>「なんとか」<br><br>「よかった」とおみつは言った。声が柔らかかった。御守を胸のあたりで抱えた。「ずっと持ちます」と言った。`;
+        if (rank === 'expert') souvenirScene += `<br><br>胸のあたりで抱えた、その手が少し震えていた。宗吉は気づいていたが、何も言わなかった。`;
       } else if (chosenSv.id === 'choji') {
-        // 丁子の香木
         souvenirScene += `おみつは布包みを受け取って、口を開けた。それから顔を上げた。<br><br>「いい香り」<br><br>「亀山の薬屋でもらった。土山の茶屋で」<br><br>おみつはもう一度、鼻を近づけた。「丁子だ」と言った。「どうしてわかる」と宗吉は聞いた。「奉公先で使うから」とおみつは答えた。<br><br>宗吉は、おみつがもうそういうことを知っている年になったのだと、その時初めて気がついた。`;
+        if (rank === 'expert') souvenirScene += `<br><br>「奉公先で使うから」と言うとき、おみつは少しだけ誇らしそうな顔をした。それは、会う前には想像できなかった顔だった。`;
       } else {
-        // inori汎用
         souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
+        if (rank === 'expert') souvenirScene += `<br><br>声が詰まっていた。その詰まり方の意味を、宗吉は少しわかる気がした。`;
       }
     } else if (svCls === 'jitsuyo') {
       if (chosenSv.id === 'ocha') {
-        // 実用・お茶専用テキスト（B案）
         souvenirScene += `おみつは包みを開けて、中を見た。それから顔を上げて、宗吉を見た。<br><br>「お茶」<br><br>「ああ。飲み切ったらそれまでだけど」<br><br>おみつは包みをもう一度見た。「茶畑、見た？」と聞いた。<br><br>「見た。丘の上まで続いてた」<br><br>おみつは「そう」と言った。しばらくして「飲む時、思い出すね」と言った。`;
+        if (rank === 'expert') souvenirScene += `<br><br>「思い出すね」と言うとき、おみつは少し目を細めた。それが嬉しいのか、寂しいのか、どちらでもあるような顔だった。`;
       } else {
-        // 実用B（手拭いなど）
         souvenirScene += `おみつは包みを開けた。手拭いを手に取って、広げた。<br><br>「藍染めだ」<br><br>独り言みたいに言って、ためつすがめつ眺めた。それから宗吉を見た。<br><br>「どこで買ったの」<br><br>「平塚で。おみつに似合うと思って」<br><br>おみつは少し黙った。それからまた手拭いを見た。「似合うかな」と言った。笑いながら言った。宗吉は、その顔を見ていた。`;
+        if (rank === 'expert') souvenirScene += `<br><br>笑いながら言った。でもその笑いの中に、少し照れているものがあった。宗吉はそれを見逃さなかった。`;
       }
     } else if (svCls === 'zeitaku') {
       if (state.money >= 2000) {
-        // 贅沢＋高収入：おみつが少し強めに驚く
         if (chosenSv.id === 'arima') {
           souvenirScene += `おみつは布を受け取った。両手で持って、光に透かした。<br><br>「有松絞り……？」<br><br>しばらく何も言わなかった。それから顔を上げて、宗吉を見た。「どうしたの、これ」<br><br>「鳴海で買った」<br><br>「高かったでしょ」<br><br>「まあ」<br><br>おみつは布をもう一度見た。畳んで、また広げた。「こんなもの、もらっていいの」と言った。笑っていなかった。ただ、真剣な顔で布を見ていた。<br><br>「いい」と宗吉は言った。<br><br>おみつは少し間を置いてから「ありがとう」と言った。声が、少し違った。`;
+          if (rank === 'expert') souvenirScene += `<br><br>「ありがとう」と言うとき、おみつは布をぎゅっと持った。その手の力加減が、言葉より多くのことを言っていた。`;
         } else {
-          // 近江麻など他の贅沢土産
           souvenirScene += `おみつは布を受け取った。両手で持って、重さを確かめるように抱えた。<br><br>「これ、近江麻？」<br><br>「水口で買った」<br><br>おみつはしばらく黙っていた。それから顔を上げた。「どうしたの。こんな物」<br><br>「稼いだから」<br><br>おみつはもう一度布を見た。「そう」と言った。静かな声だった。「大切にします」と言ってから、少し間を置いて「本当に」とつけ加えた。`;
+          if (rank === 'expert') souvenirScene += `<br><br>「本当に」とつけ加えた後、おみつは少し下を向いた。その間の意味を、宗吉は測りかねた。でも悪い意味ではないと思った。`;
         }
       } else {
-        // 贅沢・通常（従来テキスト）
         souvenirScene += `おみつは布を受け取った。両手で持って、光に透かした。<br><br>「有松絞り……？」<br><br>「鳴海で買った」<br><br>おみつはしばらく黙っていた。畳んで、また広げた。それを二度繰り返した。<br><br>「高かったでしょ」<br><br>「まあ」<br><br>「もう」と言って、おみつは笑った。でも大事そうに布を抱えた。「大切にします」と言った。`;
+        if (rank === 'expert') souvenirScene += `<br><br>「もう」と言って笑ったあと、おみつは少しだけ表情が変わった。それを宗吉は見ていた。怒っているのではない——困っている顔でもない。何と言えばいいのかわからない顔だった。`;
       }
     } else if (svCls === 'kinen') {
       if (chosenSv.id === 'ema') {
-        // 掛川の小絵馬
         souvenirScene += `おみつは絵馬を受け取って、表と裏を見た。<br><br>「馬の絵だ。どこの？」<br><br>「掛川。祭りの手伝いをしたら、浜松の旅籠でもらった」<br><br>おみつは少し首を傾けた。「手伝い？」<br><br>「ちょっとな」<br><br>おみつはまた絵馬を見た。「兄さん、旅の間、こういうことばっかりしてたんでしょ」と言った。笑いながら言った。宗吉は否定しなかった。`;
+        if (rank === 'expert') souvenirScene += `<br><br>笑いながら言ったが、目は笑っていなかった。おみつなりに、旅の話を聞きたがっているのだと、宗吉にはわかった。`;
       } else {
-        // 記念汎用（大津絵など）
         souvenirScene += `おみつは大津絵を受け取って、じっと見た。鬼が豆を撒いている絵だった。<br><br>「東海道、歩いたの」<br><br>「歩いた」<br><br>おみつはもう一度絵を見た。それから宗吉の顔を見た。笑っていた。「大事にします」と言った。<br><br>宗吉はその時、自分が五十三の宿場を歩いてきたことを、初めてちゃんと実感した気がした。`;
+        if (rank === 'expert') souvenirScene += `<br><br>おみつが笑った顔の中に、少し安堵したような色があった。宗吉はそれに気づいて、なぜかほっとした。`;
       }
     }
   } else {
-    // 手ぶらA
     souvenirScene += `宗吉の手を、おみつは一度だけ見た。<br><br>何も言わなかった。しばらく、二人とも黙っていた。<br><br>それから顔を上げて、宗吉の顔を見た。「来てくれただけで、よかった」と言った。<br><br>宗吉はうなずいた。おみつも、うなずいた。それだけだった。それで十分だった。`;
+    if (rank === 'expert') souvenirScene += `<br><br>「よかった」と言うときのおみつの顔を、宗吉はしばらく見ていた。本当に、よかったのだと思った。`;
   }
+
+  // ── 真のエンド追加シーン ──
+  const trueEndScene = isTrueEnd
+    ? `<br><br>しばらくして、おみつが少し改まった顔をした。<br><br>「兄さんに、聞いてほしいことがあって」<br><br>宗吉は黙って待った。<br><br>「奉公先の旦那様がね、今度、出入りの商人を探しているって言ってて」<br><br>おみつは少し間を置いた。「兄さん、商売、うまくなったでしょ。旅の間に」<br><br>「……まあ」<br><br>おみつはまた少し黙った。それから顔を上げた。「紹介してみようか、と思って。もちろん、嫌なら言って」<br><br>宗吉は答えなかった。おみつの顔を見ていた。<br><br>おみつが、少し笑った。「考えといて」と言った。<br><br>宗吉はうなずいた。五十三次を歩いてきて、最後にこういう話になるとは思っていなかった。でも——悪くない、と思った。`
+    : '';
 
   // 挿絵を京都画像に切り替え
   const illusImgKyo = document.getElementById('illus-img');
@@ -2401,16 +2563,13 @@ function triggerEnding() {
   illusImgKyo.onerror = () => { illusImgKyo.style.opacity = '0.9'; };
   illusImgKyo.src = `${SHUKUBA_BASE}54_kyo.png`;
 
-  // ステージバーを更新
   document.getElementById('stage-name').textContent = '京';
-  document.getElementById('stage-remaining').textContent = '終着';
+  document.getElementById('stage-remaining').textContent = isTrueEnd ? '真の終着' : '終着';
 
-  // 天候・時間は昼晴れに固定
   state.weather = 'sunny';
   state.timeSlot = 'hiru';
   updateHeader();
 
-  // inn-area / cargo-panel を隠す
   document.getElementById('inn-area').classList.add('hidden');
   document.getElementById('cargo-panel').style.display = 'none';
   document.getElementById('tap-hint').style.display = 'none';
@@ -2426,10 +2585,12 @@ function triggerEnding() {
     `${souvenirScene}<br><br>` +
     `${richNotice}` +
     `「${omitsuLine}」<br><br>` +
-    `宗吉は何も言えなかった。<br><br>` +
+    `${chichiNote}` +
+    `${trueEndScene}<br><br>` +
     `<span style="font-size:11px;opacity:0.45;line-height:2.2;">` +
     `通過した宿場 ${stagesCleared} 次　残り日数 ${state.days} 日　手元金 ${state.money.toLocaleString()} 文　商売 ${totalSold} 件` +
     (chosenSv ? `　土産【${SOUVENIR_CLASS_LABEL[svCls]}】${chosenSv.name}` : `　土産なし`) +
+    (isTrueEnd ? `　真のエンド` : '') +
     `</span>`;
 
   document.getElementById('scene-text').innerHTML = endText;
@@ -2861,23 +3022,121 @@ function startSell(idx, customer) {
     document.getElementById('cargo-panel').style.display = 'none';
     document.getElementById('scene-text').innerHTML = '';
 
-    // 登場テキストは callCustomer / openCargo で表示済み
-    // 品川女将は品を指名するテキストを表示
     const avgBuy = Number.isInteger(item.buy) ? item.buy : item.buy.toFixed(1);
     const sellNow = currentSellPrice(item);
     const priceHint = `<span style="font-size:11px;opacity:0.6;">（仕入れ${avgBuy}文　相場${sellNow}文）</span>`;
+    const priceLow  = Math.max(1, Math.round(sellNow * 0.80));
+    const priceHigh = Math.round(sellNow * 1.25);
+    const rank = getMerchantRank();
+    const ctype = customer ? customer.ctype : null;
+
+    // reads[]から熟練度に応じたテキストを取得
+    const readsIdx = rank === 'expert' ? 2 : rank === 'middle' ? 1 : 0;
+    const readText = (customer && customer.reads && customer.reads[readsIdx])
+      ? `<br><br><span style="font-size:13px;opacity:0.7;font-style:italic;">——${customer.reads[readsIdx]}</span>`
+      : '';
+
+    // 品川女将（tutorial）は常に通常3択
     if (state.currentStage === 1 && !customer) {
       document.getElementById('scene-text').innerHTML =
         '品のいい五十がらみの女だ。<br><br>' +
         '「ちょうど針を探していたんだよ」<br><br>' +
         `値段をどうするか。　${priceHint}`;
-    } else {
-      document.getElementById('scene-text').innerHTML =
-        `${item.name}が欲しいという。<br><br>値段をどうするか。　${priceHint}`;
+      showChoices([
+        { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
+        { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
+        { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
+      ]);
+      return;
     }
 
-    const priceLow  = Math.max(1, Math.round(sellNow * 0.80));
-    const priceHigh = Math.round(sellNow * 1.25);
+    // ── 不慣れ：全客に通常3択 ──
+    if (rank === 'novice' || !ctype) {
+      document.getElementById('scene-text').innerHTML =
+        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
+      showChoices([
+        { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
+        { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
+        { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
+      ]);
+      return;
+    }
+
+    // ── 一人前以上：客タイプ別分岐 ──
+
+    // 型A（値切り）：客が希望価格を提示、応じるか押し返すか
+    if (ctype === 'A') {
+      const offerPrice = Math.round(sellNow * (customer.offerRate || 0.85));
+      const offerStr = customer.offerText ? customer.offerText(item.name) : `「もう少し負けてくれ」`;
+      document.getElementById('scene-text').innerHTML =
+        `${offerStr}${readText}<br><br>どう出るか。　${priceHint}`;
+      showChoices([
+        { label: `${offerPrice}文で応じる（確実）`,              fn: '', action: () => doSellOffer(idx, offerPrice, customer) },
+        { label: `一${item.unit}${sellNow}文（標準）`,           fn: '', action: () => doSell(idx, sellNow,    customer) },
+        { label: `${priceHigh}文で押し通す`,                     fn: '', action: () => doSell(idx, priceHigh,  customer) },
+      ]);
+      return;
+    }
+
+    // 型B（即決）：「すぐ出す」が選択肢に加わる（標準価格・確実成約）
+    if (ctype === 'B') {
+      document.getElementById('scene-text').innerHTML =
+        `${item.name}が欲しいという。急いでいる。${readText}<br><br>値段をどうするか。　${priceHint}`;
+      showChoices([
+        { label: `すぐ出す（${sellNow}文・確実）`,      fn: '', action: () => doSellImmediate(idx, sellNow, customer) },
+        { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
+        { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
+      ]);
+      return;
+    }
+
+    // 型C（品定め）：価格固定・アピール方法を選ぶ
+    if (ctype === 'C') {
+      document.getElementById('scene-text').innerHTML =
+        `${item.name}が欲しいという。${readText}<br><br>どう見せるか。値段は標準で。　${priceHint}`;
+      showChoices([
+        { label: '産地・由来を話す',   fn: '', action: () => doSellPitch(idx, 'origin',  customer) },
+        { label: '使い勝手を説明する', fn: '', action: () => doSellPitch(idx, 'usage',   customer) },
+        { label: '黙って見せる',       fn: '', action: () => doSell(idx, sellNow, customer) },
+      ]);
+      return;
+    }
+
+    // 型D（まとめ買い）：複数品目提案が加わる
+    if (ctype === 'D') {
+      // 持っている品が2種類以上あるか確認
+      const available = state.cargo.filter(i => i.qty > 0 && !(i.origin && i.origin.includes(state.currentStage)));
+      const canBundle = available.length >= 2;
+      document.getElementById('scene-text').innerHTML =
+        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
+      const choices = [
+        { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
+        { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
+        { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
+      ];
+      if (rank === 'expert' && canBundle) {
+        choices.push({ label: 'まとめて出す（各▲5%）', fn: '', action: () => doSellBundle(idx, customer) });
+      }
+      showChoices(choices);
+      return;
+    }
+
+    // 型E（情義）：原価・無料の選択肢が加わる
+    if (ctype === 'E') {
+      const priceGen = Math.round(item.buy * 1.0); // 原価
+      document.getElementById('scene-text').innerHTML =
+        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
+      showChoices([
+        { label: `一${item.unit}${sellNow}文（標準）`,      fn: '', action: () => doSell(idx, sellNow, customer) },
+        { label: `一${item.unit}${priceLow}文（安値）`,     fn: '', action: () => doSell(idx, priceLow, customer) },
+        { label: `一${item.unit}${priceGen}文（原価で渡す）`, fn: '', action: () => doSellCharity(idx, priceGen, customer) },
+      ]);
+      return;
+    }
+
+    // フォールバック（型なし）
+    document.getElementById('scene-text').innerHTML =
+      `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
     showChoices([
       { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
       { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
@@ -2927,9 +3186,12 @@ function doSell(idx, price, customer) {
     state.cargo[idx].qty -= sold;
     state.commerceDone = true;
     updateHeader();
+    const rankBefore = getMerchantRank();
     state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を${sold}${item.unit}、${income}文で販売。` });
     recordVisit(state.currentStage, `${customerName}に${item.name}を売った。`);
     showNotify('旅の手帳に記録された');
+    const rankAfter = getMerchantRank();
+    const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
 
     if (state.currentStage === 1 && !customer) {
       // 品川女将専用テキスト
@@ -2961,20 +3223,74 @@ function doSell(idx, price, customer) {
     }
   } else {
     const rejectText = customer ? customer.reject : '「少し高いですね」と女将は言って、去った。';
-    result = rejectText;
+    const rank = getMerchantRank();
+    const ctype = customer ? customer.ctype : null;
+    const sellNow = currentSellPrice(item);
+    const probKey = price < sellNow ? 'low' : price === sellNow ? 'mid' : 'high';
+
+    // 熟練度別の内省テキスト
+    let introspection = '';
+    if (rank === 'middle') {
+      // 一人前：何が原因か薄々わかる
+      if (probKey === 'high') {
+        introspection = '——強気すぎたかもしれない。';
+      } else if (ctype === 'A') {
+        introspection = '——値切る相手だとわかっていた。';
+      } else {
+        introspection = '——今日は合わなかった。';
+      }
+    } else if (rank === 'expert') {
+      // 熟練：どこで読み違えたかまで踏み込む
+      if (probKey === 'high') {
+        if (ctype === 'A') {
+          introspection = '——値切り客に強気で出た。読み違えた。応じておくべきだった。';
+        } else if (ctype === 'B') {
+          introspection = '——急いでいる相手に強気で出た。すぐ出すべきだった。';
+        } else {
+          introspection = '——強気に出た。この相手には合わなかった。';
+        }
+      } else if (probKey === 'mid') {
+        if (ctype === 'A') {
+          introspection = '——値切るつもりの相手に標準で押した。応じるか考えるべきだった。';
+        } else {
+          introspection = '——標準で出た。今日の相手には、何か別の出し方があったかもしれない。';
+        }
+      } else {
+        introspection = '——安値で出ても去った。荷が合わなかったのか、それとも別の理由か。';
+      }
+    }
+
+    result = rejectText + (introspection
+      ? `<br><br><span style="font-size:13px;opacity:0.65;font-style:italic;">${introspection}</span>`
+      : '');
     recordVisit(state.currentStage, `${customerName}に声をかけたが、売れなかった。`);
   }
 
   fadeTransition(() => {
     if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
     document.getElementById('scene-text').innerHTML = result;
-    // 品川・女将（customer===null）・売れた場合のみ伝言イベントへ
-    if (state.currentStage === 1 && !customer && bought && !state.flags.kamiDone) {
-      showChoices([{ label: '', fn: '', action: () => showKamiMessage() }]);
-    } else if (state.innMode) {
-      showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+
+    // ランクアップした場合：売買結果→タップ→気づきテキスト→タップ→次へ
+    const proceedNext = () => {
+      if (state.currentStage === 1 && !customer && bought && !state.flags.kamiDone) {
+        showChoices([{ label: '', fn: '', action: () => showKamiMessage() }]);
+      } else if (state.innMode) {
+        showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+      } else {
+        showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+      }
+    };
+
+    if (rankUpText) {
+      // 一度タップで気づきテキストへ
+      showChoices([{ label: '', fn: '', action: () => {
+        fadeTransition(() => {
+          document.getElementById('scene-text').innerHTML = rankUpText;
+          showChoices([{ label: '', fn: '', action: proceedNext }]);
+        });
+      }}]);
     } else {
-      showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+      proceedNext();
     }
   });
 }
@@ -3001,6 +3317,211 @@ function doSellFirm(idx, price) {
     } else {
       showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
     }
+  });
+}
+
+
+// ── 型A：値切り応じ売り（希望価格・確実成約・通常と同数量） ──
+function doSellOffer(idx, price, customer) {
+  const item = state.cargo[idx];
+  const customerName = customer ? customer.name : '客';
+  const sold = Math.min(5, item.qty); // 標準と同数量・確実成約
+  const income = price * sold;
+  state.money += income;
+  state.innLog.income += income;
+  state.cargo[idx].qty -= sold;
+  state.commerceDone = true;
+  updateHeader();
+  const rankBefore = getMerchantRank();
+  state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を${sold}${item.unit}、${income}文で販売。` });
+  recordVisit(state.currentStage, `${customerName}に${item.name}を売った。`);
+  showNotify('旅の手帳に記録された');
+  const rankAfter = getMerchantRank();
+  const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
+  const result = `値を下げると、${customerName}はすぐにうなずいた。${item.name}を${sold}${item.unit}、${income}文。<br><br>単価は安いが、確実に売れた。`;
+  fadeTransition(() => {
+    if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+    document.getElementById('scene-text').innerHTML = result;
+    const proceedNext = () => {
+      if (state.innMode) showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+      else showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+    };
+    if (rankUpText) {
+      showChoices([{ label: '', fn: '', action: () => { fadeTransition(() => { document.getElementById('scene-text').innerHTML = rankUpText; showChoices([{ label: '', fn: '', action: proceedNext }]); }); }}]);
+    } else { proceedNext(); }
+  });
+}
+
+// ── 型B：即決売り（標準価格・確実成約） ──
+function doSellImmediate(idx, price, customer) {
+  const item = state.cargo[idx];
+  const customerName = customer ? customer.name : '客';
+  const sold = Math.min(3, item.qty);
+  const income = price * sold;
+  state.money += income;
+  state.innLog.income += income;
+  state.cargo[idx].qty -= sold;
+  state.commerceDone = true;
+  updateHeader();
+  const rankBefore = getMerchantRank();
+  state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を${sold}${item.unit}、${income}文で販売。` });
+  recordVisit(state.currentStage, `${customerName}に${item.name}を売った。`);
+  showNotify('旅の手帳に記録された');
+  const rankAfter = getMerchantRank();
+  const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
+  const result = `すぐに品を出した。${customerName}は迷わず受け取った。${income}文。`;
+  fadeTransition(() => {
+    if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+    document.getElementById('scene-text').innerHTML = result;
+    const proceedNext = () => {
+      if (state.innMode) showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+      else showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+    };
+    if (rankUpText) {
+      showChoices([{ label: '', fn: '', action: () => { fadeTransition(() => { document.getElementById('scene-text').innerHTML = rankUpText; showChoices([{ label: '', fn: '', action: proceedNext }]); }); }}]);
+    } else { proceedNext(); }
+  });
+}
+
+// ── 型C：ピッチ売り（産地・用途アピール） ──
+function doSellPitch(idx, pitchType, customer) {
+  const item = state.cargo[idx];
+  const customerName = customer ? customer.name : '客';
+  const sellNow = currentSellPrice(item);
+  // 産地アピール：item.originがある（産地品）なら成功率+20%
+  // 用途アピール：女性向け・嗜好品カテゴリなら成功率+20%
+  const isOriginMatch = item.origin && item.origin.length > 0;
+  const isUsageMatch  = ['女性向け','嗜好品','食料'].includes(item.cat);
+  const bonusProb = pitchType === 'origin' ? (isOriginMatch ? 0.20 : 0.0)
+                  : pitchType === 'usage'  ? (isUsageMatch  ? 0.20 : 0.0)
+                  : 0.0;
+  const baseProb = customer ? customer.prob['mid'] : 0.85;
+  const prob = Math.min(1.0, baseProb + bonusProb);
+  const bought = Math.random() < prob;
+  const pitchText = pitchType === 'origin'
+    ? `産地の話をした。${isOriginMatch ? 'この宿場の品だと話すと、客の目が変わった。' : '遠くから運んできた品だと話した。'}`
+    : `使い方を説明した。${isUsageMatch ? '客は納得した顔をした。' : '客はじっと聞いていた。'}`;
+  if (bought) {
+    const sold = Math.min(3, item.qty);
+    const income = sellNow * sold;
+    state.money += income;
+    state.innLog.income += income;
+    state.cargo[idx].qty -= sold;
+    state.commerceDone = true;
+    updateHeader();
+    const rankBefore = getMerchantRank();
+    state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を${sold}${item.unit}、${income}文で販売。` });
+    recordVisit(state.currentStage, `${customerName}に${item.name}を売った。`);
+    showNotify('旅の手帳に記録された');
+    const rankAfter = getMerchantRank();
+    const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
+    const result = `${pitchText}<br><br>${customerName}は${sold}${item.unit}買ってくれた。${income}文。`;
+    fadeTransition(() => {
+      if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+      document.getElementById('scene-text').innerHTML = result;
+      const proceedNext = () => {
+        if (state.innMode) showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+        else showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+      };
+      if (rankUpText) {
+        showChoices([{ label: '', fn: '', action: () => { fadeTransition(() => { document.getElementById('scene-text').innerHTML = rankUpText; showChoices([{ label: '', fn: '', action: proceedNext }]); }); }}]);
+      } else { proceedNext(); }
+    });
+  } else {
+    recordVisit(state.currentStage, `${customerName}に声をかけたが、売れなかった。`);
+    fadeTransition(() => {
+      if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+      document.getElementById('scene-text').innerHTML = `${pitchText}<br><br>${customer ? customer.reject : '客は去った。'}`;
+      if (state.innMode) showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+      else showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+    });
+  }
+}
+
+// ── 型D：まとめ売り（複数品目・各▲5%・2品目は確率0.75） ──
+function doSellBundle(idx, customer) {
+  const customerName = customer ? customer.name : '客';
+  const available = state.cargo.filter(i => i.qty > 0 && !(i.origin && i.origin.includes(state.currentStage)));
+  // 最大2品目をまとめる（指定品 + もう1品）
+  const mainItem = state.cargo[idx];
+  const others = available.filter(i => i !== mainItem);
+  const subItem = others[0];
+  const mainPrice = Math.round(currentSellPrice(mainItem) * 0.95);
+  const mainSold  = Math.min(3, mainItem.qty);
+  const mainIncome = mainPrice * mainSold;
+  state.money += mainIncome;
+  state.innLog.income += mainIncome;
+  state.cargo[idx].qty -= mainSold;
+  let totalIncome = mainIncome;
+  let bundleText = `${mainItem.name}${mainSold}${mainItem.unit}、${mainIncome}文`;
+  let subBought = false;
+  if (subItem && Math.random() < 0.75) {
+    // 2品目は確率0.75で成約
+    subBought = true;
+    const subIdx = state.cargo.indexOf(subItem);
+    const subPrice = Math.round(currentSellPrice(subItem) * 0.95);
+    const subSold  = Math.min(3, subItem.qty);
+    const subIncome = subPrice * subSold;
+    state.money += subIncome;
+    state.innLog.income += subIncome;
+    state.cargo[subIdx].qty -= subSold;
+    totalIncome += subIncome;
+    bundleText += `と${subItem.name}${subSold}${subItem.unit}、${subIncome}文`;
+  }
+  state.commerceDone = true;
+  updateHeader();
+  const rankBefore = getMerchantRank();
+  state.memos.shobai.push({ stage: stageName(), text: `${customerName}にまとめ売り、${totalIncome}文。` });
+  recordVisit(state.currentStage, `${customerName}にまとめ売りした。`);
+  showNotify('旅の手帳に記録された');
+  const rankAfter = getMerchantRank();
+  const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
+  const result = subBought
+    ? `まとめて出すと、${customerName}はうなずいた。<br><br>${bundleText}。合わせて${totalIncome}文。`
+    : `まとめて出したが、${customerName}は${mainItem.name}だけ手に取った。<br><br>${bundleText}。${totalIncome}文。`;
+  fadeTransition(() => {
+    if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+    document.getElementById('scene-text').innerHTML = result;
+    const proceedNext = () => {
+      if (state.innMode) showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+      else showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+    };
+    if (rankUpText) {
+      showChoices([{ label: '', fn: '', action: () => { fadeTransition(() => { document.getElementById('scene-text').innerHTML = rankUpText; showChoices([{ label: '', fn: '', action: proceedNext }]); }); }}]);
+    } else { proceedNext(); }
+  });
+}
+
+// ── 型E：情義売り（原価渡し） ──
+function doSellCharity(idx, price, customer) {
+  const item = state.cargo[idx];
+  const customerName = customer ? customer.name : '客';
+  const sold = Math.min(2, item.qty);
+  const income = price * sold;
+  state.money += income;
+  state.innLog.income += income;
+  state.cargo[idx].qty -= sold;
+  state.commerceDone = true;
+  updateHeader();
+  const rankBefore = getMerchantRank();
+  state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を原価で渡した。${income}文。` });
+  recordVisit(state.currentStage, `${customerName}に${item.name}を原価で渡した。`);
+  showNotify('旅の手帳に記録された');
+  const rankAfter = getMerchantRank();
+  const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
+  // 宿泊テキストに情義フラグを立てる
+  state.flags.charityDone = (state.flags.charityDone || 0) + 1;
+  const result = `${customerName}は両手で受け取った。静かに頭を下げて、去った。<br><br>利は出ない。でも、それでいい気がした。`;
+  fadeTransition(() => {
+    if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+    document.getElementById('scene-text').innerHTML = result;
+    const proceedNext = () => {
+      if (state.innMode) showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+      else showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+    };
+    if (rankUpText) {
+      showChoices([{ label: '', fn: '', action: () => { fadeTransition(() => { document.getElementById('scene-text').innerHTML = rankUpText; showChoices([{ label: '', fn: '', action: proceedNext }]); }); }}]);
+    } else { proceedNext(); }
   });
 }
 
@@ -5445,6 +5966,8 @@ const INTRO_TEXT =
   '出発の朝、父は帳場に座っていた。<br><br>' +
   'しばらく算盤を置いて、こちらを向いた。<br><br>' +
   '「おみつに会いに行くんだろう。ならついでに、道中で商いをしてこい。東海道を歩けば、嫌でも覚える。それが修行というものだ」<br><br>' +
+  '父は少し間を置いてから、付け加えた。<br><br>' +
+  '「客の様子をよく見ろ。顔を見れば、何が要るかわかる。値の折り合いもわかる。——それだけわかれば、商売はできる」<br><br>' +
   '父は多くを言わない人だった。それだけで、行っていいということだった。<br><br>' +
   '妹のおみつが京にいる。呉服屋に奉公に上がって三年になる。正月の藪入りに顔を見せてやりたかった。<br><br>' +
   '荷に針・糸・油紙・簪（かんざし）。手元金、八百文。<br><br>' +
