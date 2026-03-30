@@ -1570,7 +1570,8 @@ function callCustomer() {
     el.innerHTML = `<div style="padding:16px 0 8px;font-size:15px;line-height:2;color:#e8d880;">${innkeeper.intro}</div>`;
     el.classList.remove('hidden');
     hint.style.display = 'block';
-    setTimeout(() => {
+    _bodyOnclickTimer = setTimeout(() => {
+      _bodyOnclickTimer = null;
       document.body.onclick = () => {
         document.body.onclick = null;
         hint.style.display = 'none';
@@ -1711,7 +1712,8 @@ function callCustomer() {
   el.classList.remove('hidden');
   hint.style.display = 'block';
 
-  setTimeout(() => {
+  _bodyOnclickTimer = setTimeout(() => {
+    _bodyOnclickTimer = null;
     document.body.onclick = () => {
       document.body.onclick = null;
       hint.style.display = 'none';
@@ -2354,12 +2356,14 @@ function stageName() {
 // タップ進行時は divider が画面内に入るまで tap-hint を表示しない。
 // テキストが短く最初から全部見えている場合は即時表示。
 let _tapHintObserver = null; // IntersectionObserver を保持
+let _bodyOnclickTimer = null; // body.onclick セット用タイマーID
 
 function showChoices(choices) {
   const el = document.getElementById('choices');
   const hint = document.getElementById('tap-hint');
 
   // 既存のタップイベント・Observerを解除
+  if (_bodyOnclickTimer) { clearTimeout(_bodyOnclickTimer); _bodyOnclickTimer = null; }
   document.body.onclick = null;
   hint.style.display = 'none';
   if (_tapHintObserver) { _tapHintObserver.disconnect(); _tapHintObserver = null; }
@@ -2369,10 +2373,13 @@ function showChoices(choices) {
     el.classList.add('hidden');
 
     const sentinel = document.querySelector('.divider');
+    let _hintActivated = false;
     const activateHint = () => {
-      if (hint.style.display === 'block') return; // 二重起動防止
+      if (_hintActivated) return; // 二重起動防止
+      _hintActivated = true;
       hint.style.display = 'block';
-      setTimeout(() => {
+      _bodyOnclickTimer = setTimeout(() => {
+        _bodyOnclickTimer = null;
         document.body.onclick = () => {
           document.body.onclick = null;
           hint.style.display = 'none';
@@ -2990,21 +2997,9 @@ function openCargo() {
 
   // 品川のみ：女将固定イベント（初回のみ）
   if (state.currentStage === 1 && !state.flags.kamiSpoke && !state.flags.kamiDone) {
-    state.flags.kamiSpoke = true; // 一度声をかけたら再登場しない
-    const el = document.getElementById('choices');
-    const hint = document.getElementById('tap-hint');
-    document.body.onclick = null;
-    hint.style.display = 'none';
-    el.innerHTML = '<div style="padding:16px 0 8px;font-size:15px;line-height:2;color:#e8d880;">すると、茶屋の女将が足を止めた。</div>';
-    el.classList.remove('hidden');
-    hint.style.display = 'block';
-    setTimeout(() => {
-      document.body.onclick = () => {
-        document.body.onclick = null;
-        hint.style.display = 'none';
-        startSell(0, null);
-      };
-    }, 400);
+    state.flags.kamiSpoke = true;
+    document.getElementById('scene-text').innerHTML = 'すると、茶屋の女将が足を止めた。';
+    showChoices([{ label: '', fn: '', action: () => startSell(0, null) }]);
   } else {
     // 通常：ランダム客が声をかけてくる
     callCustomer();
@@ -3049,22 +3044,8 @@ function startSell(idx, customer) {
       ? `<br><br><span style="font-size:13px;opacity:0.7;font-style:italic;">——${customer.reads[readsIdx]}</span>`
       : '';
 
-    // 品川女将（tutorial）は常に通常3択
-    if (state.currentStage === 1 && !customer) {
-      document.getElementById('scene-text').innerHTML =
-        '品のいい五十がらみの女だ。<br><br>' +
-        '「ちょうど針を探していたんだよ」<br><br>' +
-        `値段をどうするか。　${priceHint}`;
-      showChoices([
-        { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
-        { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
-        { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
-      ]);
-      return;
-    }
-
-    // ── 不慣れ：全客に通常3択 ──
-    if (rank === 'novice' || !ctype) {
+    // ── 不慣れ：全客に通常3択（品川女将含む） ──
+    if (rank === 'novice' || !ctype || !customer) {
       document.getElementById('scene-text').innerHTML =
         `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
       showChoices([
@@ -3163,28 +3144,14 @@ function doSell(idx, price, customer) {
   const item = state.cargo[idx];
   const customerName = customer ? customer.name : '女将';
 
-  // 品川女将：強気価格の場合は値引き交渉へ
-  if (state.currentStage === 1 && !customer && price > item.sell) {
-    fadeTransition(() => {
-      document.getElementById('scene-text').innerHTML =
-        `「少し高いねえ」と女将は眉をひそめた。「${item.sell}文にしてもらえないかい」`;
-      showChoices([
-        { label: `${item.sell}文に下げる`, fn: '', action: () => doSell(idx, item.sell, null) },
-        { label: `${price}文のままで`,     fn: '', action: () => doSellFirm(idx, price) },
-      ]);
-    });
-    return;
-  }
-
   // 購入確率
   const sellNow = currentSellPrice(item);
   const probKey = price < sellNow ? 'low' : price === sellNow ? 'mid' : 'high';
-  // 品川女将が自分で提示した値（item.sell以下）に下げた場合は必ず買う
-  const isKamiAccepted = (state.currentStage === 1 && !customer && price <= item.sell);
-  const prob = isKamiAccepted ? 1.0 : customer ? customer.prob[probKey] : { low: 1.0, mid: 0.85, high: 0.45 }[probKey];
+  const prob = customer ? customer.prob[probKey] : { low: 1.0, mid: 0.85, high: 0.45 }[probKey];
   const bought = Math.random() < prob;
 
   let sold, result;
+  let rankUpText = null;
 
   if (bought) {
     if (customer && customer.nightOnly) {
@@ -3204,18 +3171,9 @@ function doSell(idx, price, customer) {
     recordVisit(state.currentStage, `${customerName}に${item.name}を売った。`);
     showNotify('旅の手帳に記録された');
     const rankAfter = getMerchantRank();
-    const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
+    rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
 
-    if (state.currentStage === 1 && !customer) {
-      // 品川女将専用テキスト
-      if (price < item.sell) {
-        result = `「安いねえ」と女将は笑い、${sold}本買ってくれた。${income}文。<br><br>悪くない出だしだ——そう思いながら、宗吉は少しだけ損をした気がした。`;
-      } else if (price === item.sell) {
-        result = `「ちょうどよかった」と女将は言って、${sold}本買ってくれた。${income}文。<br><br>最初の商売だった。`;
-      } else {
-        result = `「少し高いねえ」と女将は眉をひそめた。${income}文。<br><br>もう少し下げればよかったか、と宗吉は思った。`;
-      }
-    } else if (customer && customer.nightOnly) {
+    if (customer && customer.nightOnly) {
       // 宿の主人専用テキスト（丁寧語）
       if (price < item.sell) {
         result = `「それはお安うございますな」と主人は目を細め、${sold}${item.unit}買ってくれた。${income}文。`;
@@ -3226,12 +3184,14 @@ function doSell(idx, price, customer) {
       }
     } else {
       // 通常客テキスト
+      const isFirst = (state.currentStage === 1 && !customer);
+      const firstSuffix = isFirst ? '<br><br>最初の商売だった。' : '';
       if (price < item.sell) {
-        result = `「安いねえ」と${customerName}は笑い、${sold}${item.unit}買ってくれた。${income}文。`;
+        result = `「安いねえ」と${customerName}は笑い、${sold}${item.unit}買ってくれた。${income}文。${firstSuffix}`;
       } else if (price === item.sell) {
-        result = `「ちょうどよかった」と${customerName}は言って、${sold}${item.unit}買ってくれた。${income}文。`;
+        result = `「ちょうどよかった」と${customerName}は言って、${sold}${item.unit}買ってくれた。${income}文。${firstSuffix}`;
       } else {
-        result = `少し考えてから、${customerName}は財布を出した。${item.name}${sold}${item.unit}、${income}文。`;
+        result = `少し考えてから、${customerName}は財布を出した。${item.name}${sold}${item.unit}、${income}文。${firstSuffix}`;
       }
     }
   } else {
@@ -3889,7 +3849,8 @@ function boardKaisen(port) {
     // 画面タップで到着シーンへ
     const hint = document.getElementById('tap-hint');
     hint.style.display = 'block';
-    setTimeout(() => {
+    _bodyOnclickTimer = setTimeout(() => {
+      _bodyOnclickTimer = null;
       document.body.onclick = () => {
         document.body.onclick = null;
         hint.style.display = 'none';
@@ -4450,7 +4411,8 @@ function showCheapInnDinner(paid) {
     document.getElementById('scene-text').innerHTML = dinnerText;
     const hint = document.getElementById('tap-hint');
     hint.style.display = 'block';
-    setTimeout(() => {
+    _bodyOnclickTimer = setTimeout(() => {
+      _bodyOnclickTimer = null;
       document.body.onclick = () => {
         document.body.onclick = null;
         hint.style.display = 'none';
@@ -4545,7 +4507,8 @@ function showInnLedgerAndSleep(paid, isInn) {
   const hint = document.getElementById('tap-hint');
   innArea.appendChild(hint);
   hint.style.display = 'block';
-  setTimeout(() => {
+  _bodyOnclickTimer = setTimeout(() => {
+    _bodyOnclickTimer = null;
     document.body.onclick = () => {
       document.body.onclick = null;
       hint.style.display = 'none';
