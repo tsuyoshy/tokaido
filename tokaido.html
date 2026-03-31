@@ -1849,7 +1849,7 @@ const SOUVENIR_DATA = [
   { id: 'choji',   stage: 49, name: '丁子の香木',       price: 0,   cls: 'inori',   cond: { event: 'chojiKoboku' },
     memo: '亀山で薬屋の老人を助けて、土山の茶屋でもらった丁子の香木。',
     memory: '亀山で荷を運ぶのを手伝った老人が、帯に巾着を差してくれた。土山の茶屋で香木として受け取った。',
-    omitsu: '鼻を近づければ、すぐにわかるだろう。奉公先で丁子を使うと言っていた。',
+    omitsu: 'おみつが喜ぶかどうか、わからない。ただ、いい香りだと思った。',
   },
   { id: 'netsuke',    stage: 38, name: '矢作の根付け',      price: 0,  cls: 'kinen',   cond: { event: 'netsukeEvent' },
     memo: '岡崎で旅人の忘れ物を届けた礼にもらった、矢作橋を模した根付け。',
@@ -2603,6 +2603,9 @@ function triggerEnding() {
     `——三条大橋が見えた。<br><br>` +
     `橋の向こうに、おみつが立っていた。<br><br>` +
     `笑っているのか泣いているのか、よくわからない顔をして、こちらを見ていた。<br><br>` +
+    `おみつが、一歩踏み出した。<br><br>` +
+    `宗吉も、歩き出していた。<br><br>` +
+    `二人は橋の上で、走っていた。<br><br>` +
     `${souvenirScene}<br><br>` +
     `${richNotice}` +
     `「${omitsuLine}」<br><br>` +
@@ -2755,8 +2758,12 @@ function getEncounterChoice() {
 // ── 身につけ系イベント：出会い処理 ──
 function visitEncounter(enc) {
   state.flags[enc.wearFlag] = true;
-  document.getElementById('scene-text').innerHTML = enc.triggerText;
-  showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML = enc.triggerText;
+    showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+  });
 }
 
 // ── 身につけ系イベント：報酬チェック（到着時に呼ぶ）──
@@ -3892,17 +3899,6 @@ function arriveByKaisen(port) {
 
   updateHeader();
 
-  // 挿絵を更新
-  const stageKey = STAGE_FILENAMES[state.currentStage];
-  if (stageKey) {
-    const illusImg = document.getElementById('illus-img');
-    illusImg.style.opacity = '0';
-    illusImg.onload = () => { illusImg.style.opacity = '0.9'; };
-    illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
-    illusImg.src = shukubaUrl(state.currentStage, stageKey);
-  }
-  preloadNextImages(state.currentStage);
-
   document.getElementById('stage-name').textContent = STAGE_DATA[state.currentStage].name;
   document.getElementById('inn-area').classList.add('hidden');
   document.getElementById('cargo-panel').style.display = 'none';
@@ -3910,6 +3906,18 @@ function arriveByKaisen(port) {
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+
+    // 挿絵を更新
+    const stageKey = STAGE_FILENAMES[state.currentStage];
+    if (stageKey) {
+      const illusImg = document.getElementById('illus-img');
+      illusImg.style.opacity = '0';
+      illusImg.onload = () => { illusImg.style.opacity = '0.9'; };
+      illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
+      illusImg.src = shukubaUrl(state.currentStage, stageKey);
+    }
+    preloadNextImages(state.currentStage);
+
     // 船用arriveTextを使用（FERRY_COSTは適用しない）
     document.getElementById('scene-text').innerHTML = port.arriveText;
     updateHeader();
@@ -5436,7 +5444,7 @@ const STAGE_DATA = {
     name: '原', ji: '第十三次', yomi: 'はら',
     next: '吉原', nextJi: '第十四次',
     arriveText: `原宿は小さな宿場だ。<br><br>道端で絵を描いている男がいた。富士山を写生していた。「美しいと思ったことを商売にしてみな」と男は言った。`,
-    travelText: `原宿を出た。<br><br>吉原まで三里ほど。田子の浦沿いの道に入ったとき、宗吉は足を止めた。<br><br>富士山が、左にある。<br><br>江戸を出てからずっと、富士は右手に見えていた。箱根でも、三島でも、原でも——いつも右だった。それがいつの間にか、左に移っている。<br><br>同じ山なのに、向きが変わる。当たり前のことだが、なぜか妙な気がした。<br><br>旅人の一人が「吉原の左富士ですよ」と教えてくれた。「この先に行くとまた右に戻る」<br><br>宗吉はしばらく立ったまま、左手の富士を見ていた。白い頂が、冬の空にくっきりと立っていた。`,
+    travelText: `原宿を出た。<br><br>吉原まで三里ほど。田子の浦沿いの道を歩く。`,
     innTextInn: `夕餉に干し芋の煮たものが出た。素朴な味だった。田舎の宿らしい。<br><br>原の旅籠に泊まった。絵師の言葉が、なんとなく頭に残っていた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食い終えて外へ出ると、富士が朝日を浴びていた。宗吉はしばらく眺めてから、歩き出した。`,
     innTextCheap: `原の木賃宿に泊まった。<br><br>小さな宿で、夕飯が出なかった。横になっても腹が鳴って、眠れなかった。`,
@@ -5446,7 +5454,7 @@ const STAGE_DATA = {
   14: {
     name: '吉原', ji: '第十四次', yomi: 'よしわら',
     next: '蒲原', nextJi: '第十五次',
-    arriveText: `吉原に着くと、浜の方から磯の匂いがした。<br><br>道端で荷を整えていると、漁師に声をかけられた。「塩鯛、いるかい。今日は上がりがよかった」<br><br>値を聞いたら、思ったより安かった。`,
+    arriveText: `宗吉は足を止めた。<br><br>富士山が、左にある。<br><br>江戸を出てからずっと、富士は右手に見えていた。箱根でも、三島でも、原でも——いつも右だった。それがいつの間にか、左に移っている。<br><br>同じ山なのに、向きが変わる。当たり前のことだが、なぜか妙な気がした。<br><br>旅人の一人が「吉原の左富士ですよ」と教えてくれた。「この先に行くとまた右に戻る」<br><br>宗吉はしばらく立ったまま、左手の富士を見ていた。白い頂が、冬の空にくっきりと立っていた。<br><br>吉原に入ると、浜の方から磯の匂いがした。道端で荷を整えていると、漁師に声をかけられた。「塩鯛、いるかい。今日は上がりがよかった」<br><br>値を聞いたら、思ったより安かった。`,
     travelText: `吉原宿を出た。<br><br>蒲原まで三里ほど。富士川が近づいてきた。`,
     innTextInn: `夕餉に塩鯛の焼いたものが出た。産地だけあって、身が締まって旨かった。今日は悪くない商売ができた気がした。<br><br>吉原の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>旅籠の朝飯を食べながら、今日の仕入れのことを考えた。蒲原まで進もう。宗吉は立ち上がり、荷を担いだ。`,
@@ -5468,7 +5476,7 @@ const STAGE_DATA = {
   16: {
     name: '由比', ji: '第十六次', yomi: 'ゆい',
     next: '興津', nextJi: '第十七次',
-    arriveText: `薩埵峠の断崖道を越えた。<br><br>右手は切り立った絶壁、左は駿河湾の深い青。海の上に富士山が、真正面に立っていた。<br><br>宗吉は思わず足を止めた。<br><br>こんな場所があるのか——と思った。絵に描いてもだれも信じないだろう。しかし確かにここにある。<br><br>由比宿は峠を下りた先の小さな宿場だ。桜えびの産地で、浜辺に干し場の小屋が並んでいる。薄い赤色の小さな海老が、網の上に広げられていた。`,
+    arriveText: `薩埵峠の断崖道を越えた。<br><br>右手は切り立った絶壁、左は駿河湾の深い青。振り返ると、海の上に富士山が立っていた。<br><br>宗吉は思わず足を止めた。<br><br>こんな場所があるのか——と思った。絵に描いてもだれも信じないだろう。しかし確かにここにある。<br><br>由比宿は峠を下りた先の小さな宿場だ。桜えびの産地で、浜辺に干し場の小屋が並んでいる。薄い赤色の小さな海老が、網の上に広げられていた。`,
     travelText: `由比を後にした。<br><br>興津まで一里余り。薩埵峠の下り道を抜けると、街道は海沿いに続く。左に駿河湾、右に山の斜面——逃げ場のない道だが、妙に気持ちがよかった。`,
     innTextInn: `夕餉に桜えびを混ぜた汁と、干した桜えびの小鉢が出た。海老の甘みが汁に滲んでいて、疲れた体に沁みた。<br><br>「峠を越えてきた方ですか」と女将が言った。「あそこは怖いでしょう。崖の際まで道が来るから」<br><br>由比の旅籠に泊まった。今日は薩埵峠を越えた。足が重い。`,
     morningTextInn: `夜が明けた。<br><br>足の痛みは半分ほど引いていた。朝飯は飯と汁だけだったが、熱かった。宗吉は荷を担ぎ、興津へ向かった。峠越えが終わった分、足取りは少し軽い。`,
@@ -5798,7 +5806,7 @@ const STAGE_DATA = {
   46: {
     name: '亀山', ji: '第四十六次', yomi: 'かめやま',
     next: '関', nextJi: '第四十七次',
-    arriveText: `亀山は伊勢国の城下町だ。<br><br>台地の上に亀山城の天守が立っている。鈴鹿の山を背に、城が空に浮かんで見えた。<br><br>亀山ろうそくは全国に名が知れている。蝋燭問屋が並ぶ通りを歩くと、蜜蝋の甘い匂いがした。関の刃物の産地にも近い。峠越えの前に、ここで荷を整えておくのがいい。<br><br>通りを歩いていると、薬屋の前で老人が重い荷物をひきずっているのが見えた。`,
+    arriveText: `亀山は伊勢国の城下町だ。<br><br>台地の上に亀山城の天守が立っている。鈴鹿の山を背に、城が空に浮かんで見えた。<br><br>亀山ろうそくは全国に名が知れている。蝋燭問屋が並ぶ通りを歩くと、蜜蝋の甘い匂いがした。関の刃物の産地にも近い。峠越えの前に、ここで荷を整えておくのがいい。`,
     travelText: `亀山を後にした。<br><br>関まで二里ほど。東海道最後の宿場の一つだ。`,
     innTextInn: `夕餉に飯と汁、鈴鹿の山菜を煮たものが一皿出た。<br><br>燭台に亀山ろうそくが灯っていた。炎が揺れない。風がないのに、まったく揺れなかった。宗吉はしばらくその炎をぼんやり見ていた。<br><br>帳面を広げた。今日の収支を書いた。峠まであと少しだ。<br><br>亀山の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を済ませて、宗吉は外へ出た。今日は関へ向かう。古い宿場だと聞いた。`,
@@ -5842,7 +5850,7 @@ const STAGE_DATA = {
   50: {
     name: '水口', ji: '第五十次', yomi: 'みなくち',
     next: '石部', nextJi: '第五十一次',
-    arriveText: `水口宿に着いた。<br><br>水口かんぴょうの産地だ。白い干瓢が軒先に吊るされ、風にそよいでいる。近江麻の大きな問屋がある。近江商人の力を感じる町だ。<br><br>問屋の前で近江麻の反物を見た。目の詰まった上質な布だった。ここまで来て稼いだ金で、これを買えるなら——宗吉は少し立ち止まって、値札を確かめた。`,
+    arriveText: `水口宿に着いた。<br><br>水口かんぴょうの産地だ。白い干瓢が軒先に吊るされ、風にそよいでいる。近江麻の大きな問屋がある。近江商人の力を感じる町だ。<br><br>問屋の前で近江麻の反物を見た。目の詰まった上質な布だった。ここまで来て稼いだ金で、これを買えるなら——宗吉は少し立ち止まって、番頭の顔を見た。`,
     travelText: `水口を後にした。<br><br>石部まで三里ほど。野洲川沿いの道を歩く。`,
     innTextInn: `夕餉に水口かんぴょうを使った煮物が出た。甘く煮てあって、旨かった。<br><br>囲炉裏の向かいに、白髪の老人が座っていた。荷の多さからして商人だろう。老人のほうから口を開いた。<br><br>「どこから来なすった」<br><br>「江戸から」と宗吉は答えた。<br><br>老人は少し目を細めた。「若いのに一人か。何を売っておる」<br><br>宗吉が荷の中身を言うと、老人はうなずいた。「売れたか」「まあ、なんとか」「損はしておらんか」「してません」「それはいい」<br><br>それだけ言って、老人はしばらく黙った。やがて、ぽつりと言った。<br><br>「売り手よし、買い手よし、世間よし。三方よし、というのじゃ」<br><br>宗吉は聞き返す間もなかった。老人はもう目を閉じていた。<br><br>水口の旅籠に泊まった。帳面を開いて、その言葉を書き留めた。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、昨夜の老人の言葉を反芻した。三方よし。宗吉は荷を担ぎ、外へ出た。今日は石部へ向かう。`,
