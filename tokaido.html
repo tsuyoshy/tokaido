@@ -34,13 +34,18 @@
     overflow-x: hidden;
     cursor: pointer; /* iOS Safariのタップイベント発火に必要 */
   }
-
   /* ── 挿絵＋ステージバー sticky コンテナ ── */
   #stage-container {
     position: sticky;
     top: 52px;
     z-index: 90;
     background: #0a0900;
+    pointer-events: none; /* Safari: headerボタンのヒットテストを妨げない */
+  }
+
+  /* stage-container内の実際にタップが必要な子要素は個別に有効化 */
+  #stage-container * {
+    pointer-events: auto;
   }
 
   /* ── ヘッダー ── */
@@ -48,6 +53,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
+    isolation: isolate; /* Safari: stickyのスタッキングコンテキスト問題対策 */
     background: #0a0900;
     border-bottom: 1px solid rgba(200,160,40,.28);
     padding: 10px 16px;
@@ -488,11 +494,11 @@
     border-left: 1px solid rgba(200,160,40,.28);
     z-index: 600;
     transition: right 0.26s ease;
-    display: flex;
+    display: none;
     flex-direction: column;
   }
 
-  #memo-panel.open { right: 0; }
+  #memo-panel.open { display: flex; right: 0; }
 
   #memo-overlay {
     display: none;
@@ -804,6 +810,7 @@
     transform: translateX(-50%);
     background: #111008;
     border: 1px solid rgba(200,160,40,.28);
+    pointer-events: none;
     color: #e8d880;
     padding: 10px 20px;
     font-size: 12px;
@@ -1004,6 +1011,8 @@ window.addEventListener('load', () => {
 });
 
 // ── ゲーム状態 ──
+let mapImg = null;       // 地図画像（宣言をグローバルスコープ先頭に置きSafari TDZエラーを回避）
+let mapImgLoaded = false;
 const state = {
   money: 800,
   days: 20,
@@ -5079,7 +5088,14 @@ function wakeUpMorning() {
 let currentTab = 'stamp';
 
 function openMemo() {
-  document.getElementById('memo-panel').classList.add('open');
+  const panel = document.getElementById('memo-panel');
+  panel.style.display = 'flex';
+  // display変更を反映させてからtransitionを起動
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      panel.classList.add('open');
+    });
+  });
   document.getElementById('memo-overlay').classList.add('open');
   renderMemo();
   const mc = document.getElementById('memo-content');
@@ -5087,9 +5103,16 @@ function openMemo() {
 }
 
 function closeMemo() {
-  document.getElementById('memo-panel').classList.remove('open');
+  const panel = document.getElementById('memo-panel');
+  panel.classList.remove('open');
   document.getElementById('memo-overlay').classList.remove('open');
   closeStampPopup();
+  // transition完了後にdisplay:noneにする
+  panel.addEventListener('transitionend', () => {
+    if (!panel.classList.contains('open')) {
+      panel.style.display = 'none';
+    }
+  }, { once: true });
 }
 
 function switchTab(tab) {
@@ -6208,6 +6231,7 @@ function checkSaveOnStart() {
 }
 
 // ── 初期化 ──
+window.addEventListener('DOMContentLoaded', function() {
 updateHeader();
 drawRainCanvas();
 drawSnowCanvas();
@@ -6226,6 +6250,7 @@ if (!checkSaveOnStart()) {
     });
   });
 }
+}); // DOMContentLoaded
 
 // ── 地図 ──
 const MAP_IMG_URL = 'https://raw.githubusercontent.com/tsuyoshy/tokaido/main/map/tokaido_map.png';
@@ -6251,9 +6276,6 @@ const MAP_STAGES = [
 ];
 const MAP_LABEL_IDS = new Set([1,5,9,10,11,14,19,23,26,29,33,38,41,42,46,52,53]);
 const MAP_RD = [MAP_EDO, ...MAP_STAGES, MAP_KYO].flatMap(s => [s.x, s.y]);
-
-let mapImg = null;
-let mapImgLoaded = false;
 
 function loadMapImg() {
   if (mapImg) return;
