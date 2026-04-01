@@ -1037,6 +1037,10 @@ const state = {
   cargoOpenCount: 0,
   merchantMeetCount: 0,
   innEventDone: {},
+  companionActive: false,   // おすずと同行中
+  companionMet: false,      // 出会い済み（助けた）
+  companionBag: false,      // 守り袋をもらった
+  companionTalked: {},      // 旅籠での会話済みフラグ {stageNum: true}
   innTradeCount: 0,
   innMode: false,
   justArrived: false,
@@ -2651,7 +2655,8 @@ function triggerEnding() {
     `大津を過ぎると、逢坂山が見えてきた。<br><br>` +
     `山を越えれば、京だ。<br><br>` +
     `宗吉は足を速めた。荷は軽くなっていた。頭の中はもう、おみつのことしかなかった。<br><br>` +
-    `——三条大橋が見えた。<br><br>` +
+    (state.companionBag ? `懐の守り袋を、そっと確かめた。矢作橋でもらった。まだそこにあった。<br><br>` : ``) +
+    `——三条大橋が見えた。<br><br>`+
     `橋の向こうに、おみつが立っていた。<br><br>` +
     `笑っているのか泣いているのか、よくわからない顔をして、こちらを見ていた。<br><br>` +
     `おみつが、一歩踏み出した。<br><br>` +
@@ -2795,6 +2800,10 @@ function showStageChoices() {
           }}]);
         });
       }});
+    }
+    // 31次・新居：おすずとの出会い（関所で助ける選択）
+    if (state.currentStage === 31 && !state.companionMet && !state.flags.companionSkipped) {
+      choices.push({ label: '関所の前で足止めされている女に声をかける', fn: '', action: () => showCompanionMeet() });
     }
     choices.push({ label: '宿を取る', fn: '', action: () => selectInn() });
     choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
@@ -4106,11 +4115,12 @@ function goNext() {
     document.body.scrollTop = 0;
     const sd = currentStageData();
     document.getElementById('choices').classList.add('hidden');
-    document.getElementById('scene-text').innerHTML = (sd.travelText || '宗吉は足早に宿場を通り抜けた。') + getHeavyCargoNote();
+    document.getElementById('scene-text').innerHTML = (sd.travelText || '宗吉は足早に宿場を通り抜けた。') + getHeavyCargoNote() + getCompanionTravelNote(state.currentStage);
     const nextSd = STAGE_DATA[state.currentStage + 1];
     const isLastStage = state.currentStage === 53;
     const nextLabel = isLastStage ? '逢坂山を越え、京へ向かう' : (nextSd ? nextSd.name + 'へ向かう' : '先へ進む');
     // 老行商人の再会チェック（travelTextの後、移動ボタンの前に差し込む）
+    if (checkCompanionEnd(state.currentStage, () => nextStage())) return;
     if (checkPassChoice(state.currentStage, () => nextStage())) return;
     if (checkOldMerchant(state.currentStage, () => nextStage())) return;
     showChoices([{ label: nextLabel, fn: '', action: () => nextStage() }]);
@@ -4467,6 +4477,9 @@ function showInnChoices() {
   if (bantouEv && bantouEv.type === 'encounter' && !state.innEventDone[bantouEv.flag]) {
     choices.push({ label: bantouEv.choiceLabel, fn: '', action: () => triggerEncounterInnEvent(state.currentStage) });
   }
+  // おすずとの旅籠会話
+  const companionChoice = getCompanionInnChoice(state.currentStage);
+  if (companionChoice) choices.push(companionChoice);
   choices.push({ label: '今日はもう眠る', fn: '', action: () => sleepAtInn() });
   showChoices(choices);
 }
@@ -4899,6 +4912,159 @@ function getHeavyCargoNote() {
   }
   // 0.7〜0.9
   return '<br><br>荷が重かった。肩が痛む。それでも足を止めるわけにはいかない。';
+}
+
+// ── おすず：道連れシステム ──
+// 同行期間：32〜37次（travelText付加）
+// 旅籠の夜：32〜37次（showInnChoicesに選択肢追加）
+// 別れ：38次・矢作橋（goNext内から呼ぶ）
+// 助けなかった場合：35次・御油でのすれ違い（travelText付加）
+
+// 宿場ごとの道中会話テキスト（travelText末尾に付加）
+const COMPANION_TRAVEL = {
+  32: `「宗吉さん、この坂、急すぎませんか」<br><br>おすずが息を切らしながら言った。宗吉は少し振り返った。<br><br>「汐見坂です。この辺りでは一番急な坂だと聞きました」<br><br>「聞いてません、そんな話」<br><br>「知っていても急さは変わらないので」<br><br>おすずは少し黙った。それからまた喋りだした。<br><br>「宗吉さんって、こういう坂も平気なんですか」<br><br>「慣れます」<br><br>「何日で慣れましたか」<br><br>「一週間ほどで」<br><br>「一週間！」おすずは声を上げた。「わたし、あと何日歩くんでしょう」<br><br>坂の上から遠州灘が広がった。おすずが立ち止まって、海を眺めた。<br><br>「……きれい」<br><br>宗吉も立ち止まった。確かにきれいだった。`,
+
+  33: `「宗吉さん、三河って遠江と何か違いますか」<br><br>歩きながらおすずが言った。<br><br>「言葉が少し変わります」<br><br>「そうなんですか。わたし、気づかなかった」<br><br>「宿場の主人の言い方が少し違いました」<br><br>「そういうの、よく気づきますね」<br><br>宗吉は少し考えた。「商売をしていると、相手の言葉に気をつけるようになります」<br><br>「へえ」とおすずは言った。「わたしは奉公先の言葉に慣れるのに半年かかりました。尾張と江戸じゃ全然違うから」<br><br>「江戸のご出身ですか」<br><br>「神田です」<br><br>宗吉は少し驚いた。「私も神田です」<br><br>おすずが立ち止まって宗吉を見た。「どこの神田ですか」<br><br>しばらく二人で話した。同じ町ではなかったが、近くだった。`,
+
+  34: `吉田橋の上で、おすずが欄干を両手で掴んだ。<br><br>「揺れてますよね、この橋」<br><br>「揺れていません」<br><br>「揺れてます。ちょっと」<br><br>「気のせいかと思います」<br><br>おすずは欄干を離さないまま、下を覗き込んだ。「川、広い。こんなに広い川の上を歩いたことないです」<br><br>「東海道で一番長い橋だそうです」<br><br>「一番！」おすずは声を上げた。それから少し考えた顔をした。「じゃあ、この橋を渡ったって言えますね」<br><br>「言えます」<br><br>おすずは少し嬉しそうな顔をした。欄干を離して、また歩き始めた。<br><br>「宗吉さんは怖くないんですか、高いところ」<br><br>「特には」<br><br>「いいなあ」とおすずは言った。「わたし、怖いものばっかりで損した気がします」`,
+
+  35: `御油の松並木に入ると、おすずが急に黙った。<br><br>木陰が深い。昼でも薄暗く、松の枝が街道の上で交差している。<br><br>しばらく歩いてから、おすずが小声で言った。<br><br>「ここ、追い剥ぎが出るって聞きました」<br><br>「聞きましたか」<br><br>「浜松の旅籠で。昼でも出るって」<br><br>宗吉は少し周りを見た。今日は旅人が多い。「人が多い日は出ないと思います」<br><br>「思います、って」おすずは宗吉の少し後ろにくっついて歩いた。「宗吉さんがいてくれてよかった。本当に」<br><br>「…………」<br><br>「何か言ってください」<br><br>「大丈夫です」<br><br>おすずは少し安心したような顔をした。松並木を抜けると、急に空が開けた。おすずが大きく息を吐いた。<br><br>「抜けた」<br><br>「抜けました」`,
+
+  36: `「今日で、赤坂まで来たんですね」<br><br>おすずが歩きながら言った。<br><br>「新居から数えると、何日ですか」<br><br>「五日です」<br><br>「五日か」おすずは少し考えた。「早いんだか遅いんだか、わからなくなってきました」<br><br>「旅はそういうものかもしれません」<br><br>おすずはしばらく黙って歩いた。それから、ぽつりと言った。<br><br>「奉公に出てから、もう二年なんです」<br><br>宗吉は少し驚いた。「二年、ですか」<br><br>「早かったです。最初の頃は毎日帰りたかったのに、気づいたら二年経ってた」<br><br>「慣れたんですね」<br><br>「慣れたのか、あきらめたのか」おすずは少し笑った。「でも今は、悪くないと思ってます」<br><br>宗吉は何も言わなかった。おすずが前を向いて歩いていた。`,
+
+  37: `藤川の松並木を歩きながら、おすずが言った。<br><br>「明日で岡崎ですね」<br><br>「そうです」<br><br>おすずはしばらく黙った。「矢作橋まで、でしたよね」<br><br>「はい」<br><br>また少し黙った。松並木の間から朝の光が差していた。<br><br>「宗吉さんは、岡崎の先も一人で行くんですか」<br><br>「そうです。池鯉鮒、鳴海、宮と進んで、七里の渡しで桑名へ渡ります」<br><br>「そんなにまだあるんですか」おすずは少し目を丸くした。「大変だ」<br><br>「慣れました」<br><br>「また慣れた、って言う」おすずは少し笑った。それからまた静かになった。<br><br>松並木の続きを二人で歩いた。`,
+};
+
+// 宿場ごとの旅籠会話テキスト
+const COMPANION_INN = {
+  32: {
+    label: 'おすずに声をかける',
+    text: `食事が終わって、おすずが囲炉裏の前に座っていた。宗吉が近くに腰を下ろすと、すぐに話しかけてきた。<br><br>「宗吉さんって、毎晩こんな旅籠に泊まってるんですか」<br><br>「そうです」<br><br>「一人で、ずっと？」<br><br>「ずっとです」<br><br>おすずは少し考えた。「寂しくないんですか」<br><br>宗吉は少し黙った。「宿場ごとに人に会うので」<br><br>「でも、毎晩知らない人と泊まるんでしょ」<br><br>「そうですね」<br><br>おすずは囲炉裏の火を眺めた。「わたし、一人で旅するのは初めてで。昨日の関所で本当に焦りました。宗吉さんがいなかったら、どうなってたか」<br><br>「うまくいったと思います」<br><br>「そうかな」おすずはちょっと笑った。「ありがとうございます、改めて」`,
+  },
+  33: {
+    label: 'おすずに声をかける',
+    text: `夕飯を食べ終えて、おすずが干し柿の甘煮を見ていた。<br><br>「これ、何ですか」と聞いた。<br><br>「干し柿の甘煮です。三河の名物らしいです」<br><br>「甘い」おすずは一口食べた。「おいしい。こういうの、江戸では食べません」<br><br>「各地で食べ物が違います」<br><br>「旅の楽しみですね」おすずは少し機嫌がよくなった。「宗吉さんは旅先で何が一番おいしかったですか」<br><br>「……由比の桜えびの佃煮が印象に残っています」<br><br>「なんですかそれ」<br><br>「あの浜でしか揚がらない海老で、濃い味でした」<br><br>「食べたかった！」おすずが声を上げた。「なんで教えてくれなかったんですか、由比のとき」<br><br>「まだ知り合っていませんでした」<br><br>おすずは少し黙った。「そうか」と言って、また干し柿を食べた。`,
+  },
+  34: {
+    label: 'おすずに声をかける',
+    text: `吉田の旅籠で、おすずが宗吉に聞いた。<br><br>「宗吉さん、妹さんに会いに行くって言ってましたよね」<br><br>「ええ」<br><br>「何年ぶりですか」<br><br>「一年ぶりです」<br><br>おすずはしばらく考えた。「一年、か。わたし、家族には半年に一度くらい文を送るんですけど、会ってないのは二年です」<br><br>「会いたいですか」<br><br>「会いたいです」おすずははっきり言った。「でも向こうも忙しいし、わたしも簡単には帰れなくて」<br><br>「藪入りに帰れないんですか」<br><br>「主人がよくしてくれるので、帰れるんですけど」おすずは少し照れくさそうにした。「でも帰るより、こうして使いに出してもらう方が嬉しかったりして」<br><br>宗吉は少し意外に思った。「旅が好きなんですか」<br><br>「嫌いじゃないみたいです。関所以外は」<br><br>二人で少し笑った。`,
+  },
+  35: {
+    label: 'おすずに声をかける',
+    text: `食事が終わって、おすずがぽつりと言った。<br><br>「宗吉さん、今日の松並木、怖かったですけど、良かったです」<br><br>「良かった、ですか」<br><br>「なんかこう、ちゃんと旅してる感じがして」おすずは少し恥ずかしそうにした。「変ですか」<br><br>「変じゃないと思います」<br><br>「宗吉さんって、怖かったことはないんですか、旅で」<br><br>宗吉は少し考えた。「箱根の関所で少し緊張しました」<br><br>「関所、やっぱり怖いですよね」おすずがうなずいた。「わたし新居で怖い思いをしたから、もう一生関所は通りたくないです」<br><br>「京へ行く機会があったら、また通ることになります」<br><br>「じゃあ行きません」おすずは断言した。<br><br>宗吉はそれを聞いて、少し笑った。おすずは気づいて、「笑いごとじゃないです」と言った。でも自分も少し笑っていた。`,
+  },
+  36: {
+    label: 'おすずに声をかける',
+    text: `赤坂の旅籠の夜、おすずが言った。<br><br>「宗吉さん、一つ聞いてもいいですか」<br><br>「どうぞ」<br><br>「行商って、稼げますか」<br><br>宗吉は少し考えた。「うまくやれば」<br><br>「うまくやるって、どうするんですか」<br><br>「相手が何を必要としているかを見ます。それに合うものを持っていれば売れます」<br><br>おすずは少し考えた。「それって奉公と似てますね」<br><br>「そうですか」<br><br>「主人が何を欲しがっているか、先に動けると褒められます」おすずは少し得意そうな顔をした。「わたし、それが得意なんです」<br><br>宗吉はおすずを見た。確かに、関所の場面でもすぐ状況を読んでいた。<br><br>「向いているかもしれません、商売」<br><br>おすずは少し驚いた顔をした。それから嬉しそうに笑った。「そうですか」<br><br>行灯の灯りの中で、二人しばらく話した。`,
+  },
+  37: {
+    label: 'おすずに声をかける',
+    text: `藤川の旅籠の夜、おすずは少し静かだった。<br><br>「明日で終わりですね」と、宗吉が言った。<br><br>「そうですね」<br><br>しばらく間があった。<br><br>「岡崎まで来てもらって、助かりました」おすずが言った。「本当に。関所のことだけじゃなくて、道中ずっと」<br><br>「大丈夫でしたか、一緒に歩いて」<br><br>「大丈夫どころか」おすずは少し笑った。「楽しかったです。宗吉さんって、しゃべらないときはしゃべらないのに、聞くとちゃんと答えてくれるから」<br><br>宗吉は何か言おうとして、やめた。<br><br>「わたし、尾張に帰ったら、主人に旅の話をしようと思ってます。汐見坂のこと、松並木のこと、吉田橋のこと」<br><br>「話せることが増えました」<br><br>「宗吉さんのこともちゃんと話します」おすずは言った。「江戸から一人で京まで歩いていく、行商人に会ったって」<br><br>宗吉は少し黙った。それから言った。「道中、気をつけて帰ってください」<br><br>おすずはうなずいた。`,
+  },
+};
+
+// おすず：35次で通り過ぎる（助けなかった場合）
+const COMPANION_PASS_TEXT =
+  `松並木の途中で、一人の女が足を止めていた。<br><br>荷を下ろして、少し休んでいるようだった。笠の下の顔は見えなかった。<br><br>宗吉は通り過ぎた。`;
+
+// おすず：38次・矢作橋での別れ
+const COMPANION_END_TEXT =
+  `矢作橋の半ばで、おすずが立ち止まった。<br><br>「わたし、ここで」<br><br>宗吉も立ち止まった。川の上だった。川幅が広い。風が渡っていた。<br><br>「尾張の方角は、こっちです」おすずが橋の向こうを指した。「宗吉さんは、あっちですよね」<br><br>「はい」<br><br>おすずは少し間を置いた。それから、懐から小さな布の袋を取り出した。<br><br>「これ、お守りです。奉公先に来たとき、主人の奥様がくれたもので。旅の安全を祈って作ったって」<br><br>「いただけません」<br><br>「もらってください」おすずは言った。「わたし、もう帰りだから。宗吉さんはまだ先があるから」<br><br>宗吉は受け取った。小さな守り袋だった。手に収まる大きさで、少し温かかった。<br><br>「ありがとうございます」<br><br>「こちらこそ」おすずは言った。「京で妹さんに、会えるといいですね」<br><br>「ありがとうございます」<br><br>おすずは少し笑って、頭を下げた。そのまま橋の向こうへ歩いていった。<br><br>宗吉はしばらくその背中を見ていた。やがて、先へ歩き出した。守り袋が、手の中にあった。`;
+
+// travelText末尾への付加（goNext内から呼ぶ）
+function getCompanionTravelNote(stageNum) {
+  if (!state.companionActive) {
+    // 助けなかった場合：35次で一文
+    if (stageNum === 35 && state.companionMet === false && !state.flags.companionPassDone) {
+      state.flags.companionPassDone = true;
+      return '<br><br>' + COMPANION_PASS_TEXT;
+    }
+    return '';
+  }
+  const text = COMPANION_TRAVEL[stageNum];
+  return text ? '<br><br>' + text : '';
+}
+
+// 旅籠の夜の選択肢を返す（showInnChoices内から呼ぶ）
+function getCompanionInnChoice(stageNum) {
+  if (!state.companionActive) return null;
+  const ev = COMPANION_INN[stageNum];
+  if (!ev) return null;
+  if (state.companionTalked[stageNum]) return null;
+  return {
+    label: ev.label,
+    fn: '',
+    action: () => {
+      state.companionTalked[stageNum] = true;
+      fadeTransition(() => {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        document.getElementById('scene-text').innerHTML = ev.text;
+        showChoices([{ label: '戻る', fn: '', action: () => showInnChoices() }]);
+      });
+    },
+  };
+}
+
+// 38次・矢作橋での別れ（goNext内から呼ぶ。trueを返したら以降の処理をskip）
+function checkCompanionEnd(stageNum, nextCb) {
+  if (!state.companionActive) return false;
+  if (stageNum !== 37) return false; // 37次出発時（→38次）
+  state.companionActive = false;
+  state.companionBag = true;
+  state.flags.companionEndDone = true;
+  const nextSd = STAGE_DATA[38];
+  const nextLabel = nextSd ? nextSd.name + 'へ向かう' : '先へ進む';
+  showChoices([{
+    label: '矢作橋を渡る',
+    fn: '',
+    action: () => fadeTransition(() => {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      document.getElementById('scene-text').innerHTML = COMPANION_END_TEXT;
+      showNotify('守り袋を受け取った');
+      showChoices([{ label: nextLabel, fn: '', action: nextCb }]);
+    }),
+  }]);
+  return true;
+}
+
+// おすずとの出会いシーン（31次・新居）
+function showCompanionMeet() {
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML =
+      `関所を抜けてすぐのところで、若い女が番士ともめていた。<br><br>手形の書き方が悪いのか、番士が何度も書面を見直している。女は小さな荷を抱えて、困り果てた顔をしていた。<br><br>旅人たちは遠巻きに見ながら通り過ぎていく。`;
+    showChoices([
+      { label: '声をかける', fn: '', action: () => showCompanionHelp() },
+      { label: '通り過ぎる', fn: '', action: () => showCompanionPass() },
+    ]);
+  });
+}
+
+function showCompanionHelp() {
+  state.companionMet = true;
+  state.companionActive = true;
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML =
+      `宗吉は荷を下ろして、番士に声をかけた。<br><br>「この方は、私の道連れです。手形の書き方が慣れていなくて」<br><br>番士が宗吉の手形と顔を見た。<br><br>宗吉は落ち着いた顔で待った。<br><br>しばらくして、番士は手形を返した。「通れ」<br><br>女はぺこりと頭を下げて、関所の外へ出た。宗吉も続いた。<br><br>外に出ると、女がすぐに振り返った。<br><br>「ありがとうございます。本当に助かりました」<br><br>「大丈夫でしたか」<br><br>「もう少しで足止めになるところで」女は少し息をついた。「あの、宗吉さん……でしたよね、さっき番士に」<br><br>「そうです」<br><br>「わたし、おすずといいます。尾張の糸問屋の奉公人で、主人の使いの帰りなんですが……」おすずは少し迷ってから、続けた。「岡崎あたりまで、一緒に歩いていただけますか。用心棒というか、道連れというか。関所でああいうことがあったので、一人では少し心細くて」<br><br>宗吉は少し考えた。方向は同じだ。<br><br>「岡崎までなら」<br><br>おすずは少し安堵したような顔をした。「ありがとうございます。あの、おいくつですか」<br><br>「二十です」<br><br>「あ、同い年だ」おすずは少し明るくなった。「じゃあ、宗吉さんって呼んでもいいですか」<br><br>「どうぞ」<br><br>「宗吉さんは、京に何しに行くんですか」<br><br>宗吉は少し歩いてから答えた。<br><br>「妹に会いに」<br><br>おすずは「そうですか」と言った。それから「いいですね」と、小さく言った。`;
+    showChoices([{ label: '白須賀へ向かう', fn: '', action: () => showStageChoices() }]);
+  });
+}
+
+function showCompanionPass() {
+  state.companionMet = false;
+  state.flags.companionSkipped = true;
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML =
+      `宗吉は足を止めなかった。<br><br>関所の前のもめごとは、旅では珍しくない。自分の手形が通ったのだから、先へ進む。<br><br>女の困り顔が、少しだけ目に残った。`;
+    showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+  });
 }
 
 // ── 老行商人の再会データ ──
@@ -6267,6 +6433,10 @@ function startFromSave() {
   if (state.innEventDone === undefined) state.innEventDone = {};
   if (!state.memos.koudou) state.memos.koudou = [];
   if (state.merchantMeetCount === undefined) state.merchantMeetCount = 0;
+  if (state.companionActive === undefined) state.companionActive = false;
+  if (state.companionMet === undefined) state.companionMet = false;
+  if (state.companionBag === undefined) state.companionBag = false;
+  if (state.companionTalked === undefined) state.companionTalked = {};
   // 旧セーブ：salesCountがない場合はshobaiから販売分のみ推算
   if (state.salesCount === undefined) {
     state.salesCount = state.memos.shobai.filter(e => e.text && e.text.includes('販売')).length;
