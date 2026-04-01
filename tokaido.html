@@ -32,6 +32,7 @@
     margin: 0 auto;
     position: relative;
     overflow-x: hidden;
+    cursor: pointer; /* iOS Safariのタップイベント発火に必要 */
   }
 
   /* ── 挿絵＋ステージバー sticky コンテナ ── */
@@ -1566,18 +1567,18 @@ function callCustomer() {
     const itemIdx = state.cargo.indexOf(targetItem);
     const el = document.getElementById('choices');
     const hint = document.getElementById('tap-hint');
-    document.body.onclick = null;
+    _clearTapHandler();
     hint.style.display = 'none';
     el.innerHTML = `<div style="padding:16px 0 8px;font-size:15px;line-height:2;color:#e8d880;">${innkeeper.intro}</div>`;
     el.classList.remove('hidden');
     hint.style.display = 'block';
     _bodyOnclickTimer = setTimeout(() => {
       _bodyOnclickTimer = null;
-      document.body.onclick = () => {
-        document.body.onclick = null;
+      _setTapHandler(() => {
+        _clearTapHandler();
         hint.style.display = 'none';
         startSell(itemIdx, innkeeper);
-      };
+      });
     }, 400);
     return;
   }
@@ -1702,7 +1703,7 @@ function callCustomer() {
   // 客の登場テキストと品の指名をchoicesエリアに表示
   const el = document.getElementById('choices');
   const hint = document.getElementById('tap-hint');
-  document.body.onclick = null;
+  _clearTapHandler();
   hint.style.display = 'none';
 
   // introに品名が含まれる場合はrequestを省略
@@ -1716,11 +1717,11 @@ function callCustomer() {
 
   _bodyOnclickTimer = setTimeout(() => {
     _bodyOnclickTimer = null;
-    document.body.onclick = () => {
-      document.body.onclick = null;
+    _setTapHandler(() => {
+      _clearTapHandler();
       hint.style.display = 'none';
       startSell(itemIdx, customer);
-    };
+    });
   }, 400);
 }
 
@@ -2368,6 +2369,20 @@ function stageName() {
 // テキストが短く最初から全部見えている場合は即時表示。
 let _tapHintObserver = null; // IntersectionObserver を保持
 let _bodyOnclickTimer = null; // body.onclick セット用タイマーID
+let _tapHandler = null; // Safari対応: addEventListener管理
+
+// iOS SafariはbodyのonclickがTapで発火しないため、addEventListener/removeEventListenerで管理
+function _clearTapHandler() {
+  if (_tapHandler) {
+    document.body.removeEventListener('click', _tapHandler);
+    _tapHandler = null;
+  }
+}
+function _setTapHandler(fn) {
+  _clearTapHandler();
+  _tapHandler = fn;
+  document.body.addEventListener('click', _tapHandler);
+}
 
 function showChoices(choices) {
   const el = document.getElementById('choices');
@@ -2375,7 +2390,7 @@ function showChoices(choices) {
 
   // 既存のタップイベント・Observerを解除
   if (_bodyOnclickTimer) { clearTimeout(_bodyOnclickTimer); _bodyOnclickTimer = null; }
-  document.body.onclick = null;
+  _clearTapHandler();
   hint.style.display = 'none';
   if (_tapHintObserver) { _tapHintObserver.disconnect(); _tapHintObserver = null; }
 
@@ -2391,11 +2406,11 @@ function showChoices(choices) {
       hint.style.display = 'block';
       _bodyOnclickTimer = setTimeout(() => {
         _bodyOnclickTimer = null;
-        document.body.onclick = () => {
-          document.body.onclick = null;
+        _setTapHandler(() => {
+          _clearTapHandler();
           hint.style.display = 'none';
           choices[0].action();
-        };
+        });
       }, 200);
     };
 
@@ -2473,7 +2488,7 @@ function triggerEnding() {
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
   const totalSold = state.salesCount;
-  const stagesCleared = Object.keys(state.visited).length;
+  const stagesCleared = state.currentStage - 1;
   const rank = getMerchantRank();
 
   // 土産クラスを取得
@@ -2608,7 +2623,7 @@ function triggerEnding() {
   document.getElementById('inn-area').classList.add('hidden');
   document.getElementById('cargo-panel').style.display = 'none';
   document.getElementById('tap-hint').style.display = 'none';
-  document.body.onclick = null;
+  _clearTapHandler();
 
   // ── エンド評価 ──
   let endRating;
@@ -2938,6 +2953,12 @@ function buySouvenir(id) {
 function receiveSouvenir(id) {
   const sv = SOUVENIR_DATA.find(s => s.id === id);
   if (!sv) return;
+  if (state.souvenirs.includes(sv.id)) {
+    // 重複受け取り防止（旧セーブ補完漏れ等への安全弁）
+    const next = state.innMode ? () => showInnChoices() : () => showStageChoices();
+    showChoices([{ label: 'つづける', fn: '', action: next }]);
+    return;
+  }
   state.souvenirs.push(sv.id);
   const sd = currentStageData();
   state.memos.miyage.push({ stage: sd ? sd.name : '', text: `${sv.name}　${sv.memo}` });
@@ -3989,11 +4010,11 @@ function boardKaisen(port) {
     hint.style.display = 'block';
     _bodyOnclickTimer = setTimeout(() => {
       _bodyOnclickTimer = null;
-      document.body.onclick = () => {
-        document.body.onclick = null;
+      _setTapHandler(() => {
+        _clearTapHandler();
         hint.style.display = 'none';
         arriveByKaisen(port);
-      };
+      });
     }, 400);
   });
 }
@@ -4282,7 +4303,7 @@ function goToInn(selectedCost) {
     document.getElementById('choices').classList.add('hidden');
     document.getElementById('cargo-panel').style.display = 'none';
     document.getElementById('tap-hint').style.display = 'none';
-    document.body.onclick = null;
+    _clearTapHandler();
 
     recordVisit(state.currentStage, '宿を取った。');
 
@@ -4430,7 +4451,7 @@ function returnToInnChoices() {
   document.getElementById('cargo-sell-list').innerHTML = '';
   document.getElementById('choices').classList.add('hidden');
   document.getElementById('tap-hint').style.display = 'none';
-  document.body.onclick = null;
+  _clearTapHandler();
   document.getElementById('ledger-income').textContent = '＋' + state.innLog.income + '文';
   document.getElementById('ledger-buy').textContent    = '−' + state.innLog.buy + '文';
   document.getElementById('ledger-total').textContent  = state.money.toLocaleString() + '文';
@@ -4586,11 +4607,11 @@ function showCheapInnDinner(paid) {
     hint.style.display = 'block';
     _bodyOnclickTimer = setTimeout(() => {
       _bodyOnclickTimer = null;
-      document.body.onclick = () => {
-        document.body.onclick = null;
+      _setTapHandler(() => {
+        _clearTapHandler();
         hint.style.display = 'none';
         showInnLedgerAndSleep(paid, false);
-      };
+      });
     }, 400);
   });
 }
@@ -4682,11 +4703,11 @@ function showInnLedgerAndSleep(paid, isInn) {
   hint.style.display = 'block';
   _bodyOnclickTimer = setTimeout(() => {
     _bodyOnclickTimer = null;
-    document.body.onclick = () => {
-      document.body.onclick = null;
+    _setTapHandler(() => {
+      _clearTapHandler();
       hint.style.display = 'none';
       wakeUpMorning();
-    };
+    });
   }, 400);
 }
 
@@ -4932,39 +4953,9 @@ function nextStage() {
   });
 }
 
-// ── 到着テキストを表示（昼食後に呼ばれる場合もある） ──
-function showArriveText(sd) {
-  fadeTransition(() => {
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    let arrive = sd.arriveText || (sd.name + '宿に着いた。');
-    const ferryEntry = FERRY_COST[state.currentStage];
-    if (ferryEntry) {
-      const paid = Math.min(ferryEntry.cost, state.money);
-      state.money -= paid;
-      state.innLog.buy += paid;
-      updateHeader();
-    }
-    if (state.currentStage === 3) {
-      if (state.flags.kamiDone && !state.flags.shobeeDone) arrive += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
-    }
-    if (state.timeSlot === 'yoru') {
-      arrive += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
-      state.justArrived = true;
-    }
-    document.getElementById('scene-text').innerHTML = arrive;
-    updateHeader();
-
-    // 身につけ系イベント報酬チェック
-    if (checkEncounterReward()) return;
-
-    showStageChoices();
-  });
-}
-
 // ── 宿泊後の朝：同じ宿場で目覚める ──
 function wakeUpMorning() {
-  document.body.onclick = null;
+  _clearTapHandler();
   const _hint = document.getElementById('tap-hint');
   _hint.style.display = 'none';
   // tap-hint を inn-area 内に移動していた場合、inn-area 直前（元の位置）へ戻す
