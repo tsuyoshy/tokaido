@@ -4106,15 +4106,96 @@ function goNext() {
     document.body.scrollTop = 0;
     const sd = currentStageData();
     document.getElementById('choices').classList.add('hidden');
-    document.getElementById('scene-text').innerHTML = sd.travelText || '宗吉は足早に宿場を通り抜けた。';
+    document.getElementById('scene-text').innerHTML = (sd.travelText || '宗吉は足早に宿場を通り抜けた。') + getHeavyCargoNote();
     const nextSd = STAGE_DATA[state.currentStage + 1];
     const isLastStage = state.currentStage === 53;
     const nextLabel = isLastStage ? '逢坂山を越え、京へ向かう' : (nextSd ? nextSd.name + 'へ向かう' : '先へ進む');
     // 老行商人の再会チェック（travelTextの後、移動ボタンの前に差し込む）
+    if (checkPassChoice(state.currentStage, () => nextStage())) return;
     if (checkOldMerchant(state.currentStage, () => nextStage())) return;
     showChoices([{ label: nextLabel, fn: '', action: () => nextStage() }]);
     document.getElementById('choices').classList.remove('hidden');
   });
+}
+
+// ── C：峠の選択肢データ ──
+// departStage: 出発する宿場のID / flag: 一回限りフラグ
+const PASS_CHOICES = [
+  {
+    departStage: 9,  // 小田原→箱根
+    flag: 'passChoice_hakone',
+    restText: `茶屋の縁台に腰を下ろした。番茶が出てきた。熱かった。<br><br>周りを見ると、峠越えの旅人が何人か同じように休んでいる。誰も口を開かなかった。峠に向かう前の、あの静けさだ。<br><br>番茶を飲み終えた。荷を担ぎ直して、宗吉は坂道に踏み込んだ。`,
+    pushText: `茶屋の前を通り過ぎた。<br><br>体の中から熱が出てきた。荷が重かったが、足は動いていた。これが続くかどうかはわからない。ただ、動いている間は動くだけだ。`,
+    restLabel: '茶屋で一息入れる',
+    pushLabel: '休まず登る',
+  },
+  {
+    departStage: 15, // 蒲原→由比（薩埵峠）
+    flag: 'passChoice_satta',
+    restText: `崖の際の細道に差しかかったとき、前の旅人が立ち止まって下を見ていた。<br><br>宗吉も覗き込んだ。駿河湾が眼下に広がっている。波が遠い。荷を下ろして、しばらくそこに立っていた。<br><br>「怖いけど、ここだけ来ると見たくなる」と前の旅人が言った。宗吉は何も言わなかった。ただ見ていた。`,
+    pushText: `崖の際を歩いた。左が切れ落ちている。下を見ないようにして、ただ足元だけを見た。<br><br>峠を抜けると、駿河湾が広がった。遠くの波がきらきらしていた。`,
+    restLabel: '崖道で立ち止まり、海を見る',
+    pushLabel: '前だけ見て通り抜ける',
+  },
+  {
+    departStage: 48, // 坂下→鈴鹿（鈴鹿峠）
+    flag: 'passChoice_suzuka',
+    restText: `頂上近くで、宗吉は荷を下ろして座った。<br><br>来た道を振り返ると、坂下の宿場が遥か下に見えた。あそこから歩いてきた。それだけのことが、妙に実感できた。<br><br>風が吹いた。汗が冷えた。重い荷を担ぎ直して、また歩き始めた。`,
+    pushText: `頂上を越えたとき、膝に来た。一歩一歩、確かめるように下りた。<br><br>しばらくして道が緩やかになった。近江の山の色がする空が広がっていた。`,
+    restLabel: '頂上近くで荷を下ろし、来た道を振り返る',
+    pushLabel: '止まらず越える',
+  },
+];
+
+// C: goNext内で呼ぶ。峠出発宿なら選択肢を表示してtrueを返す。違えばfalseを返す。
+function checkPassChoice(stageNum, nextCb) {
+  const pass = PASS_CHOICES.find(p => p.departStage === stageNum);
+  if (!pass || state.flags[pass.flag]) return false;
+  state.flags[pass.flag] = true;
+  const nextSd = STAGE_DATA[stageNum + 1];
+  const nextLabel = nextSd ? nextSd.name + 'へ向かう' : '先へ進む';
+  showChoices([
+    {
+      label: pass.restLabel,
+      fn: '',
+      action: () => fadeTransition(() => {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        document.getElementById('scene-text').innerHTML = pass.restText;
+        showChoices([{ label: nextLabel, fn: '', action: nextCb }]);
+      }),
+    },
+    {
+      label: pass.pushLabel,
+      fn: '',
+      action: () => fadeTransition(() => {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        document.getElementById('scene-text').innerHTML = pass.pushText;
+        showChoices([{ label: nextLabel, fn: '', action: nextCb }]);
+      }),
+    },
+  ]);
+  return true;
+}
+
+// E: 足痛チェック。arriveText末尾に付加する文字列を返す。
+// 20宿以降で、arriveTextに既存の足痛描写がある宿場は除外
+const FOOT_PAIN_EXCLUDE = new Set([4, 10, 17, 23, 49]);
+function getFootPainNote(stageNum) {
+  if (stageNum < 20) return '';
+  if (FOOT_PAIN_EXCLUDE.has(stageNum)) return '';
+  const hasMed = state.cargo.some(item => item.name === '膏薬' && item.qty > 0);
+  if (hasMed) {
+    return '<br><br>足の裏が熱を持っていた。箱根で買った膏薬を塗ると、少し楽になった。';
+  }
+  // 宿場番号でバリエーションを分ける（3種）
+  const variants = [
+    '<br><br>足の裏が熱を持っている。今日は長かった。',
+    '<br><br>足が痛い。草鞋の底が薄くなってきた気がする。',
+    '<br><br>足首が重い。今日は少し休めばよかったと思った。',
+  ];
+  return variants[stageNum % 3];
 }
 
 // ── 多摩川・渡し選択 ──
@@ -4769,6 +4850,57 @@ function getFujiNote(stageNum, weather) {
   return note ? '<br><br>' + note : '';
 }
 
+// ── A：天候→身体テキスト ──
+// 到着テキスト末尾に付加。getFujiNoteの後に呼ぶ。
+// 同一テキストの連続を避けるため、stageNumをシードにして複数バリエーションから選ぶ
+// 川越え・渡し等、arriveTextにすでに水・寒さの身体描写がある宿場は除外
+const WEATHER_BODY_EXCLUDE = new Set([7, 17, 19, 23, 28]);
+function getWeatherBodyNote(weather, stageNum) {
+  if (weather === 'sunny') return '';
+  if (WEATHER_BODY_EXCLUDE.has(stageNum)) return '';
+  const idx = stageNum % 3; // 0/1/2 で文を変える
+  if (weather === 'rain') {
+    const texts = [
+      '着物の裾が泥を吸っていた。足元が重い。',
+      '雨が降り続いている。笠を押さえながら歩いた。',
+      '雨で街道が滑る。一歩一歩、踏みしめて歩いた。',
+    ];
+    return '<br><br>' + texts[idx];
+  }
+  if (weather === 'snow') {
+    const texts = [
+      '手の感覚がなくなっていた。荷が、いつもより重く感じた。',
+      '雪が舞っている。道が白い。足跡が続いて、また消えていく。',
+      '雪で視界が狭い。隣を歩く旅人の顔もよく見えなかった。',
+    ];
+    return '<br><br>' + texts[idx];
+  }
+  if (weather === 'cloudy') {
+    const texts = [
+      '曇り空が続いている。どこまで歩いても、同じ色の空だった。',
+      '今日は薄曇りだった。日差しがないぶん、足が少し軽かった。',
+      '',
+    ];
+    const t = texts[idx];
+    return t ? '<br><br>' + t : '';
+  }
+  return '';
+}
+
+// ── B：荷の重さ表現 ──
+// goNext()のtravelText末尾に付加。
+// volRatio が高いほどきつい文を返す
+function getHeavyCargoNote() {
+  const vol = currentVol();
+  const ratio = vol / state.maxVol;
+  if (ratio < 0.7) return '';
+  if (ratio >= 0.9) {
+    return '<br><br>荷が重すぎる。坂道で一度立ち止まった。通りすがりの旅人が振り返った。';
+  }
+  // 0.7〜0.9
+  return '<br><br>荷が重かった。肩が痛む。それでも足を止めるわけにはいかない。';
+}
+
 // ── 老行商人の再会データ ──
 // Stage 2で宗吉に声をかけた老行商人が、街道の途中で再び姿を見せる
 const OLD_MERCHANT_FLAGS = {
@@ -4919,6 +5051,8 @@ function nextStage() {
           if (state.flags.kamiDone && !state.flags.shobeeDone) combined += '<br><br>升屋・庄兵衛の店を探さなくてはならない。';
         }
         combined += getFujiNote(state.currentStage, state.weather);
+        combined += getWeatherBodyNote(state.weather, state.currentStage);
+        combined += getFootPainNote(state.currentStage);
         if (state.timeSlot === 'yoru') {
           combined += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
           state.justArrived = true;
@@ -4958,6 +5092,8 @@ function nextStage() {
     }
     // 富士山の視認テキスト（Stage 4〜20、原/吉原/薩埵峠は既存テキストがあるので除外）
     arrive += getFujiNote(state.currentStage, state.weather);
+    arrive += getWeatherBodyNote(state.weather, state.currentStage);
+    arrive += getFootPainNote(state.currentStage);
     // 夜に到着した場合（3宿場移動後）は日暮れを告げる
     if (state.timeSlot === 'yoru') {
       arrive += '<br><br>日が暮れた。夜道は危ない——今夜はここで泊まるしかない。';
