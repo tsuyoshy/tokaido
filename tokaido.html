@@ -1251,9 +1251,9 @@ const WEATHER_TRANSITION = {
   地域・季節バイアス（宿場番号で区切る）
   東海道の地域特性：
     1〜10  （江戸〜箱根）：冬、雪・曇り多め
-    11〜20 （三島〜掛川）：海沿い、雨多め
-    21〜35 （浜松〜宮）  ：太平洋、比較的晴れ
-    36〜53 （四日市〜京）：内陸・山越え、天候変わりやすい
+    11〜20 （三島〜丸子）：富士川・海沿い、雨多め
+    21〜35 （岡部〜御油）：遠州〜三河、太平洋側、比較的晴れ
+    36〜53 （赤坂〜大津）：内陸・山越え、天候変わりやすい
 */
 const WEATHER_REGION_BIAS = [
   { from:  1, to: 10, bias: { sunny: 0.8, cloudy: 1.2, rain: 1.0, snow: 1.5 } },
@@ -1822,8 +1822,8 @@ const SOUVENIR_DATA = [
     memory: '三嶋大社に参拝した。柏手を打って、何を祈るか迷っていたら、社務所の土鈴が目についた。',
     omitsu: '手の中に収まる小ささだ。そっと振れば音がする。おみつは喜ぶと思う。',
   },
-  { id: 'ocha',    stage: 24, name: '島田茶',           price: 25,  cls: 'jitsuyo', cond: null,
-    memo: '金谷の茶農家からもらった茶。奉公先でも飲めるだろう。',
+  { id: 'ocha',    stage: 24, name: '金谷茶',           price: 25,  cls: 'jitsuyo', cond: null,
+    memo: '金谷の茶農家から分けてもらった茶。奉公先でも飲めるだろう。',
     memory: '金谷の茶農家から分けてもらった。丘の上まで茶畑が続いていた。',
     omitsu: '飲めば旅のことを思い出してもらえるかもしれない。飲み切ったらそれまでだが、それでいい。',
   },
@@ -2571,8 +2571,8 @@ function triggerEnding() {
         souvenirScene += `おみつは受け取って、すぐに髪に当てた。<br><br>「これ……」<br><br>「土山の職人が作ったもんだ。峠越えの旅人が買っていくと言ってた」<br><br>おみつは櫛を手の中で返した。目が細かく、手触りがよかった。「使えるの」と聞いた。<br><br>「使える。だから買った」<br><br>おみつはもう一度髪に当てた。何も言わなかった。でも顔が、少し柔らかくなった。`;
         if (rank === 'expert') souvenirScene += `<br><br>何も言わなかったが、その顔が答えだった。宗吉にはわかった。`;
       } else if (chosenSv.id === 'sakuraebi') {
-        souvenirScene += `おみつは陶器の壺を受け取って、蓋を少し開けた。鼻を近づけた。<br><br>「海老の匂い」<br><br>「さくら海老の佃煮だ。由比で買った。あの浜でしか揚がらない海老だと言ってた」<br><br>おみつは蓋を開けたまま、壺を見た。「由比で買ったの？」と言った。それから一粒つまんで、口に入れた。<br><br>「……おいしい」<br><br>宗吉は何も言わなかった。おみつが味見する顔を、ただ見ていた。`;
-        if (rank === 'expert') souvenirScene += `<br><br>「由比で買ったの？」と言うとき、おみつは少し遠くを見るような顔をした。薩埵峠のそばの宿場だ——そのことを、おみつが知っているかどうか、宗吉にはわからなかった。`;
+        souvenirScene += `おみつは陶器の壺を受け取って、蓋を少し開けた。鼻を近づけた。<br><br>「海老の匂い」<br><br>「さくら海老の佃煮だ。由比の旅籠で番頭に勧められた。あの浜でしか揚がらない海老だと言ってた」<br><br>おみつは蓋を開けたまま、壺を見た。「由比の？」と言った。それから一粒つまんで、口に入れた。<br><br>「……おいしい」<br><br>宗吉は何も言わなかった。おみつが味見する顔を、ただ見ていた。`;
+        if (rank === 'expert') souvenirScene += `<br><br>「由比の？」と言うとき、おみつは少し遠くを見るような顔をした。薩埵峠のそばの宿場だ——そのことを、おみつが知っているかどうか、宗吉にはわからなかった。`;
       } else if (chosenSv.id === 'ubagamochi') {
         souvenirScene += `おみつは紙包みを受け取って、開いた。白い餅が並んでいた。<br><br>「姥が餅？」<br><br>「草津の旅籠で番頭に勧められた。東海道の旅人なら知らぬ者はないと言ってた」<br><br>おみつは一つ取って、口に入れた。少し目を細めた。「甘い」と言った。それから顔を上げた。<br><br>「草津まで行ったんだね」<br><br>「ああ、そこを越えたら京だった」<br><br>おみつはもう一度餅を見た。それだけだったが、宗吉にはそれで十分だった。`;
         if (rank === 'expert') souvenirScene += `<br><br>「草津まで行ったんだね」と言うとき、おみつの声に少し何かが混じった。労いなのか、驚きなのか、宗吉には測りかねた。どちらでもあるような気がした。`;
@@ -2926,7 +2926,17 @@ function visitShrine(sh) {
       showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
     }});
   } else {
-    choices.push({ label: 'つづける', fn: '', action: () => showStageChoices() });
+    choices.push({ label: 'つづける', fn: '', action: () => {
+      if (sh.afterText) {
+        document.getElementById('scene-text').innerHTML = sh.afterText;
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+        showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
+      } else {
+        showStageChoices();
+      }
+    }});
   }
 
   document.getElementById('scene-text').innerHTML = text;
@@ -3317,8 +3327,7 @@ function doSell(idx, price, customer) {
     const rejectText = customer ? customer.reject : '「少し高いですね」と女将は言って、去った。';
     const rank = getMerchantRank();
     const ctype = customer ? customer.ctype : null;
-    const sellNow = currentSellPrice(item);
-    const probKey = price < sellNow ? 'low' : price === sellNow ? 'mid' : 'high';
+    // sellNow / probKey は外側スコープのものを使用（同値のため再宣言不要）
 
     // 熟練度別の内省テキスト
     let introspection = '';
@@ -3399,7 +3408,7 @@ function doSellFirm(idx, price) {
   state.cargo[idx].qty -= sold;
   const rankBefore = getMerchantRank();
   state.commerceDone = true;
-    state.salesCount += 1;
+  state.salesCount += 1;
   updateHeader();
   state.memos.shobai.push({ stage: stageName(), text: `女将に${item.name}を${sold}本、${income}文で販売。` });
   recordVisit(state.currentStage, `女将に${item.name}を売った。`);
@@ -3437,7 +3446,7 @@ function doSellOffer(idx, price, customer) {
   state.cargo[idx].qty -= sold;
   const rankBefore = getMerchantRank();
   state.commerceDone = true;
-    state.salesCount += 1;
+  state.salesCount += 1;
   updateHeader();
   state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を${sold}${item.unit}、${income}文で販売。` });
   recordVisit(state.currentStage, `${customerName}に${item.name}を売った。`);
@@ -3471,7 +3480,7 @@ function doSellImmediate(idx, price, customer) {
   state.cargo[idx].qty -= sold;
   const rankBefore = getMerchantRank();
   state.commerceDone = true;
-    state.salesCount += 1;
+  state.salesCount += 1;
   updateHeader();
   state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を${sold}${item.unit}、${income}文で販売。` });
   recordVisit(state.currentStage, `${customerName}に${item.name}を売った。`);
@@ -3510,7 +3519,7 @@ function doSellPitch(idx, pitchType, customer) {
   const prob = Math.min(1.0, baseProb + bonusProb);
   const bought = Math.random() < prob;
   const pitchText = pitchType === 'origin'
-    ? `産地の話をした。${isOriginMatch ? 'この宿場の品だと話すと、客の目が変わった。' : '遠くから運んできた品だと話した。'}`
+    ? `産地の話をした。${isOriginMatch ? '産地から来た品だと話すと、客の目が変わった。' : '遠くから運んできた品だと話した。'}`
     : `使い方を説明した。${isUsageMatch ? '客は納得した顔をした。' : '客はじっと聞いていた。'}`;
   if (bought) {
     const sold = Math.min(3, item.qty);
@@ -3586,7 +3595,7 @@ function doSellBundle(idx, customer) {
   }
   const rankBefore = getMerchantRank();
   state.commerceDone = true;
-    state.salesCount += 1;
+  state.salesCount += 1;
   updateHeader();
   state.memos.shobai.push({ stage: stageName(), text: `${customerName}にまとめ売り、${totalIncome}文。` });
   recordVisit(state.currentStage, `${customerName}にまとめ売りした。`);
@@ -3622,7 +3631,7 @@ function doSellCharity(idx, price, customer) {
   state.cargo[idx].qty -= sold;
   const rankBefore = getMerchantRank();
   state.commerceDone = true;
-    state.salesCount += 1;
+  state.salesCount += 1;
   updateHeader();
   state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を原価で渡した。${income}文。` });
   recordVisit(state.currentStage, `${customerName}に${item.name}を原価で渡した。`);
@@ -4764,10 +4773,12 @@ function getFujiNote(stageNum, weather) {
 // Stage 2で宗吉に声をかけた老行商人が、街道の途中で再び姿を見せる
 const OLD_MERCHANT_FLAGS = {
   10: 'oldMerchant10',
-  13: 'oldMerchant13',
   26: 'oldMerchant26',
   49: 'oldMerchant49',
 };
+
+// stage 13の絵師は老行商人とは別人。独立フラグで管理する
+const STAGE13_ARTIST_FLAG = 'stage13Artist';
 
 function oldMerchantText(stageNum) {
   const c = state.merchantMeetCount;
@@ -4800,6 +4811,8 @@ function oldMerchantText(stageNum) {
 
 // ── 老行商人の再会を表示（goNext内から呼ぶ）──
 function checkOldMerchant(stageNum, nextAction) {
+  // stage 13の絵師は別途checkStage13Artist()で処理する
+  if (stageNum === 13) return checkStage13Artist(nextAction);
   const flag = OLD_MERCHANT_FLAGS[stageNum];
   if (!flag || state.flags[flag]) return false;
   state.flags[flag] = true;
@@ -4811,6 +4824,19 @@ function checkOldMerchant(stageNum, nextAction) {
   const isLast = stageNum === 53;
   const lbl = isLast ? '逢坂山を越え、京へ向かう' : (nextSd ? nextSd.name + 'へ向かう' : '先へ進む');
   showChoices([{ label: lbl, fn: '', action: nextAction }]);
+  document.getElementById('choices').classList.remove('hidden');
+  return true;
+}
+
+// ── 原宿の絵師（老行商人とは別人）──
+function checkStage13Artist(nextAction) {
+  if (state.flags[STAGE13_ARTIST_FLAG]) return false;
+  state.flags[STAGE13_ARTIST_FLAG] = true;
+  const text = oldMerchantText(13);
+  const sceneEl = document.getElementById('scene-text');
+  sceneEl.innerHTML += '<br><br>' + text;
+  const nextSd = STAGE_DATA[14];
+  showChoices([{ label: nextSd ? nextSd.name + 'へ向かう' : '先へ進む', fn: '', action: nextAction }]);
   document.getElementById('choices').classList.remove('hidden');
   return true;
 }
@@ -5206,215 +5232,162 @@ const STAMP_IMAGES = Object.fromEntries(
 // ── 道中印データ（53宿場分）──
 const STAMP_DATA = [
   {id:1, num:"第 一 次", name:"品川", yomi:"しながわ", sf:8,sm:17,sk:42,
-   motif:"帆掛け船",
    monologue:"品川湊に出ていた帆掛け船を描いた。江戸を出るとすぐ、海が広がった。",
    paths:`<path d="M28 110 Q40 102 52 110 Q64 118 76 110 Q88 102 100 110 Q112 118 122 110" stroke-width="3.6"/><path d="M34 108 Q52 124 80 124 Q108 124 122 108" stroke-width="5.0"/><line x1="80" y1="124" x2="80" y2="42" stroke-width="3.8"/><path d="M80 44 L114 68 L80 100 Z" stroke-width="3.6"/><path d="M80 44 L48 62 L80 88 Z" stroke-width="2.6"/>`},
   {id:2, num:"第 二 次", name:"川崎", yomi:"かわさき", sf:12,sm:23,sk:37,
-   motif:"多摩川の渡し船",
    monologue:"多摩川の渡し舟を描いた。川幅が思ったより広かった。",
    paths:`<path d="M25 104 Q40 96 55 104 Q70 112 85 104 Q100 96 115 104 Q125 110 130 104" stroke-width="3.2"/><path d="M30 110 Q40 120 55 124 Q80 124 115 120 Q125 116 130 110" stroke-width="4.2"/><rect x="35" y="100" width="95" height="20" stroke-width="3.6" fill="none"/><line x1="105" y1="100" x2="122" y2="58" stroke-width="3.8"/><circle cx="58" cy="90" r="7" stroke-width="3.4"/><line x1="58" y1="97" x2="58" y2="108" stroke-width="3.2"/>`},
   {id:3, num:"第 三 次", name:"神奈川", yomi:"かながわ", sf:5,sm:31,sk:19,
-   motif:"港の錨",
    monologue:"神奈川湊の廻船と錨を描いた。廻船問屋が並ぶ、にぎやかな港だった。",
    paths:`<circle cx="80" cy="50" r="10" stroke-width="3.8"/><line x1="80" y1="60" x2="80" y2="118" stroke-width="4.2"/><line x1="52" y1="82" x2="108" y2="82" stroke-width="3.8"/><path d="M80 118 Q56 108 52 114" stroke-width="3.6"/><path d="M80 118 Q104 108 108 114" stroke-width="3.6"/><path d="M26 130 Q44 122 62 130 Q80 138 98 130 Q116 122 134 130" stroke-width="3.2"/>`},
   {id:4, num:"第 四 次", name:"保土ヶ谷", yomi:"ほどがや", sf:22,sm:9,sk:55,
-   motif:"松並木の丘道",
    monologue:"保土ヶ谷の松並木と起伏のある道を描いた。丘を越えるたびに足が重くなった。",
    paths:`<path d="M20 116 Q46 70 80 76 Q114 82 140 116" stroke-width="4.0"/><line x1="40" y1="116" x2="40" y2="62" stroke-width="3.6"/><path d="M40 64 Q22 78 20 94" stroke-width="3.4"/><path d="M40 64 Q58 78 60 94" stroke-width="3.4"/><path d="M40 54 Q24 64 22 76" stroke-width="3.0"/><path d="M40 54 Q56 64 58 76" stroke-width="3.0"/><line x1="118" y1="116" x2="118" y2="62" stroke-width="3.6"/><path d="M118 64 Q100 78 98 94" stroke-width="3.4"/><path d="M118 64 Q136 78 138 94" stroke-width="3.4"/><path d="M64 132 L80 112 L96 132" stroke-width="3.0"/>`},
   {id:5, num:"第 五 次", name:"戸塚", yomi:"とつか", sf:33,sm:44,sk:11,
-   motif:"雨傘",
    monologue:"柏尾川沿いの宿場を描いた。雨が降り出して、渡し場で足止めを食った。",
    paths:`<path d="M80 36 Q42 40 38 80 L80 80 L122 80 Q118 40 80 36 Z" stroke-width="3.8"/><line x1="80" y1="80" x2="80" y2="116" stroke-width="3.8"/><path d="M80 116 Q88 124 96 116" stroke-width="3.4"/><line x1="48" y1="96" x2="44" y2="112" stroke-width="3.2"/><line x1="64" y1="100" x2="60" y2="116" stroke-width="3.2"/><line x1="100" y1="96" x2="96" y2="112" stroke-width="3.2"/><line x1="116" y1="100" x2="112" y2="116" stroke-width="3.2"/>`},
   {id:6, num:"第 六 次", name:"藤沢", yomi:"ふじさわ", sf:7,sm:28,sk:63,
-   motif:"遊行寺の山門",
    monologue:"遊行寺の大山門と参道の松を描いた。大きな山門だった。",
    paths:`<path d="M28 62 L80 36 L132 62 L124 62 L80 42 L36 62 Z" stroke-width="3.8"/><line x1="28" y1="62" x2="132" y2="62" stroke-width="3.4"/><line x1="44" y1="62" x2="44" y2="128" stroke-width="4.0"/><line x1="116" y1="62" x2="116" y2="128" stroke-width="4.0"/><line x1="44" y1="90" x2="116" y2="90" stroke-width="3.2"/><line x1="80" y1="90" x2="80" y2="128" stroke-width="3.2"/><line x1="28" y1="134" x2="132" y2="134" stroke-width="3.0"/>`},
   {id:7, num:"第 七 次", name:"平塚", yomi:"ひらつか", sf:41,sm:16,sk:29,
-   motif:"雨の渡し",
    monologue:"馬入川の渡し場を描いた。相模川はここで海に近い。川幅が広かった。",
    paths:`<path d="M25 104 Q44 96 63 104 Q82 112 101 104 Q120 96 135 104" stroke-width="3.4"/><path d="M22 118 Q42 110 62 118 Q82 126 102 118 Q122 110 138 118" stroke-width="3.0"/><path d="M44 106 L106 100 L118 116 L36 116 Z" stroke-width="3.8"/><line x1="36" y1="36" x2="30" y2="60" stroke-width="3.2"/><line x1="56" y1="32" x2="50" y2="56" stroke-width="3.2"/><line x1="76" y1="32" x2="70" y2="56" stroke-width="3.2"/><line x1="96" y1="36" x2="90" y2="60" stroke-width="3.2"/><line x1="116" y1="40" x2="110" y2="64" stroke-width="3.2"/>`},
   {id:8, num:"第 八 次", name:"大磯", yomi:"おおいそ", sf:19,sm:52,sk:38,
-   motif:"干した魚",
    monologue:"相模湾の浜を描いた。大磯はずっと海沿いの道だった。",
    paths:`<line x1="28" y1="56" x2="132" y2="56" stroke-width="3.6"/><line x1="36" y1="44" x2="36" y2="128" stroke-width="3.2"/><line x1="124" y1="44" x2="124" y2="128" stroke-width="3.2"/><path d="M46 56 Q54 40 62 56" stroke-width="3.4"/><line x1="54" y1="56" x2="54" y2="90" stroke-width="3.2"/><path d="M47 90 L54 106 L61 90" stroke-width="3.2"/><path d="M72 56 Q80 40 88 56" stroke-width="3.4"/><line x1="80" y1="56" x2="80" y2="90" stroke-width="3.2"/><path d="M73 90 L80 106 L87 90" stroke-width="3.2"/><path d="M98 56 Q106 40 114 56" stroke-width="3.4"/><line x1="106" y1="56" x2="106" y2="90" stroke-width="3.2"/><path d="M99 90 L106 106 L113 90" stroke-width="3.2"/>`},
   {id:9, num:"第 九 次", name:"小田原", yomi:"おだわら", sf:3,sm:47,sk:66,
-   motif:"小田原城",
    monologue:"小田原城の天守と石垣を描いた。城下の街道から見上げた姿だ。",
    paths:`<path d="M28 118 Q40 106 80 102 Q120 106 132 118 L132 136 L28 136 Z" stroke-width="3.4"/><rect x="52" y="88" width="56" height="22" stroke-width="3.4"/><rect x="58" y="56" width="44" height="30" stroke-width="3.8"/><path d="M44 56 L80 34 L116 56 Z" stroke-width="4.0"/><path d="M50 88 L80 72 L110 88" stroke-width="3.2"/>`},
   {id:10, num:"第 十 次", name:"箱根", yomi:"はこね", sf:27,sm:6,sk:48,
-   motif:"富士山と関所",
    monologue:"峠の頂から見た富士山を描いた。箱根越えをして、はじめて正面に見えた。",
    paths:`<path d="M80 26 L130 96 L30 96 Z" stroke-width="4.4"/><path d="M80 26 L92 56 L80 52 L68 56 Z" stroke-width="3.4"/><path d="M24 112 Q48 100 80 104 Q112 100 136 112" stroke-width="3.2"/><line x1="44" y1="112" x2="44" y2="134" stroke-width="4.0"/><line x1="116" y1="112" x2="116" y2="134" stroke-width="4.0"/><line x1="38" y1="120" x2="122" y2="120" stroke-width="3.4"/>`},
   {id:11, num:"第十一次", name:"三島", yomi:"みしま", sf:14,sm:35,sk:57,
-   motif:"三嶋大社の鳥居",
    monologue:"三嶋大社の大鳥居を描いた。祭礼の日だったのか、参拝の人が多かった。",
    paths:`<line x1="22" y1="48" x2="138" y2="48" stroke-width="4.8"/><line x1="28" y1="60" x2="132" y2="60" stroke-width="3.8"/><line x1="44" y1="48" x2="44" y2="122" stroke-width="4.2"/><line x1="116" y1="48" x2="116" y2="122" stroke-width="4.2"/><line x1="40" y1="78" x2="120" y2="78" stroke-width="3.2"/><line x1="26" y1="136" x2="134" y2="136" stroke-width="3.0"/>`},
   {id:12, num:"第十二次", name:"沼津", yomi:"ぬまづ", sf:36,sm:13,sk:25,
-   motif:"大きな魚",
    monologue:"富士山を背にした平野と川の流れを描いた。沼津の町は広い野の中にある。",
    paths:`<path d="M30 72 Q48 44 96 60 Q118 68 122 72 Q118 76 96 84 Q48 100 30 72 Z" stroke-width="4.2"/><circle cx="104" cy="70" r="5" stroke-width="3.4"/><path d="M58 60 Q62 54 66 60" stroke-width="2.8"/><path d="M54 72 Q58 66 62 72" stroke-width="2.8"/><path d="M24 110 Q44 102 64 110 Q84 118 104 110 Q120 104 134 110" stroke-width="3.4"/><path d="M24 124 Q44 116 64 124 Q84 132 104 124 Q120 118 134 124" stroke-width="3.0"/>`},
   {id:13, num:"第十三次", name:"原", yomi:"はら", sf:45,sm:21,sk:70,
-   motif:"富士山と矢立",
    monologue:"千本松原越しに見える富士山を描いた。松の隙間から、白い峰が見えた。",
    paths:`<path d="M80 22 L136 114 L24 114 Z" stroke-width="4.6"/><path d="M80 22 L94 62 L80 58 L66 62 Z" stroke-width="3.6"/><line x1="24" y1="118" x2="136" y2="118" stroke-width="3.4"/><rect x="26" y="94" width="14" height="20" rx="2" stroke-width="3.2"/><line x1="33" y1="94" x2="30" y2="80" stroke-width="3.2"/>`},
   {id:14, num:"第十四次", name:"吉原", yomi:"よしわら", sf:60,sm:8,sk:32,
-   motif:"塩鯛",
    monologue:"田子の浦に映る富士を描いた。水面が穏やかで、逆さ富士がきれいだった。",
    paths:`<path d="M28 82 Q44 52 88 64 Q114 72 118 82 Q114 92 88 100 Q44 112 28 82 Z" stroke-width="4.2"/><circle cx="100" cy="80" r="5" stroke-width="3.4"/><line x1="52" y1="70" x2="52" y2="76" stroke-width="3.2"/><line x1="64" y1="66" x2="64" y2="72" stroke-width="3.2"/><path d="M72 38 L96 54 L56 54 Z" stroke-width="3.2"/><path d="M26 118 Q48 110 70 118 Q92 126 114 118 Q128 113 134 118" stroke-width="3.0"/>`},
   {id:15, num:"第十五次", name:"蒲原", yomi:"かんばら", sf:2,sm:39,sk:18,
-   motif:"雪の結晶",
    monologue:"海沿いの低地に建つ蒲原宿の家並みを描いた。雪が降り始めた夜だった。",
    paths:`<line x1="80" y1="34" x2="80" y2="94" stroke-width="4.2"/><line x1="44" y1="48" x2="116" y2="80" stroke-width="4.2"/><line x1="116" y1="48" x2="44" y2="80" stroke-width="4.2"/><line x1="80" y1="38" x2="72" y2="32" stroke-width="3.2"/><line x1="80" y1="38" x2="88" y2="32" stroke-width="3.2"/><line x1="80" y1="90" x2="72" y2="96" stroke-width="3.2"/><line x1="80" y1="90" x2="88" y2="96" stroke-width="3.2"/><line x1="36" y1="112" x2="44" y2="112" stroke-width="3.2"/><line x1="40" y1="108" x2="40" y2="116" stroke-width="3.2"/><path d="M24 128 Q48 120 72 126 Q96 120 120 126" stroke-width="3.6"/>`},
   {id:16, num:"第十六次", name:"由比", yomi:"ゆい", sf:53,sm:26,sk:44,
-   motif:"薩埵峠の断崖",
    monologue:"薩埵峠の断崖と眼下の駿河湾を描いた。富士と海と街道が重なる、すごい眺めだった。",
    paths:`<path d="M24 28 L56 28 L64 60 L72 126 L24 126 Z" stroke-width="3.8"/><path d="M40 40 L48 76 L44 102" stroke-width="2.8"/><path d="M76 90 Q90 82 102 90 Q114 98 126 90" stroke-width="3.4"/><path d="M76 106 Q90 98 102 106 Q114 114 126 106" stroke-width="3.2"/><path d="M76 122 Q90 114 102 122 Q114 130 126 122" stroke-width="3.0"/>`},
   {id:17, num:"第十七次", name:"興津", yomi:"おきつ", sf:71,sm:15,sk:39,
-   motif:"清見寺の五重塔",
    monologue:"興津川の川越え場を描いた。川越え人足に肩を借りて、冷たい水の中を渡った。",
    paths:`<line x1="80" y1="20" x2="80" y2="36" stroke-width="3.6"/><circle cx="80" cy="18" r="4" stroke-width="3.2"/><path d="M56 40 L80 32 L104 40 L100 44 L60 44 Z" stroke-width="3.2"/><path d="M52 56 L80 48 L108 56 L104 60 L56 60 Z" stroke-width="3.2"/><path d="M48 72 L80 64 L112 72 L108 76 L52 76 Z" stroke-width="3.2"/><path d="M44 88 L80 80 L116 88 L112 92 L48 92 Z" stroke-width="3.2"/><path d="M40 106 L80 96 L120 106 L116 110 L44 110 Z" stroke-width="3.4"/><rect x="56" y="110" width="48" height="16" stroke-width="3.2"/>`},
   {id:18, num:"第十八次", name:"江尻", yomi:"えじり", sf:29,sm:57,sk:8,
-   motif:"清水港の廻船",
    monologue:"三保の松原と富士を描いた。松原の向こうに、富士が白く浮かんでいた。",
    paths:`<path d="M24 96 Q40 112 80 112 Q120 112 136 96" stroke-width="4.6"/><path d="M28 88 Q44 96 80 96 Q116 96 132 88" stroke-width="3.6"/><line x1="52" y1="96" x2="48" y2="30" stroke-width="3.8"/><path d="M48 32 L76 56 L52 76 Z" stroke-width="3.2"/><line x1="108" y1="96" x2="112" y2="44" stroke-width="3.8"/><path d="M112 46 L128 62 L112 80 Z" stroke-width="2.8"/><path d="M24 116 Q44 108 64 116 Q84 124 104 116 Q120 110 136 116" stroke-width="3.2"/>`},
   {id:19, num:"第十九次", name:"府中", yomi:"ふちゅう", sf:16,sm:42,sk:62,
-   motif:"駿府城",
    monologue:"安倍川の川越え場と駿府城の石垣を描いた。大きな川だった。",
    paths:`<path d="M26 114 Q40 102 80 98 Q120 102 134 114 L134 134 L26 134 Z" stroke-width="3.4"/><rect x="44" y="90" width="72" height="22" stroke-width="3.4"/><rect x="54" y="60" width="52" height="28" stroke-width="3.8"/><path d="M38 60 L80 36 L122 60 Z" stroke-width="4.2"/><path d="M48 90 L80 74 L112 90" stroke-width="3.2"/>`},
   {id:20, num:"第二十次", name:"丸子", yomi:"まりこ", sf:48,sm:11,sk:76,
-   motif:"とろろ椀",
    monologue:"宇津ノ谷峠の茶屋を描いた。峠の手前で一息ついた。",
    paths:`<path d="M36 86 Q40 116 80 120 Q120 116 124 86 Z" stroke-width="4.0"/><line x1="32" y1="86" x2="128" y2="86" stroke-width="3.8"/><path d="M48 72 Q54 60 60 72 Q66 84 72 72 Q78 60 84 72 Q90 84 96 72" stroke-width="3.4"/><path d="M52 56 Q58 44 64 56 Q70 68 76 56 Q82 44 88 56" stroke-width="3.2"/><path d="M72 32 Q80 24 88 32 Q84 40 80 38 Q76 40 72 32Z" stroke-width="3.2"/><line x1="56" y1="126" x2="104" y2="126" stroke-width="3.4"/>`},
   {id:21, num:"第廿一次", name:"岡部", yomi:"おかべ", sf:37,sm:64,sk:23,
-   motif:"宇津ノ谷峠の洞",
    monologue:"宇津ノ谷峠の切り通しと岩盤の山道を描いた。暗い山道が続いた。",
    paths:`<path d="M24 102 Q46 46 80 38 Q114 46 136 102" stroke-width="4.0"/><path d="M27 108 Q44 92 60 96 Q76 100 88 90 Q100 78 112 90 Q122 98 132 108" stroke-width="3.4"/><path d="M56 108 Q80 86 104 108" stroke-width="3.8"/><line x1="56" y1="108" x2="56" y2="130" stroke-width="3.4"/><line x1="104" y1="108" x2="104" y2="130" stroke-width="3.4"/><line x1="50" y1="130" x2="110" y2="130" stroke-width="3.2"/>`},
   {id:22, num:"第廿二次", name:"藤枝", yomi:"ふじえだ", sf:9,sm:33,sk:51,
-   motif:"染め物の反物",
    monologue:"藤枝宿の問屋場と街道沿いの町並みを描いた。賑やかな宿場だった。",
    paths:`<line x1="28" y1="48" x2="132" y2="48" stroke-width="3.4"/><line x1="36" y1="36" x2="36" y2="124" stroke-width="3.2"/><line x1="124" y1="36" x2="124" y2="124" stroke-width="3.2"/><path d="M46 48 Q50 64 46 80 Q50 96 46 112" stroke-width="3.8"/><path d="M62 48 Q66 64 62 80 Q66 96 62 112" stroke-width="3.8"/><path d="M80 48 Q84 64 80 80 Q84 96 80 112" stroke-width="3.8"/><path d="M98 48 Q102 64 98 80 Q102 96 98 112" stroke-width="3.8"/>`},
   {id:23, num:"第廿三次", name:"島田", yomi:"しまだ", sf:54,sm:18,sk:40,
-   motif:"大井川の川越え",
    monologue:"大井川の川越え場を描いた。川が増えていて、渡りに時がかかった。",
    paths:`<path d="M24 76 Q44 68 64 76 Q84 84 104 76 Q120 70 136 76" stroke-width="3.8"/><path d="M24 92 Q44 84 64 92 Q84 100 104 92 Q120 86 136 92" stroke-width="3.4"/><path d="M24 108 Q44 100 64 108 Q84 116 104 108 Q120 102 136 108" stroke-width="3.0"/><circle cx="56" cy="56" r="7" stroke-width="3.4"/><line x1="56" y1="63" x2="56" y2="84" stroke-width="3.4"/><line x1="38" y1="72" x2="76" y2="72" stroke-width="3.8"/><line x1="24" y1="36" x2="136" y2="36" stroke-width="3.2"/>`},
   {id:24, num:"第廿四次", name:"金谷", yomi:"かなや", sf:43,sm:72,sk:15,
-   motif:"茶碗と湯気",
    monologue:"茶畑と富士を描いた。金谷の茶は香りが高かった。",
    paths:`<path d="M48 92 Q52 116 80 120 Q108 116 112 92 Z" stroke-width="4.0"/><line x1="44" y1="92" x2="116" y2="92" stroke-width="3.8"/><path d="M60 76 Q56 64 60 52 Q64 40 60 28" stroke-width="3.4"/><path d="M80 72 Q76 60 80 48 Q84 36 80 24" stroke-width="3.4"/><path d="M100 76 Q96 64 100 52 Q104 40 100 28" stroke-width="3.4"/>`},
   {id:25, num:"第廿五次", name:"日坂", yomi:"にっさか", sf:67,sm:29,sk:58,
-   motif:"急坂を登る旅人",
    monologue:"中山の急峻な坂道を描いた。日坂は名前の通り、きつい坂だった。",
    paths:`<path d="M26 128 L26 96 L64 62 L64 38 L130 26" stroke-width="4.4"/><line x1="26" y1="96" x2="48" y2="96" stroke-width="3.2"/><line x1="64" y1="62" x2="86" y2="62" stroke-width="3.2"/><circle cx="36" cy="118" r="6" stroke-width="3.4"/><line x1="36" y1="124" x2="36" y2="136" stroke-width="3.4"/><path d="M28 130 L36 124 L44 130" stroke-width="3.2"/><rect x="24" y="108" width="14" height="10" stroke-width="2.8"/>`},
   {id:26, num:"第廿六次", name:"掛川", yomi:"かけがわ", sf:11,sm:46,sk:31,
-   motif:"広げた反物",
    monologue:"掛川城の天守を描いた。街道から仰ぎ見た。",
    paths:`<path d="M26 82 Q44 60 80 56 Q116 60 134 82" stroke-width="4.0"/><path d="M26 86 Q44 110 80 114 Q116 110 134 86" stroke-width="4.0"/><line x1="44" y1="60" x2="44" y2="112" stroke-width="2.8"/><line x1="62" y1="57" x2="62" y2="114" stroke-width="2.8"/><line x1="80" y1="56" x2="80" y2="115" stroke-width="2.8"/><line x1="98" y1="57" x2="98" y2="114" stroke-width="2.8"/><line x1="116" y1="60" x2="116" y2="112" stroke-width="2.8"/>`},
   {id:27, num:"第廿七次", name:"袋井", yomi:"ふくろい", sf:25,sm:58,sk:69,
-   motif:"開いた道中記",
    monologue:"袋井宿の茶屋を描いた。東海道のちょうど真ん中あたりの宿場だ。",
    paths:`<path d="M26 40 L26 122 Q48 114 80 116 Q112 114 134 122 L134 40 Q112 32 80 34 Q48 32 26 40 Z" stroke-width="3.8"/><line x1="80" y1="34" x2="80" y2="122" stroke-width="3.4"/><line x1="34" y1="54" x2="78" y2="53" stroke-width="2.8"/><line x1="34" y1="66" x2="78" y2="65" stroke-width="2.8"/><line x1="34" y1="78" x2="78" y2="77" stroke-width="2.8"/><circle cx="108" cy="88" r="7" stroke-width="3.6"/><line x1="82" y1="88" x2="134" y2="88" stroke-width="3.2"/><line x1="108" y1="62" x2="108" y2="114" stroke-width="3.2"/>`},
   {id:28, num:"第廿八次", name:"見付", yomi:"みつけ", sf:38,sm:7,sk:22,
-   motif:"夜の行灯",
    monologue:"天竜川の渡し場を描いた。川幅が広く、流れも速かった。",
    paths:`<line x1="80" y1="24" x2="80" y2="44" stroke-width="3.4"/><path d="M48 44 L112 44 L120 112 L40 112 Z" stroke-width="3.8"/><line x1="80" y1="112" x2="80" y2="130" stroke-width="3.4"/><line x1="40" y1="112" x2="28" y2="124" stroke-width="2.8"/><line x1="120" y1="112" x2="132" y2="124" stroke-width="2.8"/><path d="M64 68 Q66 56 80 64 Q94 56 96 68 Q90 80 80 76 Q70 80 64 68Z" stroke-width="3.2"/>`},
   {id:29, num:"第廿九次", name:"浜松", yomi:"はままつ", sf:49,sm:34,sk:13,
-   motif:"浜松城",
    monologue:"浜松城の天守台を描いた。家康公ゆかりの城だと聞いた。",
    paths:`<path d="M28 116 Q46 102 80 98 Q114 102 132 116 L132 136 L28 136 Z" stroke-width="3.4"/><rect x="50" y="64" width="60" height="34" stroke-width="3.8"/><path d="M38 64 L80 36 L122 64 Z" stroke-width="4.2"/><rect x="60" y="72" width="16" height="14" stroke-width="3.2"/><rect x="84" y="72" width="16" height="14" stroke-width="3.2"/>`},
   {id:30, num:"第三十次", name:"舞阪", yomi:"まいさか", sf:62,sm:23,sk:47,
-   motif:"浜名湖の夕日",
    monologue:"浜名湖のほとりを描いた。湖の水が海の色をしていた。",
    paths:`<circle cx="80" cy="68" r="22" stroke-width="4.0"/><line x1="80" y1="36" x2="80" y2="28" stroke-width="3.4"/><line x1="104" y1="44" x2="110" y2="36" stroke-width="3.4"/><line x1="112" y1="68" x2="120" y2="68" stroke-width="3.4"/><line x1="56" y1="44" x2="50" y2="36" stroke-width="3.4"/><line x1="48" y1="68" x2="40" y2="68" stroke-width="3.4"/><path d="M24 100 Q44 92 64 100 Q84 108 104 100 Q120 94 136 100" stroke-width="3.8"/><path d="M24 114 Q44 106 64 114 Q84 122 104 114 Q120 108 136 114" stroke-width="3.4"/>`},
   {id:31, num:"第三十一次", name:"新居", yomi:"あらい", sf:17,sm:53,sk:36,
-   motif:"関所の大門",
    monologue:"今切の渡し場を描いた。浜名湖の口を渡る、難所の渡しだ。",
    paths:`<path d="M22 60 L80 32 L138 60 L130 60 L80 40 L30 60 Z" stroke-width="3.8"/><line x1="22" y1="60" x2="138" y2="60" stroke-width="3.4"/><line x1="36" y1="60" x2="36" y2="126" stroke-width="5.0"/><line x1="124" y1="60" x2="124" y2="126" stroke-width="5.0"/><line x1="36" y1="90" x2="124" y2="90" stroke-width="3.4"/><line x1="80" y1="90" x2="80" y2="126" stroke-width="3.8"/><rect x="44" y="66" width="20" height="16" stroke-width="3.2"/><rect x="96" y="66" width="20" height="16" stroke-width="3.2"/>`},
   {id:32, num:"第三十二次", name:"白須賀", yomi:"しらすか", sf:74,sm:41,sk:28,
-   motif:"汐見坂の眺め",
    monologue:"汐見坂の急坂と眼下の遠州灘を描いた。坂の上から海が広く見えた。",
    paths:`<path d="M24 128 Q52 102 82 86 Q108 72 126 60" stroke-width="4.4"/><path d="M82 88 Q96 100 112 98 Q124 94 130 100" stroke-width="3.2"/><path d="M76 102 Q92 116 112 114 Q128 110 132 116" stroke-width="3.2"/><path d="M78 114 Q90 106 100 114 Q112 122 124 114" stroke-width="3.4"/><circle cx="46" cy="106" r="6" stroke-width="3.4"/><line x1="46" y1="112" x2="46" y2="126" stroke-width="3.4"/>`},
   {id:33, num:"第三十三次", name:"二川", yomi:"ふたがわ", sf:30,sm:66,sk:52,
-   motif:"国境の道標",
    monologue:"二川宿の松並木を描いた。三河への入り口だ。",
    paths:`<rect x="64" y="30" width="26" height="76" stroke-width="4.0"/><line x1="90" y1="56" x2="116" y2="56" stroke-width="3.8"/><path d="M108 48 L116 56 L108 64" stroke-width="3.4"/><line x1="64" y1="72" x2="38" y2="72" stroke-width="3.8"/><path d="M46 64 L38 72 L46 80" stroke-width="3.4"/><rect x="54" y="106" width="44" height="14" stroke-width="3.4"/><rect x="46" y="120" width="60" height="14" stroke-width="3.2"/>`},
   {id:34, num:"第三十四次", name:"吉田", yomi:"よしだ", sf:56,sm:12,sk:67,
-   motif:"矢作川の橋",
    monologue:"豊川に架かる吉田橋と吉田城の天守を描いた。長大な橋が川を渡っていた。",
    paths:`<path d="M24 96 Q62 88 100 96" stroke-width="4.6"/><line x1="36" y1="84" x2="36" y2="108" stroke-width="3.8"/><line x1="72" y1="80" x2="72" y2="104" stroke-width="3.8"/><line x1="108" y1="84" x2="108" y2="108" stroke-width="3.8"/><path d="M24 110 Q44 102 64 110 Q84 118 104 110 Q118 105 132 110" stroke-width="3.2"/><path d="M24 122 Q44 114 64 122 Q84 130 104 122 Q118 117 132 122" stroke-width="2.8"/>`},
   {id:35, num:"第三十五次", name:"御油", yomi:"ごゆ", sf:4,sm:48,sk:20,
-   motif:"松並木",
    monologue:"御油の松並木を描いた。街道の両側に松が高く並んでいた。",
    paths:`<line x1="36" y1="128" x2="36" y2="58" stroke-width="4.2"/><path d="M36 60 Q18 76 16 92" stroke-width="3.6"/><path d="M36 60 Q54 76 56 92" stroke-width="3.6"/><path d="M36 48 Q20 60 18 72" stroke-width="3.2"/><path d="M36 48 Q52 60 54 72" stroke-width="3.2"/><line x1="116" y1="128" x2="116" y2="58" stroke-width="4.2"/><path d="M116 60 Q98 76 96 92" stroke-width="3.6"/><path d="M116 60 Q134 76 136 92" stroke-width="3.6"/><path d="M116 48 Q100 60 98 72" stroke-width="3.2"/><path d="M116 48 Q132 60 134 72" stroke-width="3.2"/><line x1="44" y1="128" x2="108" y2="128" stroke-width="3.2"/>`},
   {id:36, num:"第三十六次", name:"赤坂", yomi:"あかさか", sf:21,sm:59,sk:43,
-   motif:"薬の包み",
    monologue:"赤坂宿の街道沿いの旅籠を描いた。大橋屋という大きな旅籠だった。",
    paths:`<path d="M40 56 L120 56 L120 104 L80 126 L40 104 Z" stroke-width="4.0"/><line x1="40" y1="56" x2="80" y2="78" stroke-width="3.2"/><line x1="120" y1="56" x2="80" y2="78" stroke-width="3.2"/><line x1="80" y1="78" x2="80" y2="126" stroke-width="3.2"/><line x1="60" y1="90" x2="100" y2="90" stroke-width="3.8"/><line x1="80" y1="74" x2="80" y2="106" stroke-width="3.8"/>`},
   {id:37, num:"第三十七次", name:"藤川", yomi:"ふじかわ", sf:68,sm:27,sk:55,
-   motif:"三河の松並木",
    monologue:"藤川宿の松並木を描いた。三河の松並木は、よく手入れされていた。",
    paths:`<line x1="24" y1="100" x2="136" y2="100" stroke-width="3.2"/><line x1="80" y1="100" x2="80" y2="30" stroke-width="4.6"/><path d="M80 32 Q50 56 44 76" stroke-width="3.8"/><path d="M80 32 Q110 56 116 76" stroke-width="3.8"/><line x1="36" y1="100" x2="36" y2="56" stroke-width="3.6"/><path d="M36 58 Q24 72 22 84" stroke-width="2.8"/><path d="M36 58 Q48 72 50 84" stroke-width="2.8"/><line x1="122" y1="100" x2="122" y2="56" stroke-width="3.6"/><path d="M122 58 Q110 72 108 84" stroke-width="2.8"/>`},
   {id:38, num:"第三十八次", name:"岡崎", yomi:"おかざき", sf:35,sm:61,sk:14,
-   motif:"矢作川の橋桁",
    monologue:"矢作川に架かる矢作橋の長い橋桁と岡崎城を描いた。東海道で一番長い橋だと聞いた。",
    paths:`<line x1="22" y1="80" x2="138" y2="80" stroke-width="4.8"/><line x1="22" y1="88" x2="138" y2="88" stroke-width="3.2"/><line x1="40" y1="80" x2="40" y2="116" stroke-width="3.8"/><line x1="62" y1="80" x2="62" y2="116" stroke-width="3.8"/><line x1="84" y1="80" x2="84" y2="116" stroke-width="3.8"/><line x1="106" y1="80" x2="106" y2="116" stroke-width="3.8"/><path d="M24 100 Q44 92 64 100 Q84 108 104 100 Q120 94 136 100" stroke-width="3.2"/>`},
   {id:39, num:"第三十九次", name:"池鯉鮒", yomi:"ちりゅう", sf:46,sm:19,sk:73,
-   motif:"馬市の馬",
    monologue:"池鯉鮒の馬市の広場を描いた。街道沿いに馬が何頭も並んでいた。",
    paths:`<path d="M38 76 Q46 58 76 56 Q106 56 116 66 Q120 74 112 88 Q100 96 64 92 Q36 88 38 76 Z" stroke-width="4.2"/><path d="M116 66 Q124 56 134 48 Q130 40 122 44 Q114 48 114 60" stroke-width="3.8"/><path d="M122 44 Q116 36 108 40 Q104 48 108 52" stroke-width="3.2"/><line x1="50" y1="92" x2="46" y2="118" stroke-width="3.8"/><line x1="64" y1="95" x2="60" y2="120" stroke-width="3.8"/><line x1="88" y1="95" x2="92" y2="120" stroke-width="3.8"/><line x1="102" y1="92" x2="106" y2="118" stroke-width="3.8"/>`},
   {id:40, num:"第四十次", name:"鳴海", yomi:"なるみ", sf:72,sm:37,sk:26,
-   motif:"有松絞りの模様",
    monologue:"鳴海の有松村の絞り染めを描いた。丸い絞り模様が広がっていた。",
    paths:`<path d="M28 40 L132 40 L132 120 L28 120 Z" stroke-width="3.8"/><circle cx="52" cy="64" r="13" stroke-width="3.4"/><circle cx="96" cy="64" r="13" stroke-width="3.4"/><circle cx="74" cy="94" r="13" stroke-width="3.4"/><circle cx="52" cy="64" r="4.5" stroke-width="3.0"/><circle cx="96" cy="64" r="4.5" stroke-width="3.0"/><circle cx="74" cy="94" r="4.5" stroke-width="3.0"/>`},
   {id:41, num:"第四十一次", name:"宮", yomi:"みや", sf:13,sm:50,sk:34,
-   motif:"熱田神宮の鳥居",
    monologue:"熱田神宮の大鳥居を描いた。鳥居の向こうに社叢が続いていた。",
    paths:`<line x1="22" y1="48" x2="138" y2="48" stroke-width="4.8"/><line x1="28" y1="60" x2="132" y2="60" stroke-width="3.6"/><line x1="40" y1="48" x2="40" y2="108" stroke-width="4.2"/><line x1="120" y1="48" x2="120" y2="108" stroke-width="4.2"/><line x1="36" y1="80" x2="124" y2="80" stroke-width="3.0"/><path d="M24 112 Q44 104 64 112 Q84 120 104 112 Q120 106 136 112" stroke-width="3.8"/><path d="M24 124 Q44 116 64 124 Q84 132 104 124 Q120 118 136 124" stroke-width="3.2"/>`},
   {id:42, num:"第四十二次", name:"桑名", yomi:"くわな", sf:58,sm:24,sk:61,
-   motif:"焼き蛤",
    monologue:"桑名湊の渡しを描いた。七里の渡しは、東海道で一番長い船旅だ。",
    paths:`<path d="M40 82 Q80 40 120 82" stroke-width="4.6"/><path d="M40 82 Q52 106 80 110 Q108 106 120 82" stroke-width="4.2"/><path d="M56 68 Q80 56 104 68" stroke-width="2.8"/><path d="M60 40 Q56 28 60 16" stroke-width="3.2"/><path d="M80 36 Q76 24 80 12" stroke-width="3.2"/><path d="M100 40 Q96 28 100 16" stroke-width="3.2"/><path d="M26 122 Q44 114 62 122 Q80 130 98 122 Q116 114 134 122" stroke-width="3.2"/>`},
   {id:43, num:"第四十三次", name:"四日市", yomi:"よっかいち", sf:32,sm:68,sk:46,
-   motif:"天秤棒",
    monologue:"十里の渡しを描いた。三滝川の渡し場で伊勢街道の分岐があった。",
    paths:`<line x1="26" y1="66" x2="134" y2="66" stroke-width="4.4"/><line x1="80" y1="38" x2="80" y2="66" stroke-width="3.8"/><circle cx="80" cy="36" r="6" stroke-width="3.4"/><line x1="34" y1="66" x2="34" y2="88" stroke-width="3.2"/><path d="M22 88 Q34 96 46 88" stroke-width="3.8"/><line x1="126" y1="66" x2="126" y2="88" stroke-width="3.2"/><path d="M114 88 Q126 96 138 88" stroke-width="3.8"/><rect x="26" y="96" width="20" height="20" stroke-width="3.4"/><rect x="114" y="96" width="20" height="20" stroke-width="3.4"/>`},
   {id:44, num:"第四十四次", name:"石薬師", yomi:"いしやくし", sf:24,sm:43,sk:77,
-   motif:"石薬師如来",
    monologue:"石薬師宿で雲助たちを描いた。荷を担ぐ雲助が道端に群れていた。",
    paths:`<circle cx="80" cy="56" r="34" stroke-width="3.4"/><circle cx="80" cy="48" r="13" stroke-width="4.0"/><path d="M66 36 Q80 28 94 36" stroke-width="3.4"/><path d="M60 62 Q56 84 52 104" stroke-width="3.8"/><path d="M100 62 Q104 84 108 104" stroke-width="3.8"/><line x1="52" y1="104" x2="108" y2="104" stroke-width="3.4"/><path d="M48 110 Q80 104 112 110" stroke-width="3.8"/>`},
   {id:45, num:"第四十五次", name:"庄野", yomi:"しょうの", sf:50,sm:16,sk:39,
-   motif:"白雨の雲",
    monologue:"庄野宿周辺の丘陵を描いた。鈴鹿の山が遠くに見えた。",
    paths:`<path d="M26 54 Q36 36 50 40 Q56 28 80 32 Q104 28 108 40 Q122 36 132 54 Q138 66 124 68 Q120 76 108 72 Q104 84 80 80 Q56 84 52 72 Q40 76 34 68 Q22 62 26 54 Z" stroke-width="3.8"/><line x1="32" y1="90" x2="26" y2="114" stroke-width="3.6"/><line x1="48" y1="86" x2="42" y2="110" stroke-width="3.6"/><line x1="64" y1="84" x2="58" y2="108" stroke-width="3.6"/><line x1="80" y1="84" x2="74" y2="108" stroke-width="3.6"/><line x1="96" y1="86" x2="90" y2="110" stroke-width="3.6"/><line x1="112" y1="90" x2="106" y2="114" stroke-width="3.6"/>`},
   {id:46, num:"第四十六次", name:"亀山", yomi:"かめやま", sf:39,sm:55,sk:18,
-   motif:"霧の中の城",
    monologue:"亀山城を描いた。台地の上に城が立っていた。",
    paths:`<path d="M24 72 Q40 64 58 68 Q76 72 94 68 Q112 64 136 72" stroke-width="4.0"/><path d="M24 86 Q40 78 58 82 Q76 86 94 82 Q112 78 136 86" stroke-width="3.6"/><path d="M24 100 Q40 92 58 96 Q76 100 94 96 Q112 92 136 100" stroke-width="3.0"/><rect x="54" y="34" width="52" height="32" stroke-width="3.4"/><path d="M42 34 L80 16 L118 34 Z" stroke-width="3.8"/>`},
   {id:47, num:"第四十七次", name:"関", yomi:"せき", sf:15,sm:44,sk:60,
-   motif:"店じまいの暖簾",
    monologue:"関宿の商家が連なる町並みを描いた。街道の家並みが宿場の面影を残していた。",
    paths:`<line x1="24" y1="48" x2="136" y2="48" stroke-width="4.0"/><path d="M22 40 L80 28 L138 40 L138 48 L22 48 Z" stroke-width="3.4"/><line x1="42" y1="48" x2="42" y2="100" stroke-width="4.6"/><line x1="80" y1="48" x2="80" y2="100" stroke-width="4.6"/><line x1="118" y1="48" x2="118" y2="100" stroke-width="4.6"/><path d="M26 100 Q34 110 42 100" stroke-width="3.4"/><path d="M58 100 Q66 110 80 100" stroke-width="3.4"/><path d="M96 100 Q104 110 118 100" stroke-width="3.4"/><line x1="26" y1="112" x2="134" y2="112" stroke-width="3.8"/><rect x="66" y="104" width="20" height="14" stroke-width="3.2"/>`},
   {id:48, num:"第四十八次", name:"坂下", yomi:"さかした", sf:77,sm:32,sk:50,
-   motif:"鈴鹿峠道",
    monologue:"鈴鹿峠の坂下側の谷間と山道を描いた。峠の麓から見た筆捨山が奇妙な形だった。",
    paths:`<path d="M24 122 L24 92 L58 40 L58 28 L136 26" stroke-width="4.4"/><line x1="24" y1="92" x2="46" y2="92" stroke-width="3.2"/><line x1="58" y1="40" x2="80" y2="40" stroke-width="3.2"/><circle cx="34" cy="114" r="6" stroke-width="3.6"/><line x1="34" y1="120" x2="34" y2="132" stroke-width="3.6"/><path d="M82 86 L106 42 L130 86" stroke-width="3.2"/>`},
   {id:49, num:"第四十九次", name:"土山", yomi:"つちやま", sf:42,sm:71,sk:27,
-   motif:"峠を越えた先",
    monologue:"土山の名物・お六櫛を描いた。峠越えの旅人がよく買っていくと聞いた。",
    paths:`<path d="M24 100 Q46 40 80 32 Q114 40 136 100" stroke-width="3.8"/><path d="M24 108 Q80 96 136 108" stroke-width="4.2"/><path d="M24 120 Q80 110 136 120" stroke-width="3.6"/><rect x="64" y="92" width="22" height="32" stroke-width="3.8"/><path d="M88 56 Q104 52 116 60 Q112 68 100 64" stroke-width="3.4"/><path d="M90 68 Q108 64 120 72 Q116 80 104 76" stroke-width="3.2"/>`},
   {id:50, num:"第五十次", name:"水口", yomi:"みなくち", sf:63,sm:14,sk:35,
-   motif:"三方よし",
    monologue:"水口の名物・かんぴょうを描いた。白い干瓢が風にそよいでいた。",
    paths:`<path d="M80 26 L136 114 L24 114 Z" stroke-width="4.6"/><circle cx="80" cy="26" r="8" stroke-width="3.8"/><circle cx="136" cy="114" r="8" stroke-width="3.8"/><circle cx="24" cy="114" r="8" stroke-width="3.8"/><circle cx="80" cy="84" r="7" stroke-width="3.6"/><line x1="80" y1="34" x2="80" y2="77" stroke-width="2.6"/>`},
   {id:51, num:"第五十一次", name:"石部", yomi:"いしべ", sf:20,sm:49,sk:66,
-   motif:"急ぐ旅人",
    monologue:"石部宿の田園の中の街道を描いた。野洲川沿いの平野と遠くの比叡の山並みが見えた。",
    paths:`<path d="M52 128 L80 26 L108 128" stroke-width="2.8"/><path d="M44 40 Q80 22 116 40" stroke-width="3.8"/><circle cx="80" cy="100" r="7" stroke-width="3.8"/><line x1="80" y1="107" x2="76" y2="128" stroke-width="3.8"/><line x1="80" y1="107" x2="84" y2="120" stroke-width="3.4"/><line x1="88" y1="96" x2="90" y2="128" stroke-width="3.4"/><circle cx="112" cy="46" r="12" stroke-width="3.4"/>`},
   {id:52, num:"第五十二次", name:"草津", yomi:"くさつ", sf:28,sm:75,sk:40,
-   motif:"追分の分岐",
    monologue:"草津の追分を描いた。東海道と中山道が分かれる道標が立っていた。",
    paths:`<line x1="80" y1="128" x2="80" y2="72" stroke-width="4.4"/><line x1="80" y1="72" x2="28" y2="32" stroke-width="4.2"/><line x1="80" y1="72" x2="132" y2="32" stroke-width="4.2"/><rect x="68" y="64" width="24" height="36" stroke-width="3.8"/><circle cx="80" cy="106" r="5" stroke-width="3.4"/><circle cx="56" cy="110" r="4" stroke-width="2.8"/><circle cx="104" cy="106" r="4" stroke-width="2.8"/><circle cx="64" cy="118" r="3.6" stroke-width="2.8"/><circle cx="96" cy="118" r="3.6" stroke-width="2.8"/>`},
   {id:53, num:"第五十三次", name:"大津", yomi:"おおつ", sf:6,sm:38,sk:54,
-   motif:"琵琶湖",
    monologue:"大津の湊と琵琶湖の広い湖面を描いた。湖というより、海のように広かった。",
    paths:`<path d="M22 64 Q32 44 56 40 Q80 36 100 46 Q118 58 120 82 Q122 108 106 120 Q86 132 54 124 Q30 114 22 90 Q18 76 22 64 Z" stroke-width="4.2"/><path d="M46 78 Q56 68 66 78 Q76 88 86 78 Q96 68 104 78" stroke-width="3.2"/><path d="M36 94 Q50 84 66 94 Q80 102 96 94 Q110 86 122 94" stroke-width="3.0"/><path d="M28 56 Q46 32 68 36" stroke-width="3.4"/><circle cx="116" cy="58" r="7" stroke-width="3.8"/><line x1="116" y1="65" x2="116" y2="88" stroke-width="3.8"/><rect x="108" y="88" width="18" height="13" stroke-width="3.4"/>`},
 ];
@@ -5455,7 +5428,7 @@ function openStampPopup(id) {
   document.getElementById('stamp-popup-num').textContent = s.num;
   document.getElementById('stamp-popup-name').textContent = s.name;
   document.getElementById('stamp-popup-yomi').textContent = s.yomi;
-  document.getElementById('stamp-popup-motif').textContent = '描いたもの：' + s.motif;
+  document.getElementById('stamp-popup-motif').textContent = '';
   document.getElementById('stamp-popup-text').textContent = s.monologue;
   document.getElementById('stamp-popup').classList.add('open');
 }
@@ -6157,6 +6130,7 @@ function startFromSave() {
   if (state.souvenirChosen === undefined) state.souvenirChosen = null;
   if (state.innEventDone === undefined) state.innEventDone = {};
   if (!state.memos.koudou) state.memos.koudou = [];
+  if (state.merchantMeetCount === undefined) state.merchantMeetCount = 0;
   // 旧セーブ：salesCountがない場合はshobaiから販売分のみ推算
   if (state.salesCount === undefined) {
     state.salesCount = state.memos.shobai.filter(e => e.text && e.text.includes('販売')).length;
