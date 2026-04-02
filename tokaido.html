@@ -4069,6 +4069,7 @@ function arriveByKaisen(port) {
   state.innMode = false;
   state.justArrived = false;
   state.lastInnType = null;
+  recordVisit(state.currentStage, '廻船で到着');
 
   // 天候を設定（マルコフ遷移を複数回回す）
   for (let i = 0; i < port.days; i++) {
@@ -5192,6 +5193,7 @@ function nextStage() {
     state.commerceDone = false;
     state.innTradeCount = 0;
     state.innMode = false;
+    recordVisit(state.currentStage, '通過');
 
     // 京都到達チェック（大津→京）
     if (state.currentStage > 53) {
