@@ -4183,6 +4183,7 @@ function showFerryMerchant() {
       '「朝に売り切るな。夕方まで残しておく品もある」<br><br>' +
       'それだけ言って、老人は足早に川崎宿の方へ歩いていった。';
     state.merchantMeetCount += 1;
+    recordVisit(2, '老行商人の話を聞いた。');
     const nextSd2 = STAGE_DATA[state.currentStage + 1];
     showChoices([{ label: nextSd2 ? nextSd2.name + 'へ向かう' : '先へ進む', fn: '', action: () => {
       const illusImg = document.getElementById('illus-img');
@@ -4257,6 +4258,7 @@ function payWithOilpaper() {
       '船は静かに川に出た。冬の川面は灰色で、風が冷たかった。<br><br>' +
       '十文は手元に残った。しかし油紙が一枚減った。<br><br>' +
       '得したのか損したのか、宗吉にはよくわからなかった。';
+    recordVisit(2, '油紙一枚で多摩川を渡った。');
     const nextSd3 = STAGE_DATA[state.currentStage + 1];
     showChoices([{ label: nextSd3 ? nextSd3.name + 'へ向かう' : '先へ進む', fn: '', action: () => {
       const illusImg = document.getElementById('illus-img');
