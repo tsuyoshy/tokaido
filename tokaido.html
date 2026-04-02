@@ -4516,7 +4516,8 @@ function openCargoForInn() {
     !(item.origin && item.origin.includes(state.currentStage))
   );
 
-  // 所持品パネルを生成・表示
+  // 所持品パネルを生成・表示（仕入れパネルの残骸をリセット）
+  document.getElementById('cargo-panel-title').textContent = '◆ 所持品';
   const list = document.getElementById('cargo-sell-list');
   const volUsed = currentVol();
   list.innerHTML =
