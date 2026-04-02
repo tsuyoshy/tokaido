@@ -5059,7 +5059,7 @@ function getCompanionInnChoice(stageNum, returnCb) {
 // 38次・矢作橋での別れ（goNext内から呼ぶ。trueを返したら以降の処理をskip）
 function checkCompanionEnd(stageNum, nextCb) {
   if (!state.companionActive) return false;
-  if (stageNum !== 37) return false; // 37次出発時（→38次）
+  if (stageNum !== 38) return false; // 38次出発時（矢作橋を渡って別れ）
   state.companionActive = false;
   state.companionBag = true;
   state.flags.companionEndDone = true;
