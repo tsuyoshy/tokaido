@@ -2474,6 +2474,19 @@ function updateHeader() {
 
 // ── 商人熟練度 ──
 // 0〜14件：不慣れ(novice) / 15〜34件：一人前(middle) / 35件〜：熟練(expert)
+function toKanjiNum(n) {
+  const digits = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  if (n === 0) return '零';
+  let result = '';
+  const hyaku = Math.floor(n / 100);
+  const ju    = Math.floor((n % 100) / 10);
+  const ichi  = n % 10;
+  if (hyaku) result += (hyaku === 1 ? '百' : digits[hyaku] + '百');
+  if (ju)    result += (ju    === 1 ? '十' : digits[ju]    + '十');
+  if (ichi)  result += digits[ichi];
+  return result;
+}
+
 function getMerchantRank() {
   const n = state.salesCount;
   if (n >= 35) return 'expert';
@@ -2697,7 +2710,8 @@ function showNotify(msg) {
 
 // ── 宿場の共通選択肢を表示 ──
 function showStageChoices() {
-  const remaining = 5 - state.cargoOpenCount;
+  const maxCargoOpen = getMerchantRank() === 'expert' ? 7 : getMerchantRank() === 'middle' ? 6 : 5;
+  const remaining = maxCargoOpen - state.cargoOpenCount;
   const choices = [];
   if (state.timeSlot !== 'yoru') {
     // 朝・昼・夕は移動可能
@@ -3095,7 +3109,8 @@ function openCargo() {
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
   // 回数制限チェック
-  if (state.cargoOpenCount >= 5) {
+  const maxCargoOpen = getMerchantRank() === 'expert' ? 7 : getMerchantRank() === 'middle' ? 6 : 5;
+  if (state.cargoOpenCount >= maxCargoOpen) {
     showNotify(state.timeSlot === 'yoru' ? '今夜はもう話しかけられない' : '今日はもう荷を広げられない');
     return;
   }
@@ -5249,7 +5264,7 @@ function nextStage() {
           state.innLog.buy += paid;
         }
         const lunchLine = canAffordLunch
-          ? '昼飯は' + lunchName + 'を食べ、' + lunchCost + '文だった。'
+          ? '昼飯は' + lunchName + 'を食べ、' + toKanjiNum(lunchCost) + '文だった。'
           : '銭が足りないので、昼飯は抜いた。腹が減った。';
         // 31次（新居）：昼飯→渡し→関所の順にする。昼食をarriveTextの前に置く。
         let combined;
