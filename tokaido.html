@@ -3220,7 +3220,7 @@ function startSell(idx, customer) {
     // 型C（品定め）：価格固定・アピール方法を選ぶ
     if (ctype === 'C') {
       document.getElementById('scene-text').innerHTML =
-        `${item.name}が欲しいという。${readText}<br><br>どう見せるか。値段は標準で。　${priceHint}`;
+        `${item.name}が欲しいという。${readText}<br><br>見せ方次第。値は相場通り。　${priceHint}`;
       showChoices([
         { label: '産地・由来を話す',   fn: '', action: () => doSellPitch(idx, 'origin',  customer) },
         { label: '使い勝手を説明する', fn: '', action: () => doSellPitch(idx, 'usage',   customer) },
