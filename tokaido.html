@@ -2498,6 +2498,7 @@ function getRankUpText(newRank) {
 
 // ── 京都エンディング ──
 function triggerEnding() {
+  fadeTransition(() => {
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
   const totalSold = state.salesCount;
@@ -2558,7 +2559,7 @@ function triggerEnding() {
         souvenirScene += `おみつは御守を両手で受け取った。「熱田神宮……」と小さく言った。<br><br>「宮宿で参拝した。七里の海を渡る前に」<br><br>おみつはしばらく御守を見ていた。それから顔を上げた。「海、大丈夫だった？」<br><br>「なんとか」<br><br>「よかった」とおみつは言った。声が柔らかかった。御守を胸のあたりで抱えた。「ずっと持ちます」と言った。`;
         if (rank === 'expert') souvenirScene += `<br><br>胸のあたりで抱えた、その手が少し震えていた。宗吉は気づいていたが、何も言わなかった。`;
       } else if (chosenSv.id === 'choji') {
-        souvenirScene += `おみつは布包みを受け取って、口を開けた。それから顔を上げた。<br><br>「いい香り」<br><br>「亀山の薬屋でもらった。土山の茶屋で」<br><br>おみつはもう一度、鼻を近づけた。「丁子だ」と言った。「どうしてわかる」と宗吉は聞いた。「奉公先で使うから」とおみつは答えた。<br><br>宗吉は、おみつがもうそういうことを知っている年になったのだと、その時初めて気がついた。`;
+        souvenirScene += `おみつは布包みを受け取って、口を開けた。それから顔を上げた。<br><br>「いい香り」<br><br>「亀山の薬屋の前で荷を運ぶのを手伝った。土山の茶屋でもらった」<br><br>おみつはもう一度、鼻を近づけた。「丁子だ」と言った。「どうしてわかる」と宗吉は聞いた。「奉公先で使うから」とおみつは答えた。<br><br>宗吉は、おみつがもうそういうことを知っている年になったのだと、その時初めて気がついた。`;
         if (rank === 'expert') souvenirScene += `<br><br>「奉公先で使うから」と言うとき、おみつは少しだけ誇らしそうな顔をした。それは、会う前には想像できなかった顔だった。`;
       } else {
         souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
@@ -2581,7 +2582,7 @@ function triggerEnding() {
         souvenirScene += `おみつは紙包みを受け取って、開いた。白い餅が並んでいた。<br><br>「姥が餅？」<br><br>「草津の旅籠で番頭に勧められた。東海道の旅人なら知らぬ者はないと言ってた」<br><br>おみつは一つ取って、口に入れた。少し目を細めた。「甘い」と言った。それから顔を上げた。<br><br>「草津まで行ったんだね」<br><br>「ああ、そこを越えたら京だった」<br><br>おみつはもう一度餅を見た。それだけだったが、宗吉にはそれで十分だった。`;
         if (rank === 'expert') souvenirScene += `<br><br>「草津まで行ったんだね」と言うとき、おみつの声に少し何かが混じった。労いなのか、驚きなのか、宗吉には測りかねた。どちらでもあるような気がした。`;
       } else if (chosenSv.id === 'kumihimo') {
-        souvenirScene += `おみつは組紐を受け取って、手の中で広げた。何色もの糸が組み合わされていた。<br><br>「きれい」と言った。「どこの？」<br><br>「鈴鹿の組紐だ。坂下で旅人の忘れ物を届けたら、礼にもらった」<br><br>おみつは少し首を傾けた。「忘れ物を届けたの」<br><br>「ちょっとな」<br><br>おみつは紐を色んな方向から眺めた。「帯締めに使えそう」と言った。宗吉は、おみつが喜んでいるとわかった。`;
+        souvenirScene += `おみつは組紐を受け取って、手の中で広げた。何色もの糸が組み合わされていた。<br><br>「きれい」と言った。「どこの？」<br><br>「坂下の峠道で旅人の忘れ物を届けた。礼にと言われた。鈴鹿の組紐だと聞いた」<br><br>おみつは少し首を傾けた。「忘れ物を届けたの」<br><br>「ちょっとな」<br><br>おみつは紐を色んな方向から眺めた。「帯締めに使えそう」と言った。宗吉は、おみつが喜んでいるとわかった。`;
         if (rank === 'expert') souvenirScene += `<br><br>「帯締めに使えそう」と言いながら、おみつの指が紐の色を一つひとつなぞった。その指先の動きを、宗吉はしばらく見ていた。`;
       } else {
         souvenirScene += `おみつは受け取って、しばらく眺めた。それから宗吉の顔を見た。<br><br>「ありがとう、兄さん」`;
@@ -2675,6 +2676,7 @@ function triggerEnding() {
 
   document.getElementById('scene-text').innerHTML = endText;
   document.getElementById('choices').classList.add('hidden');
+  }); // fadeTransition
 }
 
 // ── フェード遷移 ──
@@ -2809,7 +2811,7 @@ function showStageChoices() {
       choices.push({ label: `宿の主人に話しかける（あと${remaining}回）`, fn: '', action: () => openCargo() });
     }
     const sd = currentStageData();
-    const innCost   = sd.innCost   || 80;
+    const innCost   = sd.innCost   || 200;
     const cheapCost = sd.cheapCost || 30;
     if (state.currentStage === 1) {
       choices.push({ label: '旅籠に泊まる（' + innCost + '文）', fn: '', action: () => goToInn(innCost) });
@@ -2909,46 +2911,47 @@ function visitShrine(sh) {
   state.flags[sh.flag] = true;
   updateHeader();
 
-  let text = sh.visitText;
-  // 土産品が解放される場合は案内テキストを追加
-  const sv = sh.souvenirId ? SOUVENIR_DATA.find(s => s.id === sh.souvenirId) : null;
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
 
-  const choices = [];
-  if (sv) {
-    text += `<br><br>——${sv.name}を求めるか。（${sv.price}文）`;
-    choices.push({
-      label: `「${sv.name}」を買う`,
-      fn: '',
-      action: () => {
-        buySouvenir(sv.id);
-      },
-    });
-    choices.push({ label: 'そのまま立ち去る', fn: '', action: () => {
-      document.getElementById('scene-text').innerHTML = sh.afterText;
-      window.scrollTo(0, 0);
-      document.body.scrollTop = 0;
-      document.documentElement.scrollTop = 0;
-      showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
-    }});
-  } else {
-    choices.push({ label: 'つづける', fn: '', action: () => {
-      if (sh.afterText) {
-        document.getElementById('scene-text').innerHTML = sh.afterText;
-        window.scrollTo(0, 0);
-        document.body.scrollTop = 0;
-        document.documentElement.scrollTop = 0;
-        showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
-      } else {
-        showStageChoices();
-      }
-    }});
-  }
+    let text = sh.visitText;
+    const sv = sh.souvenirId ? SOUVENIR_DATA.find(s => s.id === sh.souvenirId) : null;
 
-  document.getElementById('scene-text').innerHTML = text;
-  window.scrollTo(0, 0);
-  document.body.scrollTop = 0;
-  document.documentElement.scrollTop = 0;
-  showChoices(choices);
+    const choices = [];
+    if (sv) {
+      text += `<br><br>——${sv.name}を求めるか。（${sv.price}文）`;
+      choices.push({
+        label: `「${sv.name}」を買う`,
+        fn: '',
+        action: () => buySouvenir(sv.id),
+      });
+      choices.push({ label: 'そのまま立ち去る', fn: '', action: () => {
+        fadeTransition(() => {
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+          document.getElementById('scene-text').innerHTML = sh.afterText;
+          showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+        });
+      }});
+    } else {
+      choices.push({ label: 'つづける', fn: '', action: () => {
+        if (sh.afterText) {
+          fadeTransition(() => {
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            document.getElementById('scene-text').innerHTML = sh.afterText;
+            showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
+          });
+        } else {
+          showStageChoices();
+        }
+      }});
+    }
+
+    document.getElementById('scene-text').innerHTML = text;
+    showChoices(choices);
+  });
 }
 
 // ── 土産を購入する ──
@@ -2999,19 +3002,18 @@ function showSouvenirChoice() {
     .map(id => SOUVENIR_DATA.find(s => s.id === id))
     .filter(Boolean);
 
-  let text = `京へ向かう前に、宗吉は荷の中を確かめた。<br><br>`;
-
+  // 土産なし：選択不要でそのまま確定
   if (purchased.length === 0) {
-    text += `おみつへの土産——何も買わなかった。<br><br>`;
-    text += `手ぶらで会いに行く。それでも、おみつは来てくれただけでよかったと言うだろう。`;
-  } else {
-    text += purchased.length === 1
-      ? `おみつへの土産になりそうな品が、一つある。`
-      : `おみつへの土産になりそうな品が、${purchased.length}つある。`;
-    text += `<br><br>`;
+    confirmSouvenir(null);
+    return;
+  }
 
-    // 各土産の思い出＋おみつ予想を並べる
-    text += purchased.map(sv => {
+  const text = `京へ向かう前に、宗吉は荷の中を確かめた。<br><br>` +
+    (purchased.length === 1
+      ? `おみつへの土産になりそうな品が、一つある。`
+      : `おみつへの土産になりそうな品が、${purchased.length}つある。`) +
+    `<br><br>` +
+    purchased.map(sv => {
       const priceLabel = sv.price > 0 ? `（${sv.price}文）` : `（もらいもの）`;
       return [
         `<div style="border-top:1px solid rgba(200,160,40,.2);padding:14px 0 4px;">`,
@@ -3023,10 +3025,8 @@ function showSouvenirChoice() {
         `<span style="font-size:12px;opacity:0.65;line-height:2.0;font-style:italic;">${sv.omitsu}</span>`,
         `</div>`,
       ].join('');
-    }).join('');
-
-    text += `<br>どれを持っていくか、今ここで決める。`;
-  }
+    }).join('') +
+    `<br>どれを持っていくか、今ここで決める。`;
 
   document.getElementById('scene-text').innerHTML = text;
   window.scrollTo(0, 0);
@@ -3066,7 +3066,7 @@ function confirmSouvenir(id) {
 // ── 宿の種類を選ぶ ──
 function selectInn() {
   const sd = currentStageData();
-  const innCost = sd.innCost || 35;
+  const innCost = sd.innCost || 200;
   // 品川（第一次）は旅籠のみ
   if (state.currentStage === 1) {
     document.getElementById('scene-text').innerHTML =
@@ -3782,13 +3782,15 @@ function openBuy() {
 
     if (!items || items.length === 0) {
       // 仕入れ品なし
-      const stageMsg = 'この宿場では仕入れられるものがなかった。';
       document.getElementById('scene-text').innerHTML =
-        '宗吉は宿場の問屋を見て回った。<br><br>' + stageMsg;
-      showChoices([
-        { label: '荷を広げ、通行人に声をかける', fn: '', action: () => openCargo() },
-        { label: '先を急ぐ', fn: '', action: () => goNext() },
-      ]);
+        '宗吉は宿場の問屋を見て回った。<br><br>この宿場では仕入れられるものがなかった。';
+      const remaining = 5 - state.cargoOpenCount;
+      const choices = [];
+      if (remaining > 0) {
+        choices.push({ label: `荷を広げ、通行人に声をかける（あと${remaining}回）`, fn: '', action: () => openCargo() });
+      }
+      choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
+      showChoices(choices);
       return;
     }
 
@@ -3886,7 +3888,9 @@ function confirmBuy(itemIdx, qty) {
 
   const existing = state.cargo.find(c => c.name === item.name);
   if (existing) {
-    existing.qty += qty;
+    const totalQty = existing.qty + qty;
+    existing.buy = Math.round((existing.buy * existing.qty + buyPrice * qty) / totalQty);
+    existing.qty = totalQty;
   } else {
     state.cargo.push({ name: item.name, unit: item.unit, qty, buy: buyPrice, sell: item.sell, vol: item.vol, cat: item.cat, origin: item.origin });
   }
@@ -4362,7 +4366,7 @@ function afterTamaRiver() {
 }
 
 // ── ゲームオーバー ──
-// reason: 'inn'（宿代不足）| 'days'（日数切れ）| 'broke'（路銀尽き）
+// reason: 'inn'（宿代不足）| 'days'（日数切れ）
 function triggerGameOver(reason, innCost) {
   const sd = currentStageData();
   const screen = document.getElementById('gameover-screen');
@@ -4375,14 +4379,8 @@ function triggerGameOver(reason, innCost) {
       `${sd.name}宿で夜が明けた。<br><br>` +
       `今日が藪入りのはずだった。しかし宗吉はまだ道の半ばにいる。<br><br>` +
       `おみつは京で待っているだろう。今年は、会えなかった。`;
-  } else if (reason === 'broke') {
-    titleText = '路銀が尽きた';
-    bodyText =
-      `${sd.name}宿まで来たが、路銀が底をついた。<br><br>` +
-      `渡し賃も払えず、先へ進む道が断たれた。<br><br>` +
-      `懐に文はない——旅はここで終わりだ。`;
   } else {
-    // 'inn'（デフォルト）
+    // 'inn'（宿代不足）
     titleText = '文なし';
     bodyText =
       `${sd.name}宿まで来たが、宿代${innCost}文が払えなかった。<br><br>` +
@@ -4414,14 +4412,14 @@ function goToInn(selectedCost) {
     recordVisit(state.currentStage, '宿を取った。');
 
     const sd = currentStageData();
-    const actualCost = (selectedCost !== undefined) ? selectedCost : (sd.innCost || 35);
+    const actualCost = (selectedCost !== undefined) ? selectedCost : (sd.innCost || 200);
     // 所持金不足でマイナスになるならゲームオーバー
     if (state.money - actualCost < 0) {
       triggerGameOver('inn', actualCost);
       return;
     }
     const paid = actualCost;
-    const isInn = (paid >= (sd.innCost || 150));
+    const isInn = (paid >= (sd.innCost || 200));
     state.money -= paid;
     state.innLog.inn = paid;
 
@@ -4628,15 +4626,13 @@ function triggerWasuremonoDeliver(fromStage) {
   const ev = INN_EVENTS[fromStage];
   if (!ev) return;
   state.innEventDone[ev.flag] = 'delivering';
-  const nextSd = STAGE_DATA[state.currentStage + 1];
-  const nextLabel = nextSd ? nextSd.name + 'へ向かう' : '先へ進む';
   document.getElementById('scene-text').innerHTML =
     '忘れ物を持って、' + (STAGE_DATA[ev.deliverStage] ? STAGE_DATA[ev.deliverStage].name : '次の宿場') + 'へ向かった。';
-  showChoices([{ label: nextLabel, fn: '', action: () => showStageChoices() }]);
+  showChoices([{ label: '先へ進む', fn: '', action: () => showStageChoices() }]);
 }
 
 // ── 忘れ物の届け先到着チェック（nextStage内から呼ぶ） ──
-function checkWasuremonoReward(stageNum, nextAction) {
+function checkWasuremonoReward(stageNum) {
   const fromStageKey = Object.keys(INN_EVENTS).find(k => {
     const ev = INN_EVENTS[k];
     return ev.type === 'wasuremono' &&
@@ -5180,6 +5176,34 @@ function checkStage13Artist(nextAction) {
 }
 
 // ── 次の宿場へ ──
+// ── 桑名（42次）七里の渡し：船頭テキスト（hiru/通常ルート共通） ──
+const KUWANA_FERRY_TEXT = `渡し船の揺れがまだ体に残っている。<br><br>船頭は老いた男だった。七里の渡しを何百回と往復してきた顔つきだった。航路の半ばで、宗吉が「長い渡しですね」と言うと、船頭は海の方を向いたまま答えた。<br><br>「海を渡ったら、向こうに着く。それだけのことだ」<br><br>しばらく間があった。<br><br>「それだけのことが、難しい」<br><br>船頭はそれきり黙った。宗吉も黙った。波の音だけがしていた。<br><br>桑名の湊に船が着いた。`;
+
+// ── 新居（31次）おすずとの出会い（hiru/通常ルート共通） ──
+function _showSuzuEncounter() {
+  const arrive2 = (currentStageData().arriveText2) || '';
+  showChoices([{ label: 'つづける', fn: '', action: () => {
+    fadeTransition(() => {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      document.getElementById('scene-text').innerHTML = arrive2;
+      showChoices([
+        { label: '荷紐が切れて困っている女を手伝う', fn: '', action: () => showCompanionHelp() },
+        { label: 'そのまま通り過ぎる', fn: '', action: () => {
+          state.flags.companionSkipped = true;
+          fadeTransition(() => {
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            document.getElementById('scene-text').innerHTML =
+              `宗吉は足を止めなかった。<br><br>荷が散らばっている。旅では珍しくない。先へ進む。<br><br>女の困り顔が、少しだけ目に残った。`;
+            showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+          });
+        }},
+      ]);
+    });
+  }}]);
+}
+
 function nextStage() {
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
@@ -5270,12 +5294,11 @@ function nextStage() {
         }
         document.getElementById('scene-text').innerHTML = combined;
         updateHeader();
-        if (checkWasuremonoReward(state.currentStage, () => showStageChoices())) return;
+        if (checkWasuremonoReward(state.currentStage)) return;
         if (checkEncounterReward()) return;
         if (state.currentStage === 42 && !state.flags.kuwanaFerry) {
           state.flags.kuwanaFerry = true;
-          const ferryText = `渡し船の揺れがまだ体に残っている。<br><br>船頭は老いた男だった。七里の渡しを何百回と往復してきた顔つきだった。航路の半ばで、宗吉が「長い渡しですね」と言うと、船頭は海の方を向いたまま答えた。<br><br>「海を渡ったら、向こうに着く。それだけのことだ」<br><br>しばらく間があった。<br><br>「それだけのことが、難しい」<br><br>船頭はそれきり黙った。宗吉も黙った。波の音だけがしていた。<br><br>桑名の湊に船が着いた。`;
-          document.getElementById('scene-text').innerHTML += '<br><br>' + ferryText;
+          document.getElementById('scene-text').innerHTML += '<br><br>' + KUWANA_FERRY_TEXT;
           document.documentElement.scrollTop = 0;
           document.body.scrollTop = 0;
           const nextSd43 = STAGE_DATA[43];
@@ -5284,28 +5307,7 @@ function nextStage() {
         }
         // 新居到着（31次）：おすずとの出会い割り込み（hiruルート）
         if (state.currentStage === 31 && !state.companionMet && !state.flags.companionSkipped) {
-          const sd31h = currentStageData();
-          const arrive2h = sd31h.arriveText2 || '';
-          showChoices([{ label: 'つづける', fn: '', action: () => {
-            fadeTransition(() => {
-              document.documentElement.scrollTop = 0;
-              document.body.scrollTop = 0;
-              document.getElementById('scene-text').innerHTML = arrive2h;
-              showChoices([
-                { label: '荷紐が切れて困っている女を手伝う', fn: '', action: () => showCompanionHelp() },
-                { label: 'そのまま通り過ぎる', fn: '', action: () => {
-                  state.flags.companionSkipped = true;
-                  fadeTransition(() => {
-                    document.documentElement.scrollTop = 0;
-                    document.body.scrollTop = 0;
-                    document.getElementById('scene-text').innerHTML =
-                      `宗吉は足を止めなかった。<br><br>荷が散らばっている。旅では珍しくない。先へ進む。<br><br>女の困り顔が、少しだけ目に残った。`;
-                    showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
-                  });
-                }},
-              ]);
-            });
-          }}]);
+          _showSuzuEncounter();
           return;
         }
         showStageChoices();
@@ -5340,7 +5342,7 @@ function nextStage() {
     updateHeader();
 
     // 忘れ物の届け先チェック
-    if (checkWasuremonoReward(state.currentStage, () => showStageChoices())) return;
+    if (checkWasuremonoReward(state.currentStage)) return;
 
     // 身につけ系イベント報酬チェック
     if (checkEncounterReward()) return;
@@ -5348,8 +5350,7 @@ function nextStage() {
     // 桑名到着（42次）：七里の渡し船頭（一回限り自動挿入）
     if (state.currentStage === 42 && !state.flags.kuwanaFerry) {
       state.flags.kuwanaFerry = true;
-      const ferryText = `渡し船の揺れがまだ体に残っている。<br><br>船頭は老いた男だった。七里の渡しを何百回と往復してきた顔つきだった。航路の半ばで、宗吉が「長い渡しですね」と言うと、船頭は海の方を向いたまま答えた。<br><br>「海を渡ったら、向こうに着く。それだけのことだ」<br><br>しばらく間があった。<br><br>「それだけのことが、難しい」<br><br>船頭はそれきり黙った。宗吉も黙った。波の音だけがしていた。<br><br>桑名の湊に船が着いた。`;
-      document.getElementById('scene-text').innerHTML += '<br><br>' + ferryText;
+      document.getElementById('scene-text').innerHTML += '<br><br>' + KUWANA_FERRY_TEXT;
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       const nextSd = STAGE_DATA[43];
@@ -5359,29 +5360,7 @@ function nextStage() {
 
     // 新居到着（31次）：おすずとの出会い割り込み
     if (state.currentStage === 31 && !state.companionMet && !state.flags.companionSkipped) {
-      const sd31 = currentStageData();
-      const arrive2 = sd31.arriveText2 || '';
-      // 前半（arriveText）を表示してタップ待ち→後半＋選択肢
-      showChoices([{ label: 'つづける', fn: '', action: () => {
-        fadeTransition(() => {
-          document.documentElement.scrollTop = 0;
-          document.body.scrollTop = 0;
-          document.getElementById('scene-text').innerHTML = arrive2;
-          showChoices([
-            { label: '荷紐が切れて困っている女を手伝う', fn: '', action: () => showCompanionHelp() },
-            { label: 'そのまま通り過ぎる', fn: '', action: () => {
-              state.flags.companionSkipped = true;
-              fadeTransition(() => {
-                document.documentElement.scrollTop = 0;
-                document.body.scrollTop = 0;
-                document.getElementById('scene-text').innerHTML =
-                  `宗吉は足を止めなかった。<br><br>荷が散らばっている。旅では珍しくない。先へ進む。<br><br>女の困り顔が、少しだけ目に残った。`;
-                showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
-              });
-            }},
-          ]);
-        });
-      }}]);
+      _showSuzuEncounter();
       return;
     }
 
@@ -5560,7 +5539,10 @@ function renderMemo() {
     return;
   }
 
-  const entries = state.memos[currentTab];
+  // 商売タブは shobai（売買）+ koudou（仕入れ・道中出来事）をマージ
+  const entries = currentTab === 'shobai'
+    ? [...(state.memos.shobai || []), ...(state.memos.koudou || [])]
+    : (state.memos[currentTab] || []);
   if (entries.length === 0) {
     content.innerHTML = '<div class="memo-empty">まだ記録がない</div>';
     return;
@@ -5838,7 +5820,7 @@ function closeStampPopup() {
   document.getElementById('stamp-popup').classList.remove('open');
 }
 
-function toggleStampDetail(id) { /* 旧実装 互換のため残す */ }
+
 
 
 // ── 15宿場データ ──
@@ -6357,7 +6339,7 @@ const STAGE_DATA = {
   42: {
     name: '桑名', ji: '第四十二次', yomi: 'くわな',
     next: '四日市', nextJi: '第四十三次',
-    arriveText: `桑名湊に着いた。<br><br>宮の波止場で船賃を払い、四時間ほど伊勢湾の波に揺られた。沖合に出ると波が高くなった。荷を抱えて船底に座り、ただ耐えていた。<br><br>岸が見えてきたとき、宗吉は息を吐いた。<br><br>「その手は桑名の焼き蛤」——名産の焼き蛤が宿場の入り口から売られていた。伊勢参拝客で宿場は賑わっている。`,
+    arriveText: `桑名湊に着いた。<br><br>「その手は桑名の焼き蛤」——名産の焼き蛤が宿場の入り口から売られていた。伊勢参拝客で宿場は賑わっている。`,
     travelText: `桑名を後にした。<br><br>四日市まで三里ほど。伊勢街道の旅人と混じって歩く。`,
     innTextInn: `夕餉に焼き蛤が出た。桑名の名物だ。ぷりぷりとした身が旨く、七里の渡しの疲れがほぐれた。<br><br>「船は大丈夫でしたか」と女将が聞いた。「なんとか」と答えると、「皆そう言いますよ」と笑った。<br><br>桑名の旅籠に泊まった。七里の渡しは遠かった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯にも蛤の汁が出た。贅沢な一膳だった。宗吉は腹を満たして立った。今日は四日市へ向かう。`,
