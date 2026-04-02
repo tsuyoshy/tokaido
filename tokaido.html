@@ -3183,7 +3183,7 @@ function startSell(idx, customer) {
         `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
       showChoices([
         { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
-        { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
+        { label: `一${item.unit}${sellNow}文（相場値）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
         { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
       ]);
       return;
@@ -3198,8 +3198,8 @@ function startSell(idx, customer) {
       document.getElementById('scene-text').innerHTML =
         `${offerStr}${readText}<br><br>どう出るか。　${priceHint}`;
       showChoices([
-        { label: `${offerPrice}文で応じる（確実）`,              fn: '', action: () => doSellOffer(idx, offerPrice, customer) },
-        { label: `一${item.unit}${sellNow}文（標準）`,           fn: '', action: () => doSell(idx, sellNow,    customer) },
+        { label: `${offerPrice}文で応じる（捌く）`,              fn: '', action: () => doSellOffer(idx, offerPrice, customer) },
+        { label: `一${item.unit}${sellNow}文（相場値）`,           fn: '', action: () => doSell(idx, sellNow,    customer) },
         { label: `${priceHigh}文で押し通す`,                     fn: '', action: () => doSell(idx, priceHigh,  customer) },
       ]);
       return;
@@ -3210,7 +3210,7 @@ function startSell(idx, customer) {
       document.getElementById('scene-text').innerHTML =
         `${item.name}が欲しいという。急いでいる。${readText}<br><br>値段をどうするか。　${priceHint}`;
       showChoices([
-        { label: `すぐ出す（${sellNow}文・確実）`,      fn: '', action: () => doSellImmediate(idx, sellNow, customer) },
+        { label: `すぐ出す（${sellNow}文・間違いなし）`,      fn: '', action: () => doSellImmediate(idx, sellNow, customer) },
         { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
         { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
       ]);
@@ -3238,7 +3238,7 @@ function startSell(idx, customer) {
         `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
       const choices = [
         { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
-        { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
+        { label: `一${item.unit}${sellNow}文（相場値）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
         { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
       ];
       if (rank === 'expert' && canBundle) {
@@ -3254,7 +3254,7 @@ function startSell(idx, customer) {
       document.getElementById('scene-text').innerHTML =
         `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
       showChoices([
-        { label: `一${item.unit}${sellNow}文（標準）`,      fn: '', action: () => doSell(idx, sellNow, customer) },
+        { label: `一${item.unit}${sellNow}文（相場値）`,      fn: '', action: () => doSell(idx, sellNow, customer) },
         { label: `一${item.unit}${priceLow}文（安値）`,     fn: '', action: () => doSell(idx, priceLow, customer) },
         { label: `一${item.unit}${priceGen}文（原価で渡す）`, fn: '', action: () => doSellCharity(idx, priceGen, customer) },
       ]);
@@ -3266,7 +3266,7 @@ function startSell(idx, customer) {
       `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
     showChoices([
       { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
-      { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
+      { label: `一${item.unit}${sellNow}文（相場値）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
       { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
     ]);
   });
@@ -4557,7 +4557,7 @@ function openCargoForInn() {
   const priceHigh = Math.round(sellNow * 1.25);
   showChoices([
     { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(itemIdx, priceLow,  innkeeper) },
-    { label: `一${item.unit}${sellNow}文（標準）`,   fn: '', action: () => doSell(itemIdx, sellNow,   innkeeper) },
+    { label: `一${item.unit}${sellNow}文（相場値）`,   fn: '', action: () => doSell(itemIdx, sellNow,   innkeeper) },
     { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(itemIdx, priceHigh, innkeeper) },
   ]);
 }
