@@ -3192,11 +3192,15 @@ function startSell(idx, customer) {
       const offerStr = customer.offerText ? customer.offerText(item.name) : `「もう少し負けてくれ」`;
       document.getElementById('scene-text').innerHTML =
         `${offerStr}${readText}<br><br>どう出るか。　${priceHint}`;
-      showChoices([
+      const choicesA = [
         { label: `${offerPrice}文で応じる（確実）`,              fn: '', action: () => doSellOffer(idx, offerPrice, customer) },
         { label: `一${item.unit}${sellNow}文（標準）`,           fn: '', action: () => doSell(idx, sellNow,    customer) },
         { label: `${priceHigh}文で押し通す`,                     fn: '', action: () => doSell(idx, priceHigh,  customer) },
-      ]);
+      ];
+      if (rank === 'expert') {
+        choicesA.push({ label: `口上で押す（${sellNow}文）`, fn: '', action: () => doSellTalk(idx, sellNow, customer) });
+      }
+      showChoices(choicesA);
       return;
     }
 
@@ -3467,6 +3471,54 @@ function doSellOffer(idx, price, customer) {
       showChoices([{ label: '', fn: '', action: () => { fadeTransition(() => { document.getElementById('scene-text').innerHTML = rankUpText; showChoices([{ label: '', fn: '', action: proceedNext }]); }); }}]);
     } else { proceedNext(); }
   });
+}
+
+// ── 型A達人：口上売り（標準価格・確率やや高め） ──
+function doSellTalk(idx, price, customer) {
+  const item = state.cargo[idx];
+  const customerName = customer ? customer.name : '客';
+  const prob = customer ? Math.min(customer.prob['mid'] + 0.20, 0.98) : 0.90;
+  const bought = Math.random() < prob;
+  const sold = Math.min(5, item.qty);
+  const rankBefore = getMerchantRank();
+  if (bought) {
+    const income = price * sold;
+    state.money += income;
+    state.innLog.income += income;
+    state.cargo[idx].qty -= sold;
+    state.commerceDone = true;
+    state.salesCount += 1;
+    updateHeader();
+    state.memos.shobai.push({ stage: stageName(), text: `${customerName}に${item.name}を${sold}${item.unit}、${income}文で販売。` });
+    recordVisit(state.currentStage, `${customerName}に${item.name}を売った。`);
+    showNotify('旅の手帳に記録された');
+    const rankAfter = getMerchantRank();
+    const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
+    const result = `宗吉が品の来歴をひとくさり語ると、客はふむと頷いた。「わかった、その値でもらおう」<br><br>${item.name}を${sold}${item.unit}、${income}文。`;
+    fadeTransition(() => {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+      document.getElementById('scene-text').innerHTML = result;
+      const proceedNext = () => {
+        if (state.innMode) showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+        else showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+      };
+      if (rankUpText) {
+        showChoices([{ label: '', fn: '', action: () => { fadeTransition(() => { document.getElementById('scene-text').innerHTML = rankUpText; showChoices([{ label: '', fn: '', action: proceedNext }]); }); }}]);
+      } else { proceedNext(); }
+    });
+  } else {
+    const result = `話を聞いた客は「それはわかったが、やはり少し負けてくれぬか」と引かなかった。`;
+    fadeTransition(() => {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (state.innMode) document.getElementById('cargo-panel').style.display = 'none';
+      document.getElementById('scene-text').innerHTML = result;
+      if (state.innMode) showChoices([{ label: '', fn: '', action: () => returnToInnChoices() }]);
+      else showChoices([{ label: '', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } }]);
+    });
+  }
 }
 
 // ── 型B：即決売り（標準価格・確実成約） ──
