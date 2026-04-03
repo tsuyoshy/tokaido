@@ -1824,7 +1824,20 @@ function callCustomer() {
     }
   }
   const osuzuCallPrefix = osuzuCallLine ? osuzuCallLine + '<br><br>' : '';
-  document.getElementById('scene-text').innerHTML = osuzuCallPrefix;
+
+  // クロ（犬）同行中：客が犬に引き寄せられる描写
+  const kuroPats = [
+    '通りかかった客が犬に目を止めて、足を止めた。',
+    '犬を見た旅人が、思わず立ち止まった。',
+    '荷の傍らの犬に気づいた客が、こちらへ近づいてきた。',
+    '客が犬の頭を撫でてから、宗吉を見た。',
+  ];
+  const kuroCallLine = state.flags.kuroFollowing
+    ? kuroPats[Math.floor(Math.random() * kuroPats.length)]
+    : '';
+  const kuroCallPrefix = kuroCallLine ? kuroCallLine + '<br><br>' : '';
+
+  document.getElementById('scene-text').innerHTML = osuzuCallPrefix + kuroCallPrefix;
 
   el.innerHTML = `<div style="padding:16px 0 8px;font-size:15px;line-height:2;color:#e8d880;">${customer.intro}${showRequest ? '<br><br>' + request : ''}${hintText}</div>`;
   el.classList.remove('hidden');
@@ -2493,6 +2506,8 @@ const WEATHER_MODIFIER = { sunny: 1.0, cloudy: 0.9, rain: 0.75, snow: 0.6 };
 
 // ── 客が来る確率を計算 ──
 function customerPct() {
+  // クロ同行中：犬に引き寄せられて必ず客が来る
+  if (state.flags.kuroFollowing) return 1.0;
   const config = STAGE_CONFIG[state.currentStage] || DEFAULT_CONFIG;
   const weatherMod = WEATHER_MODIFIER[state.weather] || 1.0;
   // 熟練度ボーナス：客の呼び込み方・立ち方が変わる
@@ -3014,6 +3029,18 @@ function nextStageByHorse() {
 
     document.getElementById('scene-text').innerHTML = arriveBody;
     updateHeader();
+    if (checkWasuremonoReward(state.currentStage)) return;
+    if (checkEncounterReward()) return;
+    // 沼津到着（12次）：クロとの出会い割り込み
+    if (state.currentStage === 12 && !state.flags.kuroDone && !state.flags.kuroFollowing) {
+      showChoices([{ label: 'つづける', fn: '', action: () => showKuroEncounter() }]);
+      return;
+    }
+    // 吉原到着（14次）：クロの別れ割り込み
+    if (state.currentStage === 14 && state.flags.kuroFollowing && !state.flags.kuroDone) {
+      showChoices([{ label: 'つづける', fn: '', action: () => showKuroFarewell() }]);
+      return;
+    }
     showStageChoices();
   });
 }
@@ -3070,6 +3097,7 @@ function showStageChoices() {
         });
       }});
     }
+
     // 川崎限定：旅籠前の旅人（初回のみ）
     if (state.currentStage === 2 && !state.flags.kawasakiTravelerDone) {
       choices.push({ label: '旅籠前の旅人に声をかけてみる', fn: '', action: () => {
@@ -3906,6 +3934,47 @@ function startSell(idx, customer) {
 }
 
 // ── 売買結果（統合版） ──
+// ── クロ同行中の商売：客の犬へのコメント ──
+function getKuroCustomerComment(customer) {
+  if (!state.flags.kuroFollowing) return '';
+  const ctype = customer ? customer.ctype : null;
+
+  // 宿の主人（夜・nightOnly）：犬は外に繋いであるのでコメントなし
+  if (customer && customer.nightOnly) return '';
+
+  const comments = {
+    A: [
+      '「犬、飼ってるのか」と客は言った。銭を渡しながら、犬の頭に手を乗せた。',
+      '「いくら値切っても、この犬の顔は変わらないな」と客は笑った。',
+    ],
+    B: [
+      '急いでいたはずなのに、客は立ち去り際に犬を一撫でした。',
+      '「可愛いな」と言って、客は早足で去った。',
+    ],
+    C: [
+      '品を手に取りながら、客は犬に目をやった。「おとなしい犬だ」と言った。',
+      '客は犬をしゃがんで見てから、「この品、もらおう」と言った。',
+    ],
+    D: [
+      '荷を眺めながら、客は犬の背中をぽんと叩いた。「商売繁盛だな」と言った。',
+      '「犬がいると客が来るな」と客は言った。あながち間違いではなかった。',
+    ],
+    E: [
+      '受け取った後、客は犬の頭をそっと撫でた。何も言わなかった。',
+      '「いい犬だ」と客は言った。声が少し柔らかかった。',
+    ],
+  };
+  const generic = [
+    '客は去り際に、犬の頭を軽く撫でた。',
+    '「犬連れか」と客は笑った。',
+    '犬を見て「縁起がいい」と客は言った。',
+    '客が去った後、犬は宗吉の顔を見た。',
+  ];
+
+  const pool = (ctype && comments[ctype]) ? comments[ctype] : generic;
+  return '<br><br>' + pool[Math.floor(Math.random() * pool.length)];
+}
+
 function doSell(idx, price, customer) {
   const item = state.cargo[idx];
   const customerName = customer ? customer.name : '女将';
@@ -3916,6 +3985,8 @@ function doSell(idx, price, customer) {
   let prob = customer ? customer.prob[probKey] : { low: 1.0, mid: 0.85, high: 0.45 }[probKey];
   // おすずの後押し：成約確率+15%
   if (state.companionActive) prob = Math.min(1.0, prob * 1.15);
+  // クロ同行中：必ず成約
+  if (state.flags.kuroFollowing) prob = 1.0;
   const bought = Math.random() < prob;
 
   let sold, result;
@@ -3923,7 +3994,6 @@ function doSell(idx, price, customer) {
 
   if (bought) {
     if (customer && customer.nightOnly) {
-      // 宿の主人は大量購入：安値〜標準で全量、強気でも5〜全量
       sold = (price <= item.sell) ? item.qty : Math.min(item.qty, Math.max(5, Math.floor(item.qty * 0.7)));
     } else {
       sold = (price <= item.sell) ? Math.min(5, item.qty) : Math.min(3, item.qty);
@@ -3943,7 +4013,6 @@ function doSell(idx, price, customer) {
     rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
 
     if (customer && customer.nightOnly) {
-      // 宿の主人専用テキスト（丁寧語）
       if (price < item.sell) {
         result = `「それはお安うございますな」と主人は目を細め、${sold}${item.unit}買ってくれた。${income}文。`;
       } else if (price === item.sell) {
@@ -3952,7 +4021,6 @@ function doSell(idx, price, customer) {
         result = `主人は少し考えてから「では、いただきましょう」と巾着を出した。${item.name}${sold}${item.unit}、${income}文。`;
       }
     } else {
-      // 通常客テキスト
       const isFirst = (state.currentStage === 1 && !customer);
       const firstSuffix = isFirst ? '<br><br>最初の商売だった。' : '';
       if (price < item.sell) {
@@ -3963,6 +4031,8 @@ function doSell(idx, price, customer) {
         result = `少し考えてから、${customerName}は巾着を出した。${item.name}${sold}${item.unit}、${income}文。${firstSuffix}`;
       }
     }
+    // クロ同行中：客の犬へのコメントを末尾に追加
+    result += getKuroCustomerComment(customer);
   } else {
     const rejectText = customer ? customer.reject : '「少し高いですね」と女将は言って、去った。';
     const rank = getMerchantRank();
@@ -4093,7 +4163,7 @@ function doSellOffer(idx, price, customer) {
   showNotify('旅の手帳に記録された');
   const rankAfter = getMerchantRank();
   const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
-  const result = `値を下げると、${customerName}はすぐにうなずいた。${item.name}を${sold}${item.unit}、${income}文。<br><br>単価は安いが、確実に売れた。`;
+  const result = `値を下げると、${customerName}はすぐにうなずいた。${item.name}を${sold}${item.unit}、${income}文。<br><br>単価は安いが、確実に売れた。` + getKuroCustomerComment(customer);
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
@@ -4127,7 +4197,7 @@ function doSellImmediate(idx, price, customer) {
   showNotify('旅の手帳に記録された');
   const rankAfter = getMerchantRank();
   const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
-  const result = `すぐに品を出した。${customerName}は迷わず受け取った。${income}文。`;
+  const result = `すぐに品を出した。${customerName}は迷わず受け取った。${income}文。` + getKuroCustomerComment(customer);
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
@@ -4159,7 +4229,9 @@ function doSellPitch(idx, pitchType, customer) {
   // おすずの後押し：成約確率+15%
   const osuzuPitchBonus = state.companionActive ? baseProb * 0.15 : 0.0;
   const prob = Math.min(1.0, baseProb + bonusProb + osuzuPitchBonus);
-  const bought = Math.random() < prob;
+  // クロ同行中：ピッチも必ず成功
+  const kuroProb = state.flags.kuroFollowing ? 1.0 : prob;
+  const bought = Math.random() < kuroProb;
   const pitchText = pitchType === 'origin'
     ? `産地の話をした。${isOriginMatch ? '産地から来た品だと話すと、客の目が変わった。' : '遠くから運んできた品だと話した。'}`
     : `使い方を説明した。${isUsageMatch ? '客は納得した顔をした。' : '客はじっと聞いていた。'}`;
@@ -4178,7 +4250,7 @@ function doSellPitch(idx, pitchType, customer) {
     showNotify('旅の手帳に記録された');
     const rankAfter = getMerchantRank();
     const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
-    const result = `${pitchText}<br><br>${customerName}は${sold}${item.unit}買ってくれた。${income}文。`;
+    const result = `${pitchText}<br><br>${customerName}は${sold}${item.unit}買ってくれた。${income}文。` + getKuroCustomerComment(customer);
     fadeTransition(() => {
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
@@ -4222,7 +4294,7 @@ function doSellBundle(idx, customer) {
   let totalIncome = mainIncome;
   let bundleText = `${mainItem.name}${mainSold}${mainItem.unit}、${mainIncome}文`;
   let subBought = false;
-  if (subItem && Math.random() < 0.75) {
+  if (subItem && (state.flags.kuroFollowing || Math.random() < 0.75)) {
     // 2品目は確率0.75で成約
     subBought = true;
     const subIdx = state.cargo.indexOf(subItem);
@@ -4244,9 +4316,9 @@ function doSellBundle(idx, customer) {
   showNotify('旅の手帳に記録された');
   const rankAfter = getMerchantRank();
   const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
-  const result = subBought
+  const result = (subBought
     ? `まとめて出すと、${customerName}はうなずいた。<br><br>${bundleText}。合わせて${totalIncome}文。`
-    : `まとめて出したが、${customerName}は${mainItem.name}だけ手に取った。<br><br>${bundleText}。${totalIncome}文。`;
+    : `まとめて出したが、${customerName}は${mainItem.name}だけ手に取った。<br><br>${bundleText}。${totalIncome}文。`) + getKuroCustomerComment(customer);
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
@@ -4282,7 +4354,7 @@ function doSellCharity(idx, price, customer) {
   const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
   // 宿泊テキストに情義フラグを立てる
   state.flags.charityDone = (state.flags.charityDone || 0) + 1;
-  const result = `${customerName}は両手で受け取った。静かに頭を下げて、去った。<br><br>利は出ない。でも、それでいい気がした。`;
+  const result = `${customerName}は両手で受け取った。静かに頭を下げて、去った。<br><br>利は出ない。でも、それでいい気がした。` + getKuroCustomerComment(customer);
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
@@ -4422,10 +4494,14 @@ function openBuy() {
       const stageMsg = 'この宿場では仕入れられるものがなかった。';
       document.getElementById('scene-text').innerHTML =
         '宗吉は宿場の問屋を見て回った。<br><br>' + stageMsg;
-      showChoices([
-        { label: '荷を広げ、通行人に声をかける', fn: '', action: () => openCargo() },
-        { label: '先を急ぐ', fn: '', action: () => goNext() },
-      ]);
+      const maxCargoOpen = getMerchantRank() === 'expert' ? 7 : getMerchantRank() === 'middle' ? 6 : 5;
+      const remaining = maxCargoOpen - state.cargoOpenCount;
+      const noItemsChoices = [];
+      if (remaining > 0) {
+        noItemsChoices.push({ label: `荷を広げ、通行人に声をかける（あと${remaining}回）`, fn: '', action: () => openCargo() });
+      }
+      noItemsChoices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
+      showChoices(noItemsChoices);
       return;
     }
 
@@ -4574,6 +4650,125 @@ function closeBuyPanel() {
   showStageChoices();
 }
 
+// ── クロ（犬）出会い選択肢（沼津12次） ──
+function showKuroEncounter() {
+  // arriveTextはそのまま。scene-textを上書きせず選択肢だけ出す
+  showChoices([
+    { label: '犬を追い払う', fn: '', action: () => {
+      state.flags.kuroDone = true;
+      fadeTransition(() => {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        document.getElementById('scene-text').innerHTML =
+          '石を拾って、投げるふりをした。<br><br>犬は二、三歩退いた。宗吉は先へ歩いた。<br><br>振り返らなかった。';
+        showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
+      });
+    }},
+    { label: 'ほっておく', fn: '', action: () => {
+      state.flags.kuroFollowing = true;
+      fadeTransition(() => {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        document.getElementById('scene-text').innerHTML =
+          'どうせそのうちいなくなるだろう、と思った。<br><br>だが三町ほど歩いても、犬はまだそこにいた。一間ほどの距離を保って、黙ってついてくる。<br><br>宗吉は前を向いた。';
+        showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
+      });
+    }},
+  ]);
+}
+
+// ── クロ（犬）別れシーン（吉原14次） ──
+function showKuroFarewell() {
+  state.flags.kuroDone = true;
+  state.flags.kuroFollowing = false;
+
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    const farewell =
+      '路地の奥から、子供が走ってきた。七つか八つか、着物の裾をはしょったまま、裸足で砂埃を蹴って走ってくる。<br><br>' +
+      '「クロ！」<br><br>' +
+      '犬が走り出した。子供に飛びつき、何度も顔を舐めた。子供は笑いながら、犬の首に抱きついた。<br><br>' +
+      '少し遅れて、母親が路地から出てきた。子供と同じ顔をしていた。宗吉を見て、深く頭を下げた。<br><br>' +
+      '「この子が探し回っていて」と女は言った。「ご迷惑をおかけしました」<br><br>' +
+      '「ついてきたんです、向こうから」<br><br>' +
+      '女はまた頭を下げた。それから少し迷うように懐を探って、包みを取り出した。';
+
+    document.getElementById('scene-text').innerHTML = farewell;
+
+    // 空き容量で渡すものを決める
+    const free = freeVol();
+    let rewardText, rewardAction;
+
+    if (free >= 8) {
+      // 塩鯛2尾
+      rewardText =
+        '竹の皮に包んだ塩鯛だった。吉原の浜で揚がった鯛だと、女は言った。<br><br>' +
+        '「たいしたものじゃないんですが」<br><br>' +
+        '宗吉は受け取った。';
+      rewardAction = () => {
+        const existing = state.cargo.find(c => c.name === '塩鯛');
+        if (existing) {
+          existing.qty += 2;
+        } else {
+          state.cargo.push({ name: '塩鯛', unit: '尾', qty: 2, buy: 0, sell: 30, vol: 8, cat: '食料', origin: [14] });
+        }
+        showNotify('塩鯛 2尾　もらった');
+        showKuroFarewellEnd();
+      };
+    } else if (free >= 2) {
+      // 干し海老1包
+      rewardText =
+        '小さな布包みだった。干し海老だという。吉原の浜で揚がったものだと、女は言った。<br><br>' +
+        '「塩鯛は持って歩くには嵩張るから——これしかなくて、すみません」<br><br>' +
+        '宗吉は受け取った。';
+      rewardAction = () => {
+        const existing = state.cargo.find(c => c.name === '干し海老');
+        if (existing) {
+          existing.qty += 1;
+        } else {
+          state.cargo.push({ name: '干し海老', unit: '包', qty: 1, buy: 0, sell: 16, vol: 2, cat: '食料', origin: [14] });
+        }
+        showNotify('干し海老 1包　もらった');
+        showKuroFarewellEnd();
+      };
+    } else {
+      // 銭30文
+      rewardText =
+        '「塩鯛を持ってきたんですが——お荷物が多そうで」女は少し迷ってから、銭を握らせた。「これだけで申し訳ないですが」<br><br>' +
+        '宗吉は受け取った。';
+      rewardAction = () => {
+        state.money += 30;
+        updateHeader();
+        showNotify('30文　もらった');
+        showKuroFarewellEnd();
+      };
+    }
+
+    showChoices([{ label: '受け取る', fn: '', action: () => {
+      fadeTransition(() => {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        document.getElementById('scene-text').innerHTML = rewardText;
+        showChoices([{ label: '', fn: '', action: rewardAction }]);
+      });
+    }}]);
+  });
+}
+
+function showKuroFarewellEnd() {
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML =
+      '子供が宗吉を見上げた。泣いていなかった。ただまっすぐ見ていた。<br><br>' +
+      '宗吉も何も言わなかった。荷を担ぎ直して、先へ歩いた。<br><br>' +
+      '振り返らなかった。';
+    showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
+  });
+}
+
 // ── 廻船データ ──
 const KAISEN_PORTS = [
   {
@@ -4680,6 +4875,10 @@ function boardKaisen(port) {
   state.flags.kaisenUsed = true;
   state.flags.kaisenStage = port.stage;
   state.flags.tamaRiverDone = true; // 多摩川を経由しないのでフラグを立てる
+  // 新居(31次)を越えて到着する廻船は、おすずとの出会いをスキップ扱いにする
+  if (!state.companionMet && port.stage > 31) {
+    state.flags.companionSkipped = true;
+  }
   updateHeader();
 
   fadeTransition(() => {
@@ -5102,19 +5301,35 @@ function goToInn(selectedCost) {
     // 旅籠か木賃宿かを記録（morningTextの出し分けに使用）
     state.lastInnType = isInn ? 'inn' : 'cheap';
 
+    // ── クロ（犬）：同行中は毎泊、繋ぐ描写を追加 ──
+    const kuroInnFirst = state.flags.kuroFollowing && !state.flags.kuroInnDone;
+    if (kuroInnFirst) {
+      state.flags.kuroInnDone = true;
+    }
+
     if (isInn) {
       // ── 旅籠：夕食描写＋選択肢。帳面は眠る時に表示 ──
       state.innTradeCount = 0;
       document.getElementById('inn-area').classList.add('hidden');
       const baseInnText = sd.innTextInn || '旅籠の中は暖かくて気持ちがいい。';
-      const companionRoomNote = (state.companionActive && !state.flags.companionInnDone)
-        ? '<br><br>帳場で宿の者に声をかけると、「女衆は奥の間にご案内しております」と言った。宿では男女は部屋が分かれる。'
+      const companionRoomNote = (state.companionActive && !state.flags.companionRoomExplained)
+        ? (() => { state.flags.companionRoomExplained = true; return '<br><br>帳場で宿の者に声をかけると、「女衆は奥の間にご案内しております」と言った。宿では男女は部屋が分かれる。'; })()
         : '';
-      const dinnerText = baseInnText + companionRoomNote + '<br><br>今日はこれからどうする？';
+      const kuroInnNote = state.flags.kuroFollowing
+        ? (kuroInnFirst
+          ? '<br><br>旅籠の帳場で宿の者に話すと、「犬は外に繋いでおいてください」と言われた。宗吉は縄を借りて軒先の柱に結んだ。<br><br>夕餉を食べ終えてから、残りの飯を椀に入れて外へ持っていった。犬は宗吉の顔を見て、椀の中身を音を立てずに食べた。'
+          : '<br><br>夕餉を食べ終えてから、残りの飯を外へ持っていった。犬は黙って食べた。')
+        : '';
+      const dinnerText = baseInnText + companionRoomNote + kuroInnNote + '<br><br>今日はこれからどうする？';
       document.getElementById('scene-text').innerHTML = dinnerText;
       showInnChoices();
     } else {
       // ── 木賃宿：食料チェック→夕食描写→帳面＋独白＋翌朝ボタン ──
+      if (state.flags.kuroFollowing) {
+        state._kuroInnCheapNote = kuroInnFirst
+          ? '<br><br>宿の主人が犬を見て、少し眉を上げた。「まあ、外に繋いでおけばいいよ」と言った。宗吉は縄を借りて柱に結んだ。<br><br>飯を食い終えてから、残りを外に持っていった。犬は宗吉の手から直接食べた。夜中に一度、小さく鳴いた。それだけだった。'
+          : '<br><br>飯を食い終えてから、残りを外の犬に持っていった。犬は音を立てずに食べた。';
+      }
       showCheapInnDinner(paid);
     }
   });
@@ -5299,15 +5514,13 @@ function triggerWasuremonoDeliver(fromStage) {
   const ev = INN_EVENTS[fromStage];
   if (!ev) return;
   state.innEventDone[ev.flag] = 'delivering';
-  const nextSd = STAGE_DATA[state.currentStage + 1];
-  const nextLabel = nextSd ? nextSd.name + 'へ向かう' : '先へ進む';
   document.getElementById('scene-text').innerHTML =
     '忘れ物を持って、' + (STAGE_DATA[ev.deliverStage] ? STAGE_DATA[ev.deliverStage].name : '次の宿場') + 'へ向かった。';
-  showChoices([{ label: nextLabel, fn: '', action: () => showStageChoices() }]);
+  showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
 }
 
 // ── 忘れ物の届け先到着チェック（nextStage内から呼ぶ） ──
-function checkWasuremonoReward(stageNum, nextAction) {
+function checkWasuremonoReward(stageNum) {
   const fromStageKey = Object.keys(INN_EVENTS).find(k => {
     const ev = INN_EVENTS[k];
     return ev.type === 'wasuremono' &&
@@ -5388,14 +5601,16 @@ function showCheapInnDinner(paid) {
   }
 
   // 夕食テキストを表示してからおすず会話チェック→帳面へ
-  const companionRoomNote = (state.companionActive && !state.flags.companionInnDone)
-    ? '<br><br>宿の者に確かめると、「女衆は奥にご案内しております」と言った。宿では男女は部屋が分かれる。'
+  const companionRoomNote = (state.companionActive && !state.flags.companionRoomExplained)
+    ? (() => { state.flags.companionRoomExplained = true; return '<br><br>宿の者に確かめると、「女衆は奥にご案内しております」と言った。宿では男女は部屋が分かれる。'; })()
     : '';
+  const kuroNote = state._kuroInnCheapNote || '';
+  if (kuroNote) state._kuroInnCheapNote = null;
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     document.getElementById('inn-area').classList.add('hidden');
-    document.getElementById('scene-text').innerHTML = dinnerText + companionRoomNote;
+    document.getElementById('scene-text').innerHTML = dinnerText + companionRoomNote + kuroNote;
 
     // おすずとの会話選択肢がある場合は帳面の前に挟む
     const companionChoice = getCompanionInnChoice(state.currentStage, () => showInnLedgerAndSleep(paid, false), false);
@@ -5857,7 +6072,7 @@ function showCompanionDecline() {
     document.getElementById('scene-text').innerHTML =
       `「申し訳ないが、急ぎの旅で」<br><br>おすずは少し間を置いてから、うなずいた。「そうですか。……助けていただいただけでも、ありがとうございました」<br><br>おすずは懐を探って、小さな布の袋を取り出した。<br><br>「これ、お守りです。奉公先に来たとき、主人の奥様がくれたもので。旅の安全を祈って作ったって。荷紐まで助けていただいたのに、これしかなくて」<br><br>「いただけません」<br><br>「もらってください」おすずは言った。「わたし、もう帰りだから。宗吉さんはまだ先があるから」<br><br>宗吉は受け取った。小さな守り袋だった。手に収まる大きさで、少し温かかった。<br><br>おすずは頭を下げて、先へ歩いていった。`;
     showNotify('守り袋を受け取った');
-    showChoices([{ label: '白須賀へ向かう', fn: '', action: () => showStageChoices() }]);
+    showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
   });
 }
 
@@ -5973,7 +6188,7 @@ function nextStage() {
     }
 
     // 先を急いで来た場合は時間を進める
-    const canMove = advanceTime();
+    advanceTime();
 
     // 天候を設定（マルコフ遷移）
     state.weather = nextWeather(state.weather, state.currentStage);
@@ -6043,7 +6258,7 @@ function nextStage() {
         }
         document.getElementById('scene-text').innerHTML = combined;
         updateHeader();
-        if (checkWasuremonoReward(state.currentStage, () => showStageChoices())) return;
+        if (checkWasuremonoReward(state.currentStage)) return;
         if (checkEncounterReward()) return;
         if (state.currentStage === 42 && !state.flags.kuwanaFerry) {
           state.flags.kuwanaFerry = true;
@@ -6081,6 +6296,16 @@ function nextStage() {
           }}]);
           return;
         }
+        // 沼津到着（12次）hiru：クロとの出会い割り込み
+        if (state.currentStage === 12 && !state.flags.kuroDone && !state.flags.kuroFollowing) {
+          showChoices([{ label: 'つづける', fn: '', action: () => showKuroEncounter() }]);
+          return;
+        }
+        // 吉原到着（14次）hiru：クロの別れ割り込み
+        if (state.currentStage === 14 && state.flags.kuroFollowing && !state.flags.kuroDone) {
+          showChoices([{ label: 'つづける', fn: '', action: () => showKuroFarewell() }]);
+          return;
+        }
         showStageChoices();
         return;
       }
@@ -6113,7 +6338,7 @@ function nextStage() {
     updateHeader();
 
     // 忘れ物の届け先チェック
-    if (checkWasuremonoReward(state.currentStage, () => showStageChoices())) return;
+    if (checkWasuremonoReward(state.currentStage)) return;
 
     // 身につけ系イベント報酬チェック
     if (checkEncounterReward()) return;
@@ -6155,6 +6380,18 @@ function nextStage() {
           ]);
         });
       }}]);
+      return;
+    }
+
+    // 沼津到着（12次）：クロとの出会い割り込み
+    if (state.currentStage === 12 && !state.flags.kuroDone && !state.flags.kuroFollowing) {
+      showChoices([{ label: 'つづける', fn: '', action: () => showKuroEncounter() }]);
+      return;
+    }
+
+    // 吉原到着（14次）：クロの別れ割り込み（arriveText後に「つづける」で自動発動）
+    if (state.currentStage === 14 && state.flags.kuroFollowing && !state.flags.kuroDone) {
+      showChoices([{ label: 'つづける', fn: '', action: () => showKuroFarewell() }]);
       return;
     }
 
@@ -6248,6 +6485,29 @@ function wakeUpMorning() {
     if (plan) {
       morningText += '<br><br>荷を担ぐ前に、この先の道筋を頭の中で整理した。<br><br>' + plan;
     }
+
+    // クロ同行中：宿タイプ・宿場に応じた朝の描写を追記
+    if (state.flags.kuroFollowing) {
+      const kuroMornings = {
+        inn: {
+          12: '犬は軒先の柱の根元に丸くなっていた。宗吉が出てくると、立ち上がって尻尾を振った。',
+          13: '犬が横に来て、同じ方を向いた。',
+          14: '軒先の犬は、もう目を開けていた。',
+        },
+        cheap: {
+          12: '外に繋いだ縄を解くと、犬は伸びをして宗吉の足元に寄ってきた。',
+          13: '縄を解くと犬はすぐ立ち上がった。腹が減っているはずだが、鳴かなかった。',
+          14: '足音を聞きつけて立ち上がった。縄を解いてやると、一度だけ体を震わせた。',
+        },
+      };
+      const innType = state.lastInnType === 'inn' ? 'inn' : 'cheap';
+      const kuroLine = (kuroMornings[innType] || {})[state.currentStage]
+        || (innType === 'inn'
+          ? '犬は外で待っていた。宗吉が出ると、立ち上がった。'
+          : '縄を解くと、犬は静かに立ち上がった。');
+      morningText += '<br><br>' + kuroLine;
+    }
+
     document.getElementById('scene-text').innerHTML = morningText;
 
     updateHeader();
@@ -6285,11 +6545,14 @@ function wakeUpMorning() {
         return;
       }
     }
+    // 吉原（14次）夜着→翌朝：クロの別れ割り込み
+    if (state.currentStage === 14 && state.flags.kuroFollowing && !state.flags.kuroDone) {
+      showChoices([{ label: 'つづける', fn: '', action: () => showKuroFarewell() }]);
+      return;
+    }
     showStageChoices();
   });
 }
-
-// ── 旅の手帳 ──
 let currentTab = 'stamp';
 
 function openMemo() {
@@ -6804,10 +7067,11 @@ const STAGE_DATA = {
   12: {
     name: '沼津', ji: '第十二次', yomi: 'ぬまづ',
     next: '原', nextJi: '第十三次',
-    arriveText: `沼津の町は川と海に挟まれている。魚の匂いがした。<br><br>沼津は魚問屋の町だ。<br><br>活気がある。同い年くらいの若旦那が、自信たっぷりに値段交渉をしていた。宗吉は少し羨ましかった。`,
+    arriveText: `沼津の町は川と海に挟まれている。魚の匂いがした。<br><br>沼津は魚問屋の町だ。<br><br>活気がある。同い年くらいの若旦那が、自信たっぷりに値段交渉をしていた。宗吉は少し羨ましかった。<br><br>宿場外れで荷を下ろして一息ついていると、黒い犬が一匹、近づいてきた。<br><br>痩せている。首に縄を巻いた跡がある。<br><br>宗吉が立ち上がると、犬も立った。歩くとついてくる。立ち止まると止まる。`,
     travelText: `沼津宿を後にした。<br><br>原まで二里ほど。富士山が正面に見える道だった。`,
     innTextInn: `夕餉に鯵の干物が出た。沼津の港から揚がったものだという。脂が乗って旨かった。<br><br>沼津の旅籠に泊まった。若旦那の姿が頭から離れなかった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯は飯と汁。簡素だが、熱かった。宗吉は食べ終え、外へ出た。`,
+    morningTextCheap: `夜が明けた。<br><br>宿の主人に「荷物は土間に置け」と言われた一夜だった。宗吉は荷を確かめ、外へ出た。`,
     innTextCheap: `沼津の木賃宿に泊まった。<br><br>宿の主人に「荷物は土間に置け」と言われた。断れなかった。一晩中、荷が気になって熟睡できなかった。`,
     innCost: 220,
     cheapCost: 34,
@@ -6815,10 +7079,11 @@ const STAGE_DATA = {
   13: {
     name: '原', ji: '第十三次', yomi: 'はら',
     next: '吉原', nextJi: '第十四次',
-    arriveText: `道が平らになった。風が出てきた。海が近い。<br><br>原宿は小さな宿場だ。<br><br>田子の浦が近く、海の匂いがした。宿場は短いが、富士がよく見える場所として旅人に知られている。`,
-    travelText: `原宿を出た。<br><br>吉原まで三里ほど。田子の浦沿いの道を歩く。`,
+    arriveText: `道が平らになった。風が出てきた。海が近い。<br><br>原宿は小さな宿場だ。<br><br>田子の浦が近く、海の匂いがした。宿場は短いが、富士がよく見える場所として旅人に知られている。<br><br>犬は宗吉の二歩ほど後ろを歩いていた。`,
+    travelText: `原宿を出た。<br><br>吉原まで三里ほど。田子の浦沿いの道を歩く。<br><br>犬が少し先を歩いていた。振り返ることもなく、かといって離れることもない。ちょうど一間ほどの距離を保って、ずっとそこにいた。`,
     innTextInn: `夕餉に干し芋の煮たものが出た。素朴な味だった。田舎の宿らしい。<br><br>原の旅籠に泊まった。富士がよく見えた一日だった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食い終えて外へ出ると、富士が朝日を浴びていた。宗吉はしばらく眺めてから、歩き出した。`,
+    morningTextCheap: `夜が明けた。<br><br>小さな宿で、夕飯が出なかった。腹を鳴らしながら、宗吉は外へ出た。`,
     innTextCheap: `原の木賃宿に泊まった。<br><br>小さな宿で、夕飯が出なかった。横になっても腹が鳴って、眠れなかった。`,
     innCost: 200,
     cheapCost: 28,
@@ -6830,6 +7095,7 @@ const STAGE_DATA = {
     travelText: `吉原宿を出た。<br><br>蒲原まで三里ほど。富士川が近づいてきた。`,
     innTextInn: `夕餉に塩鯛の焼いたものが出た。産地だけあって、身が締まって旨かった。今日は悪くない商売ができた気がした。<br><br>吉原の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>旅籠の朝飯を食べながら、今日の仕入れのことを考えた。蒲原が近い。宗吉は荷を確かめた。`,
+    morningTextCheap: `夜が明けた。<br><br>枕代わりにした荷が固くて首が痛かった。宗吉は外へ出た。`,
     innTextCheap: `吉原の木賃宿に泊まった。<br><br>枕代わりにした荷が固くて、首が痛かった。何度も寝返りを打ったが、朝まで解決しなかった。`,
     innCost: 200,
     cheapCost: 28,
@@ -7315,6 +7581,14 @@ function startFromSave() {
   if (state.companionMet === undefined) state.companionMet = false;
   if (state.companionBag === undefined) state.companionBag = false;
   if (state.companionTalked === undefined) state.companionTalked = {};
+  // companionRoomExplained：旧セーブではcompanionInnDoneで代用
+  if (state.flags.companionRoomExplained === undefined) {
+    state.flags.companionRoomExplained = state.flags.companionInnDone || false;
+  }
+  // クロ（犬）システム（新規フィールド補完）
+  if (state.flags.kuroFollowing === undefined) state.flags.kuroFollowing = false;
+  if (state.flags.kuroDone     === undefined) state.flags.kuroDone     = false;
+  if (state.flags.kuroInnDone  === undefined) state.flags.kuroInnDone  = false;
   // 両替システム（新規フィールド補完）
   if (state.nishuban  === undefined) state.nishuban  = 0;
   if (state.isshukin  === undefined) state.isshukin  = 0;
