@@ -4614,6 +4614,7 @@ function triggerBantouEvent(stageNum) {
           state.innLog.buy += ev.price;
           updateHeader();
           state.innEventDone[ev.flag] = 'done';
+          state.innMode = true;
           fadeTransition(() => {
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
