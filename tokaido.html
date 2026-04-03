@@ -1112,6 +1112,7 @@ const state = {
   justArrived: false,
   lastDinnerItem: null,
   lastInnType: null,
+  horsedToday: false, // 本日馬使用済み
   nishuban:  0,   // 二朱判（枚）
   isshukin:  0,   // 一朱金（枚）
   ichibukin: 0,   // 一分金（枚）
@@ -2776,7 +2777,18 @@ function triggerEnding() {
     `${trueEndScene}<br><br>` +
     `<span style="font-size:11px;opacity:0.45;line-height:2.2;">` +
     `通過した宿場 ${stagesCleared} 次　残り日数 ${state.days} 日　手元金 ${totalMoney().toLocaleString()} 文　商売 ${totalSold} 件　商人ランク：${rankLabel}` +
-    (chosenSv ? `　土産【${SOUVENIR_CLASS_LABEL[svCls]}】${chosenSv.name}` : `　土産なし`) +
+    (() => {
+      const total = SOUVENIR_DATA.length;
+      const collected = state.souvenirs.length;
+      const byClass = { inori: 0, jitsuyo: 0, zeitaku: 0, kinen: 0 };
+      state.souvenirs.forEach(id => {
+        const sv = SOUVENIR_DATA.find(s => s.id === id);
+        if (sv && byClass[sv.cls] !== undefined) byClass[sv.cls]++;
+      });
+      const breakdown = `祈り${byClass.inori} 実用${byClass.jitsuyo} 贅沢${byClass.zeitaku} 記念${byClass.kinen}`;
+      const chosenPart = chosenSv ? `　土産【${SOUVENIR_CLASS_LABEL[svCls]}】${chosenSv.name}（集めた土産：${breakdown} / 全${total}品）` : `　土産なし（集めた土産：${breakdown} / 全${total}品）`;
+      return chosenPart;
+    })() +
     `　エンド評価：${endRating}` +
     `</span>`;
 
@@ -2800,6 +2812,100 @@ function showNotify(msg) {
 // 時間帯ごとの客傾向ヒント
 
 // ── 宿場の共通選択肢を表示 ──
+// ── 駄賃馬システム ──
+// 除外：1品川(廻船)、9小田原(箱根前)、10箱根(峠)、15蒲原(薩埵前)、16由比(薩埵後)、
+//       31新居(渡し・関所)、38岡崎(おすず別れ)、48坂下(鈴鹿前)、53大津(終点)
+const HORSE_STAGES = new Set([
+  2,3,4,5,6,7,8,
+  11,12,13,14,17,18,19,20,21,22,23,24,25,
+  26,27,28,29,30,32,33,34,35,36,37,
+  39,40,41,42,43,44,45,46,47,
+  49,50,51,52
+]);
+const HORSE_COST = 120;
+
+function rideHorse() {
+  if (state.money < HORSE_COST) { showNotify('銭が足りない'); return; }
+  if (state.horsedToday) { showNotify('今日はもう馬を使った'); return; }
+  state.horsedToday = true;
+  state.money -= HORSE_COST;
+  state.innLog.buy += HORSE_COST;
+  updateHeader();
+
+  const nextStageName = STAGE_DATA[state.currentStage + 1]
+    ? STAGE_DATA[state.currentStage + 1].name : '次の宿場';
+
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    document.getElementById('scene-text').innerHTML =
+      `馬を借りた。荷を鞍に括りつけ、手綱を引いて歩いた。<br><br>足は楽だったが、景色が流れるのが少し惜しかった。`;
+
+    state.memos.shobai.push({ stage: stageName(), text: `馬で${nextStageName}へ。${HORSE_COST}文。` });
+    recordVisit(state.currentStage, `馬で${nextStageName}へ向かった。`);
+
+    showChoices([{ label: `${nextStageName}へ向かう`, fn: '', action: () => nextStageByHorse() }]);
+  });
+}
+
+function nextStageByHorse() {
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    state.currentStage += 1;
+    state.commerceDone = false;
+    state.innTradeCount = 0;
+    state.innMode = false;
+    // 時間は進めない（advanceTime()を呼ばない）
+    state.weather = nextWeather(state.weather, state.currentStage);
+    recordVisit(state.currentStage, '馬で到着');
+
+    // 京都到達チェック
+    if (state.currentStage > 53) {
+      if (state.souvenirChosen === null) {
+        showSouvenirChoice();
+      } else {
+        triggerEnding();
+      }
+      return;
+    }
+
+    const sd = currentStageData();
+    document.getElementById('stage-name').textContent = sd.name;
+    document.getElementById('inn-area').classList.add('hidden');
+    document.getElementById('cargo-panel').style.display = 'none';
+
+    const stageKey = STAGE_FILENAMES[state.currentStage];
+    if (stageKey) {
+      const illusImg = document.getElementById('illus-img');
+      illusImg.style.opacity = '0';
+      illusImg.onload = () => { illusImg.style.opacity = '0.9'; };
+      illusImg.onerror = () => { illusImg.style.opacity = '0.9'; };
+      illusImg.src = shukubaUrl(state.currentStage, stageKey);
+    }
+    preloadNextImages(state.currentStage);
+
+    // 渡し賃・川越え料金
+    const ferryEntry = FERRY_COST[state.currentStage];
+    if (ferryEntry) {
+      const paid = Math.min(ferryEntry.cost, state.money);
+      state.money -= paid;
+      state.innLog.buy += paid;
+      updateHeader();
+    }
+
+    let arriveBody = sd.arriveText || (sd.name + '宿に着いた。');
+    arriveBody += getFujiNote(state.currentStage, state.weather);
+    arriveBody += getWeatherBodyNote(state.weather, state.currentStage);
+
+    document.getElementById('scene-text').innerHTML = arriveBody;
+    updateHeader();
+    showStageChoices();
+  });
+}
+
 function showStageChoices() {
   const maxCargoOpen = getMerchantRank() === 'expert' ? 7 : getMerchantRank() === 'middle' ? 6 : 5;
   const remaining = maxCargoOpen - state.cargoOpenCount;
@@ -2915,6 +3021,12 @@ function showStageChoices() {
       }});
     }
     choices.push({ label: '宿を取る', fn: '', action: () => selectInn() });
+    // 駄賃馬（対応宿場・おすず同行中は不可・1日1回）
+    if (HORSE_STAGES.has(state.currentStage) && !state.companionActive && state.currentStage < 53) {
+      if (!state.horsedToday && state.money >= HORSE_COST) {
+        choices.push({ label: `馬を借りて次の宿場へ（${HORSE_COST}文）`, fn: '', action: () => rideHorse() });
+      }
+    }
     choices.push({ label: '先を急ぐ', fn: '', action: () => goNext() });
   } else {
     // 夜は移動不可・宿の主人にのみ販売可
@@ -4453,6 +4565,7 @@ function arriveByKaisen(port) {
   state.timeSlot = 'asa';
   // innLogリセット（宿泊分の帳面は不要）
   state.innLog = { income: 0, buy: 0, inn: 0 };
+  state.horsedToday = false;
 
   // 日数切れチェック
   if (state.days <= 0) {
@@ -5864,6 +5977,7 @@ function wakeUpMorning() {
     state.innMode = false;
     state.innTradeCount = 0;
     state.cargoOpenCount = 0;
+    state.horsedToday = false;
     state.justArrived = false;
 
     // 日数切れチェック（セーブロード後の安全弁）
