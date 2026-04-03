@@ -1803,6 +1803,29 @@ function callCustomer() {
   const showRequest = !customer.fixed;
   const rank = getMerchantRank();
   const hintText = (customer.hint && rank !== 'novice') ? `<br><br><span style="font-size:13px;opacity:0.65;font-style:italic;">${customer.hint}</span>` : '';
+
+  // おすずの客引き描写（同行中のみ）→ scene-textに表示
+  let osuzuCallLine = '';
+  if (state.companionActive) {
+    const osuzuCalls = {
+      rain:   'おすずが軒先から身を乗り出して、足を止めた客に声をかけた。',
+      snow:   'おすずが「よろしければ」と、軒下で立ち止まった客に話しかけた。',
+      cloudy: 'おすずが通りかかった客に、ためらわず声をかけた。',
+    };
+    const osuzuCallsSunny = {
+      asa:  'おすずが往来に向かって、はきはきと声を張った。「いい品がありますよ」',
+      hiru: 'おすずが人混みの中から目ざとく客を見つけて、声をかけた。',
+      yuu:  'おすずが「もう少しで店仕舞いですよ」と、行き交う人に声を投げかけた。',
+    };
+    if (state.weather === 'sunny') {
+      osuzuCallLine = osuzuCallsSunny[state.timeSlot] || 'おすずが通りかかった客に声をかけた。';
+    } else {
+      osuzuCallLine = osuzuCalls[state.weather] || 'おすずが通りかかった客に声をかけた。';
+    }
+  }
+  const osuzuCallPrefix = osuzuCallLine ? osuzuCallLine + '<br><br>' : '';
+  document.getElementById('scene-text').innerHTML = osuzuCallPrefix;
+
   el.innerHTML = `<div style="padding:16px 0 8px;font-size:15px;line-height:2;color:#e8d880;">${customer.intro}${showRequest ? '<br><br>' + request : ''}${hintText}</div>`;
   el.classList.remove('hidden');
   hint.style.display = 'block';
@@ -2475,7 +2498,9 @@ function customerPct() {
   // 熟練度ボーナス：客の呼び込み方・立ち方が変わる
   const rank = getMerchantRank();
   const rankBonus = rank === 'expert' ? 0.10 : rank === 'middle' ? 0.05 : 0.0;
-  return Math.min(0.98, config.basePct * weatherMod + rankBonus);
+  // おすずボーナス：客引きで客が寄りやすくなる
+  const osuzuBonus = state.companionActive ? 0.08 : 0.0;
+  return Math.min(0.98, config.basePct * weatherMod + rankBonus + osuzuBonus);
 }
 
 
@@ -3770,10 +3795,25 @@ function startSell(idx, customer) {
       ? `<br><br><span style="font-size:13px;opacity:0.7;font-style:italic;">——${customer.reads[readsIdx]}</span>`
       : '';
 
+    // おすずの後押し台詞（同行中のみ）→ scene-textに直接追記
+    const osuzuPushLines = {
+      A: 'おすずが小声で「この品、遠くから運んできたんですよ」と添えた。',
+      B: 'おすずがさっと品を取り出して、客の前に差し出した。',
+      C: 'おすずが「手触りを見てやってください」と、客に向かって言った。',
+      D: 'おすずが「ほかにも合う品がありますよ」と、荷に目をやった。',
+      E: 'おすずが客の顔を見て、少し目を細めた。',
+    };
+    const osuzuPushLine = (state.companionActive && ctype && osuzuPushLines[ctype])
+      ? osuzuPushLines[ctype]
+      : (state.companionActive && !ctype)
+        ? 'おすずの目が「行っちゃえ」と言っている。'
+        : '';
+    const osuzuPushSuffix = osuzuPushLine ? '<br><br>' + osuzuPushLine : '';
+
     // ── 不慣れ：全客に通常3択（品川女将含む） ──
     if (rank === 'novice' || !ctype || !customer) {
       document.getElementById('scene-text').innerHTML =
-        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
+        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}${osuzuPushSuffix}`;
       showChoices([
         { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
         { label: `一${item.unit}${sellNow}文（相場値）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
@@ -3789,7 +3829,7 @@ function startSell(idx, customer) {
       const offerPrice = Math.round(sellNow * (customer.offerRate || 0.85));
       const offerStr = customer.offerText ? customer.offerText(item.name) : `「もう少し負けてくれ」`;
       document.getElementById('scene-text').innerHTML =
-        `${offerStr}${readText}<br><br>どう出るか。　${priceHint}`;
+        `${offerStr}${readText}<br><br>どう出るか。　${priceHint}${osuzuPushSuffix}`;
       showChoices([
         { label: `${offerPrice}文で応じる（捌く）`,              fn: '', action: () => doSellOffer(idx, offerPrice, customer) },
         { label: `一${item.unit}${sellNow}文（相場値）`,           fn: '', action: () => doSell(idx, sellNow,    customer) },
@@ -3801,7 +3841,7 @@ function startSell(idx, customer) {
     // 型B（即決）：「すぐ出す」が選択肢に加わる（標準価格・確実成約）
     if (ctype === 'B') {
       document.getElementById('scene-text').innerHTML =
-        `${item.name}が欲しいという。急いでいる。${readText}<br><br>値段をどうするか。　${priceHint}`;
+        `${item.name}が欲しいという。急いでいる。${readText}<br><br>値段をどうするか。　${priceHint}${osuzuPushSuffix}`;
       showChoices([
         { label: `すぐ出す（${sellNow}文・間違いなし）`,      fn: '', action: () => doSellImmediate(idx, sellNow, customer) },
         { label: `一${item.unit}${priceHigh}文（強気）`, fn: '', action: () => doSell(idx, priceHigh, customer) },
@@ -3813,7 +3853,7 @@ function startSell(idx, customer) {
     // 型C（品定め）：価格固定・アピール方法を選ぶ
     if (ctype === 'C') {
       document.getElementById('scene-text').innerHTML =
-        `${item.name}が欲しいという。${readText}<br><br>見せ方次第。値は相場通り。　${priceHint}`;
+        `${item.name}が欲しいという。${readText}<br><br>見せ方次第。値は相場通り。　${priceHint}${osuzuPushSuffix}`;
       showChoices([
         { label: '産地・由来を話す',   fn: '', action: () => doSellPitch(idx, 'origin',  customer) },
         { label: '使い勝手を説明する', fn: '', action: () => doSellPitch(idx, 'usage',   customer) },
@@ -3828,7 +3868,7 @@ function startSell(idx, customer) {
       const available = state.cargo.filter(i => i.qty > 0 && !(i.origin && i.origin.includes(state.currentStage)));
       const canBundle = available.length >= 2;
       document.getElementById('scene-text').innerHTML =
-        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
+        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}${osuzuPushSuffix}`;
       const choices = [
         { label: `一${item.unit}${priceLow}文（安値）`,  fn: '', action: () => doSell(idx, priceLow,  customer) },
         { label: `一${item.unit}${sellNow}文（相場値）`,   fn: '', action: () => doSell(idx, sellNow,   customer) },
@@ -3845,7 +3885,7 @@ function startSell(idx, customer) {
     if (ctype === 'E') {
       const priceGen = Math.round(item.buy * 1.0); // 原価
       document.getElementById('scene-text').innerHTML =
-        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}`;
+        `${item.name}が欲しいという。${readText}<br><br>値段をどうするか。　${priceHint}${osuzuPushSuffix}`;
       showChoices([
         { label: `一${item.unit}${sellNow}文（相場値）`,      fn: '', action: () => doSell(idx, sellNow, customer) },
         { label: `一${item.unit}${priceLow}文（安値）`,     fn: '', action: () => doSell(idx, priceLow, customer) },
@@ -3873,7 +3913,9 @@ function doSell(idx, price, customer) {
   // 購入確率
   const sellNow = currentSellPrice(item);
   const probKey = price < sellNow ? 'low' : price === sellNow ? 'mid' : 'high';
-  const prob = customer ? customer.prob[probKey] : { low: 1.0, mid: 0.85, high: 0.45 }[probKey];
+  let prob = customer ? customer.prob[probKey] : { low: 1.0, mid: 0.85, high: 0.45 }[probKey];
+  // おすずの後押し：成約確率+15%
+  if (state.companionActive) prob = Math.min(1.0, prob * 1.15);
   const bought = Math.random() < prob;
 
   let sold, result;
@@ -4114,7 +4156,9 @@ function doSellPitch(idx, pitchType, customer) {
                   : pitchType === 'usage'  ? (isUsageMatch  ? 0.20 : 0.0)
                   : 0.0;
   const baseProb = customer ? customer.prob['mid'] : 0.85;
-  const prob = Math.min(1.0, baseProb + bonusProb);
+  // おすずの後押し：成約確率+15%
+  const osuzuPitchBonus = state.companionActive ? baseProb * 0.15 : 0.0;
+  const prob = Math.min(1.0, baseProb + bonusProb + osuzuPitchBonus);
   const bought = Math.random() < prob;
   const pitchText = pitchType === 'origin'
     ? `産地の話をした。${isOriginMatch ? '産地から来た品だと話すと、客の目が変わった。' : '遠くから運んできた品だと話した。'}`
@@ -4451,10 +4495,24 @@ function doBuy(itemIdx) {
     const isDiscount = item.origin && item.origin.length > 0 && getBuyMultiplier(item) < 1.0;
     const discountNote = isDiscount ? '　<span style="color:#e8c040;font-size:11px;">産地値引き</span>' : '';
 
+    // おすずの「もっと負けなよ」台詞（同行中のみ）
+    const osuzuNegotiateLines = [
+      'おすずが主人の顔を見て、「もう少し負けてもらえませんか」と言った。主人は苦笑いした。',
+      '「この人、江戸からずっと歩いてきたんですよ」とおすずが言う。',
+      'おすずが小首をかしげて、「もうちょっとまけてくれませんか」と言った。',
+      '「遠いところから来てるんです。少し色をつけてもらえませんか」とおすずが言う。',
+    ];
+    const osuzuNegotiateText = state.companionActive
+      ? '<br><br>' + osuzuNegotiateLines[Math.floor(Math.random() * osuzuNegotiateLines.length)]
+      : '';
+    // おすずボーナス：仕入れ値5%引き
+    const effectiveBuyPrice = state.companionActive ? Math.max(1, Math.floor(buyPrice * 0.95)) : buyPrice;
+    const discountEffective = state.companionActive ? `<span style="color:#e8c040;font-size:11px;">　おすず値引</span>` : '';
+
     document.getElementById('scene-text').innerHTML =
-      `${item.name}　${buyPrice}文/${item.unit}${discountNote}<br><br>` +
+      `${item.name}　${effectiveBuyPrice}文/${item.unit}${discountNote}${discountEffective}<br><br>` +
       `所持金：${state.money.toLocaleString()}文　荷の空き：${freeVol()} / ${state.maxVol}${rawMoneyVol() > 0 ? "（銭" + state.money.toLocaleString() + "文分含む）" : ""}<br><br>` +
-      `何${item.unit}仕入れますか？`;
+      `何${item.unit}仕入れますか？` + osuzuNegotiateText;
 
     // 1〜maxQtyの選択肢を生成（最大3択＋やめる）
     const steps = maxQty <= 3
@@ -4462,9 +4520,9 @@ function doBuy(itemIdx) {
       : [1, Math.floor(maxQty/2), maxQty].filter((v,i,a) => a.indexOf(v) === i);
 
     const choices = steps.map(n => ({
-      label: `${n}${item.unit}（${buyPrice * n}文）`,
+      label: `${n}${item.unit}（${effectiveBuyPrice * n}文）`,
       fn: '',
-      action: () => confirmBuy(itemIdx, n)
+      action: () => confirmBuy(itemIdx, n, effectiveBuyPrice)
     }));
     choices.push({ label: 'やめる', fn: '', action: () => openBuy() });
     showChoices(choices);
@@ -4472,9 +4530,9 @@ function doBuy(itemIdx) {
 }
 
 // ── 仕入れ確定 ──
-function confirmBuy(itemIdx, qty) {
+function confirmBuy(itemIdx, qty, overridePrice) {
   const item = window.__buyItems[itemIdx];
-  const buyPrice = currentBuyPrice(item);
+  const buyPrice = overridePrice !== undefined ? overridePrice : currentBuyPrice(item);
   const total = buyPrice * qty;
 
   if (state.money < total) { showNotify('所持金が足りない'); return; }
