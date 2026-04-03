@@ -56,11 +56,12 @@
     isolation: isolate; /* Safari: stickyのスタッキングコンテキスト問題対策 */
     background: #0a0900;
     border-bottom: 1px solid rgba(200,160,40,.28);
-    padding: 10px 16px;
+    padding: 10px 16px 6px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 4px 8px;
   }
 
   #header-title {
@@ -510,6 +511,64 @@
 
   #memo-overlay.open { display: block; }
 
+  /* ── 所持品確認パネル ── */
+  #cargo-view-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 85%;
+    max-width: 380px;
+    height: 100%;
+    background: #0e0c00;
+    border-left: 1px solid rgba(200,160,40,.28);
+    z-index: 600;
+    transition: right 0.26s ease;
+    display: none;
+    flex-direction: column;
+  }
+
+  #cargo-view-panel.open { display: flex; right: 0; }
+
+  #cargo-view-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 599;
+  }
+
+  #cargo-view-overlay.open { display: block; }
+
+  #cargo-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(200,160,40,.28);
+    flex-shrink: 0;
+  }
+
+  #cargo-view-header-title {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: #e8c040;
+  }
+
+  #cargo-view-close {
+    background: none;
+    border: none;
+    color: #e8c040;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+
+  #cargo-view-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
   /* ── セーブ／ロード モーダル ── */
   #start-modal {
     display: none;
@@ -835,7 +894,6 @@
 
 <!-- ヘッダー -->
 <div id="header">
-  
   <div id="header-stats">
     <div class="stat">
       <span class="stat-label">残り日数</span>
@@ -853,7 +911,7 @@
   <div id="header-icons">
     <button class="icon-btn" onclick="openMap()">地図</button>
     <button class="icon-btn" onclick="openMemo()">旅の手帳</button>
-
+    <button class="icon-btn" onclick="viewCargo()">荷</button>
   </div>
 </div>
 
@@ -934,6 +992,14 @@
 
 <!-- 旅の手帳 -->
 <div id="memo-overlay" onclick="closeMemo()"></div>
+<div id="cargo-view-overlay" onclick="closeCargoView()"></div>
+<div id="cargo-view-panel">
+  <div id="cargo-view-header">
+    <div id="cargo-view-header-title">◆ 所持品</div>
+    <button id="cargo-view-close" onclick="closeCargoView()">✕</button>
+  </div>
+  <div id="cargo-view-content"></div>
+</div>
 
 <!-- 地図オーバーレイ -->
 <div id="map-overlay" onclick="handleMapOverlayClick(event)">
@@ -1046,6 +1112,10 @@ const state = {
   justArrived: false,
   lastDinnerItem: null,
   lastInnType: null,
+  nishuban:  0,   // 二朱判（枚）
+  isshukin:  0,   // 一朱金（枚）
+  ichibukin: 0,   // 一分金（枚）
+  ryogaeVisited: { 9: false, 19: false, 29: false, 38: false, 41: false, 47: false, 53: false },
 };
 
 const timeLabels   = { asa: '朝', hiru: '昼', yuu: '夕', yoru: '夜' };
@@ -1262,7 +1332,7 @@ const WEATHER_TRANSITION = {
 const WEATHER_REGION_BIAS = [
   { from:  1, to: 10, bias: { sunny: 0.8, cloudy: 1.2, rain: 1.0, snow: 1.5 } },
   { from: 11, to: 20, bias: { sunny: 0.9, cloudy: 1.1, rain: 1.3, snow: 0.9 } },
-  { from: 21, to: 35, bias: { sunny: 1.3, cloudy: 0.9, rain: 0.9, snow: 0.4 } },
+  { from: 21, to: 35, bias: { sunny: 1.3, cloudy: 0.9, rain: 0.9, snow: 0.1 } },
   { from: 36, to: 53, bias: { sunny: 1.0, cloudy: 1.2, rain: 1.1, snow: 1.0 } },
 ];
 
@@ -1316,8 +1386,8 @@ const CUSTOMERS = [
     hint: '荷物は少ない。旅慣れた様子で、品を見る目がある。',
     reads: [
       '',
-      '財布は重そうだ。品を見る目がある。',
-      '財布は重そうだ。品を見る目がある。何を強調するかで、印象が変わる相手だ。',
+      '巾着は重そうだ。品を見る目がある。',
+      '巾着は重そうだ。品を見る目がある。何を強調するかで、印象が変わる相手だ。',
     ],
     wants: ['女性向け', '食料', '嗜好品'],
     prob: { low: 1.0, mid: 0.9, high: 0.65 },
@@ -1345,11 +1415,11 @@ const CUSTOMERS = [
     name: '武士',
     ctype: 'A',
     intro: '「ちと、見せてみよ」と通りがかりの武士が立ち止まった。',
-    hint: '身なりは整っているが、財布に手を当てる素振りはない。値段には敏感そうだ。',
+    hint: '身なりは整っているが、巾着に手を当てる素振りはない。値段には敏感そうだ。',
     reads: [
       '',
-      '財布には手を当てない。値段を見ている。',
-      '財布には手を当てない。値段を見ている。ただ、気に入れば買う——その顔だ。',
+      '巾着には手を当てない。値段を見ている。',
+      '巾着には手を当てない。値段を見ている。ただ、気に入れば買う——その顔だ。',
     ],
     wants: ['食料', '調味料', '嗜好品'],
     prob: { low: 1.0, mid: 0.8, high: 0.1 },
@@ -1414,7 +1484,7 @@ const CUSTOMERS = [
     reads: [
       '',
       '息を切らしている。急いでいる。',
-      '息を切らしている。急いでいる。迷わせれば走り去る——すぐ出せば標準で確実に売れる。',
+      '息を切らしている。急いでいる。迷わせれば走り去る——すぐ出せば相場値で確実に売れる。',
     ],
     wants: ['旅道具', '食料'],
     prob: { low: 1.0, mid: 0.95, high: 0.55 },
@@ -1425,11 +1495,11 @@ const CUSTOMERS = [
     name: '商家の女中',
     ctype: 'C',
     intro: '「奥様に頼まれていて」と、小柄な女が言った。',
-    hint: '買い物かごを下げている。主人の財布で買うのか、値段をあまり気にしていない様子だ。',
+    hint: '買い物かごを下げている。主人の巾着から出すのか、値段をあまり気にしていない様子だ。',
     reads: [
       '',
-      '主人の財布で買っている。値段はあまり気にしていない。',
-      '主人の財布で買っている。値段はあまり気にしていない。品の説明次第で、印象が変わる相手だ。',
+      '主人の巾着から出している。値段はあまり気にしていない。',
+      '主人の巾着から出している。値段はあまり気にしていない。品の説明次第で、印象が変わる相手だ。',
     ],
     wants: ['女性向け', '食料', '調味料', '嗜好品'],
     prob: { low: 1.0, mid: 0.9, high: 0.75 },
@@ -1444,7 +1514,7 @@ const CUSTOMERS = [
     reads: [
       '',
       '着物は丁寧に手入れされている。金はあるが、使い方に厳しい。',
-      '着物は丁寧に手入れされている。金はあるが、使い方に厳しい。標準と応じるが拮抗する相手だ。',
+      '着物は丁寧に手入れされている。金はあるが、使い方に厳しい。相場値なら応じるが、値の折り合いに時間がかかる相手だ。',
     ],
     wants: ['食料', '女性向け', '薬', '嗜好品'],
     prob: { low: 1.0, mid: 0.8, high: 0.2 },
@@ -1537,7 +1607,7 @@ const CUSTOMERS = [
     reads: [
       '',
       '同業者の目だ。相場を知っている。',
-      '同業者の目だ。相場を知っている。標準では渋る可能性が高い——応じるか見極めが必要だ。',
+      '同業者の目だ。相場を知っている。相場値では渋る可能性が高い——応じるか見極めが必要だ。',
     ],
     wants: ['薬', '旅道具', '食料'],
     prob: { low: 1.0, mid: 0.75, high: 0.3 },
@@ -1970,7 +2040,7 @@ const INN_EVENTS = {
   },
   22: {
     type: 'cheapMorning', flag: 'fujieda_youngMerchant',
-    morningText: `目を開けると、隣で眠っていた若い男がまだいた。荷の大きさが宗吉と似ている。行商人だとすぐにわかった。<br><br>男の方から声をかけてきた。「どこから来た」「江戸から。京まで行く」「京まで？」男は少し目を丸くした。「おれは三島で引き返す。江戸の問屋に戻さないといけない荷がある」<br><br>商売の話をした。失敗した話も、少しうまくいった話も。男は黙って聞いていた。<br><br>宗吉が客のことを話すと、男がぽつりと言った。「おれはまだ、客の顔をちゃんと見られない。声をかけられると、つい品の話ばかりしてしまう」<br><br>「おれも同じだ」と宗吉は言った。<br><br>夜が更けた。朝、男はもう出発していた。名前も聞かなかった。`,
+    morningText: `目を開けると、隣で眠っていた若い男がまだいた。荷の大きさが宗吉と似ている。行商人だとすぐにわかった。<br><br>男の方から声をかけてきた。「どこから来た」「江戸から。京まで行く」「京まで？」男は少し目を丸くした。「おれは掛川で引き返す。江戸の問屋に戻さないといけない荷がある」<br><br>商売の話をした。失敗した話も、少しうまくいった話も。男は黙って聞いていた。<br><br>宗吉が客のことを話すと、男がぽつりと言った。「おれはまだ、客の顔をちゃんと見られない。声をかけられると、つい品の話ばかりしてしまう」<br><br>「おれも同じだ」と宗吉は言った。<br><br>夜が更けた。朝、男はもう出発していた。名前も聞かなかった。`,
   },
 };
 
@@ -2253,9 +2323,21 @@ function currentVol() {
   return state.cargo.reduce((sum, item) => sum + item.vol * item.qty, 0);
 }
 
-// ── 空き容量 ──
+// ── 銭の嵩（表示用・上限なし）──
+function rawMoneyVol() {
+  return Math.floor(state.money / 100);
+}
+
+// ── 銭の嵩（荷計算用・商品嵩を除いたmaxVolを超えない）──
+function moneyVol() {
+  const raw = rawMoneyVol();
+  const cargoUsed = currentVol();
+  return Math.min(raw, Math.max(0, state.maxVol - cargoUsed));
+}
+
+// ── 空き容量（商品＋銭の嵩を差し引く）──
 function freeVol() {
-  return state.maxVol - currentVol();
+  return state.maxVol - currentVol() - moneyVol();
 }
 
 
@@ -2464,12 +2546,21 @@ function showChoices(choices) {
 
 function updateHeader() {
   document.getElementById('stat-days').textContent  = state.days + '日';
+  // ヘッダー：銭のみ表示
   document.getElementById('stat-money').textContent = state.money.toLocaleString() + '文';
   document.getElementById('stat-time').textContent  = timeLabels[state.timeSlot];
   document.getElementById('weather-icon').textContent = weatherIcons[state.weather];
   const rem = Math.max(0, 53 - state.currentStage);
   document.getElementById('stage-remaining').textContent = rem > 0 ? 'あと' + rem + '次' : '終点';
   applyWeatherEffect(state.weather);
+}
+
+// 総所持金（銭換算）。エンディング条件・評価にのみ使用
+function totalMoney() {
+  return state.money
+       + state.nishuban  * 750
+       + state.isshukin  * 1500
+       + state.ichibukin * 6000;
 }
 
 // ── 商人熟練度 ──
@@ -2524,16 +2615,16 @@ function triggerEnding() {
   const svCls = chosenSv ? chosenSv.cls : null;
 
   // ── 真のエンド判定 ──
-  // 土産あり × 所持金1500文以上 × 熟練（35件以上）
-  const isTrueEnd = chosenSv && state.money >= 1500 && rank === 'expert';
+  // 土産あり × 総所持金1500文以上 × 熟練（35件以上）
+  const isTrueEnd = chosenSv && totalMoney() >= 1500 && rank === 'expert';
 
-  // ── おみつのセリフ（所持金×熟練度） ──
+  // ── おみつのセリフ（総所持金×熟練度） ──
   let omitsuLine;
-  if (state.money >= 2000) {
+  if (totalMoney() >= 2000) {
     omitsuLine = rank === 'expert'
       ? '兄さん、変わったね。——目が、変わった。'
       : '兄さん、変わったね。——顔つきが、違う。';
-  } else if (state.money <= 200) {
+  } else if (totalMoney() <= 200) {
     omitsuLine = rank === 'expert'
       ? '兄さん、変わったね。——苦労したの、顔に出てる。でも、なんか違う。'
       : '兄さん、変わったね。——苦労したの、顔に出てる。';
@@ -2549,7 +2640,7 @@ function triggerEnding() {
     : `宗吉は何も言えなかった。`;
 
   // ── おみつが手元の金に気づく一節（贅沢土産かつ高収入） ──
-  const richAndZeitaku = state.money >= 2000 && svCls === 'zeitaku';
+  const richAndZeitaku = totalMoney() >= 2000 && svCls === 'zeitaku';
   const richNotice = richAndZeitaku
     ? `おみつはふと宗吉の顔を見た。何かに気づいたような顔をした。<br><br>「……ずいぶん稼いだんだね」と言った。「旅の間、ずっと商売してたの？」<br><br>「まあ」<br><br>おみつは少し黙った。「兄さん、商売人みたいな顔になってる」と言った。「前はそんな顔じゃなかった」<br><br>宗吉は何も言わなかった。おみつが笑った。「褒めてるんだよ」と言った。<br><br>`
     : '';
@@ -2562,7 +2653,7 @@ function triggerEnding() {
     if (svCls === 'inori') {
       if (chosenSv.id === 'mamori') {
         souvenirScene += `おみつは受け取って、表と裏をゆっくり見た。それから宗吉の顔を見た。<br><br>「藤沢で買ったの？」<br><br>「ああ」<br><br>おみつはまた札を見た。「ずっと持ってきてくれたんだ」と言った。泣きはしなかった。でも声が少し詰まっていた。<br><br>「ありがとう、兄さん」`;
-        if (state.money <= 200) souvenirScene += `<br><br>「兄さん、無理したでしょ」<br><br>宗吉は首を振った。おみつは、それ以上聞かなかった。`;
+        if (totalMoney() <= 200) souvenirScene += `<br><br>「兄さん、無理したでしょ」<br><br>宗吉は首を振った。おみつは、それ以上聞かなかった。`;
         if (rank === 'expert') souvenirScene += `<br><br>声が詰まっていた。泣いていないのに、泣いているのと同じ顔だった。宗吉はそれを、ただ見ていた。`;
       } else if (chosenSv.id === 'mishima') {
         souvenirScene += `おみつは土鈴を受け取って、そっと振った。かすかな音がした。<br><br>「三嶋大社の？」<br><br>「ああ。箱根の先で、立ち寄った」<br><br>おみつはもう一度振った。「かわいい」と言った。しばらくして「こういうの、初めてもらった」と言った。<br><br>宗吉は何も言わなかった。おみつが喜ぶ顔を、ただ見ていた。`;
@@ -2601,7 +2692,7 @@ function triggerEnding() {
         if (rank === 'expert') souvenirScene += `<br><br>その顔の意味を、宗吉はわかる気がした。`;
       }
     } else if (svCls === 'zeitaku') {
-      if (state.money >= 2000) {
+      if (totalMoney() >= 2000) {
         if (chosenSv.id === 'arima') {
           souvenirScene += `おみつは布を受け取った。両手で持って、光に透かした。<br><br>「有松絞り……？」<br><br>しばらく何も言わなかった。それから顔を上げて、宗吉を見た。「どうしたの、これ」<br><br>「鳴海で買った」<br><br>「高かったでしょ」<br><br>「まあ」<br><br>おみつは布をもう一度見た。畳んで、また広げた。「こんなもの、もらっていいの」と言った。笑っていなかった。ただ、真剣な顔で布を見ていた。<br><br>「いい」と宗吉は言った。<br><br>おみつは少し間を置いてから「ありがとう」と言った。声が、少し違った。`;
           if (rank === 'expert') souvenirScene += `<br><br>「ありがとう」と言うとき、おみつは布をぎゅっと持った。その手の力加減が、言葉より多くのことを言っていた。`;
@@ -2684,7 +2775,7 @@ function triggerEnding() {
     `${chichiNote}` +
     `${trueEndScene}<br><br>` +
     `<span style="font-size:11px;opacity:0.45;line-height:2.2;">` +
-    `通過した宿場 ${stagesCleared} 次　残り日数 ${state.days} 日　手元金 ${state.money.toLocaleString()} 文　商売 ${totalSold} 件　商人ランク：${rankLabel}` +
+    `通過した宿場 ${stagesCleared} 次　残り日数 ${state.days} 日　手元金 ${totalMoney().toLocaleString()} 文　商売 ${totalSold} 件　商人ランク：${rankLabel}` +
     (chosenSv ? `　土産【${SOUVENIR_CLASS_LABEL[svCls]}】${chosenSv.name}` : `　土産なし`) +
     `　エンド評価：${endRating}` +
     `</span>`;
@@ -2719,6 +2810,11 @@ function showStageChoices() {
       choices.push({ label: `荷を広げ、通行人に声をかける（あと${remaining}回）`, fn: '', action: () => openCargo() });
     }
     choices.push({ label: '仕入れを探す', fn: '', action: () => openBuy() });
+    // 両替商のある宿場では選択肢を追加
+    const RYOGAE_STAGES = [9, 19, 29, 38, 41, 47, 53];
+    if (RYOGAE_STAGES.includes(state.currentStage)) {
+      choices.push({ label: '両替商に寄る', fn: '', action: () => showRyogaeScene() });
+    }
     // 神奈川：伝言を持っている＆まだ庄兵衛に会っていない
     if (state.currentStage === 3 && state.flags.kamiDone && !state.flags.shobeeDone) {
         choices.push({ label: '升屋・庄兵衛を訪ねる', fn: '', action: () => showShobeeScene() });
@@ -2894,11 +2990,12 @@ function checkEncounterReward() {
   if (!enc) return false;
   if (!state.flags[enc.wearFlag]) return false;  // 身につけていない
   if (state.flags[enc.rewardFlag]) return false;  // 既に報酬済み
-  // 報酬シーン表示
+  // 報酬シーン：arriveTextの後に追記する形で表示
   state.flags[enc.rewardFlag] = true;
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
-  document.getElementById('scene-text').innerHTML = enc.rewardText;
+  const current = document.getElementById('scene-text').innerHTML;
+  document.getElementById('scene-text').innerHTML = current + '<br><br>' + enc.rewardText;
   showChoices([{
     label: `「${SOUVENIR_DATA.find(s => s.id === enc.rewardSouvenirId).name}」をもらう`,
     fn: '',
@@ -3080,6 +3177,221 @@ function confirmSouvenir(id) {
   showChoices([{ label: '京へ向かう', fn: '', action: () => triggerEnding() }]);
 }
 
+
+// ── 両替商データ ──
+const RYOGAE_DATA = {
+  9:  { intro: '小田原の両替商が、天秤を脇に置いて座っていた。<br><br>「お替えしましょうか。口銭、二分いただきます」',
+        info:  '「箱根の山を越えれば三島・沼津でございます。富士の見晴らしが良うございますよ」' },
+  19: { intro: '府中の両替商が、算盤を手にしたまま顔を上げた。<br><br>「お替えしましょうか。口銭、二分いただきます」',
+        info:  '「府中は駿府城の城下でございます。東海道でも指折りの大きな宿場ですよ」' },
+  29: { intro: '浜松の両替商が、帳面から目を上げた。<br><br>「お替えしましょうか。口銭、二分いただきます」',
+        info:  '「浜名湖の今切の渡しは、風が強い日は難儀します。天気を見てから渡られるのがよい」' },
+  38: { intro: '岡崎の両替商が、小判を天秤にかけながら言った。<br><br>「お替えしましょうか。口銭、二分いただきます」',
+        info:  '「岡崎から宮まで五つの宿場でございます。矢作川の橋は東海道一の長さと聞きます」' },
+  41: { intro: '宮の両替商が、店先に腰を下ろして宗吉を見た。<br><br>「お替えしましょうか。口銭、二分いただきます」',
+        info:  '「ここから先は銀の国でございます。七里の海を渡れば桑名、そこから京まで十二の宿場。金は使いにくうなります。銭を多めにお持ちください」' },
+  47: { intro: '関の両替商が、帳場の奥から声をかけてきた。<br><br>「お替えしましょうか。口銭、二分いただきます」',
+        info:  '「関から先は鈴鹿を越えれば近江でございます。水口・草津と宿場が続きます。金より銭のほうが何かと便利ですよ」' },
+  53: { intro: '大津の両替商が、算盤を弾きながら顔を上げた。<br><br>「お替えしましょうか。口銭、二分いただきます」',
+        info:  '「大津を出れば京はもうすぐでございます。三条大橋まで一里半。ご無事で」' },
+};
+
+const FEE_RATE = 0.02; // 口銭二分
+
+// ── 両替商イベント ──
+function showRyogaeScene() {
+  const stage = state.currentStage;
+  const rd = RYOGAE_DATA[stage];
+  if (!rd) { showStageChoices(); return; }
+
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML = rd.intro;
+    buildRyogaeChoices();
+  });
+}
+
+function buildRyogaeChoices() {
+  const stage = state.currentStage;
+  const rd = RYOGAE_DATA[stage];
+  const choices = [];
+
+  // 銭 → 二朱判（750文単位で何枚替えられるか）
+  const nishuCost = 750 + Math.floor(750 * FEE_RATE); // 765文
+  const nishuNum = Math.floor(state.money / nishuCost);
+  if (nishuNum >= 1) {
+    const fee = Math.floor(750 * FEE_RATE); // 15文
+    choices.push({
+      label: `二朱判に替える　${nishuCost}文 → 1枚（手数料${fee}文）`,
+      fn: '', action: () => doRyogae('toBankNote', 'nishu')
+    });
+  }
+
+  // 銭 → 一朱金（直接両替。1500文＋手数料）
+  const isshuCost = 1500 + Math.floor(1500 * FEE_RATE); // 1530文
+  const isshuFromZeniNum = Math.floor(state.money / isshuCost);
+  if (isshuFromZeniNum >= 1) {
+    const fee = Math.floor(1500 * FEE_RATE); // 30文
+    choices.push({
+      label: `一朱金に替える　${isshuCost}文 → 1枚（手数料${fee}文）`,
+      fn: '', action: () => doRyogae('toIsshuFromZeni', null)
+    });
+  }
+
+  // 銭 → 一分金（直接両替。6000文＋手数料）
+  const ichibuCost = 6000 + Math.floor(6000 * FEE_RATE); // 6120文
+  const ichibuFromZeniNum = Math.floor(state.money / ichibuCost);
+  if (ichibuFromZeniNum >= 1) {
+    const fee = Math.floor(6000 * FEE_RATE); // 120文
+    choices.push({
+      label: `一分金に替える　${ichibuCost}文 → 1枚（手数料${fee}文）`,
+      fn: '', action: () => doRyogae('toIchibuFromZeni', null)
+    });
+  }
+
+  // 二朱判2枚 → 一朱金1枚
+  if (state.nishuban >= 2) {
+    const fee = Math.floor(750 * FEE_RATE); // 15文
+    choices.push({
+      label: `一朱金に替える　二朱判2枚 → 1枚（手数料${fee}文）`,
+      fn: '', action: () => doRyogae('toIsshu', null)
+    });
+  }
+
+  // 一朱金4枚 → 一分金1枚
+  if (state.isshukin >= 4) {
+    const fee = Math.floor(1500 * FEE_RATE); // 30文
+    choices.push({
+      label: `一分金に替える　一朱金4枚 → 1枚（手数料${fee}文）`,
+      fn: '', action: () => doRyogae('toIchibu', null)
+    });
+  }
+
+  // 二朱判 → 銭（1枚ずつ崩す）
+  if (state.nishuban >= 1) {
+    const fee = Math.floor(750 * FEE_RATE); // 15文
+    const get = 750 - fee;
+    choices.push({
+      label: `銭に崩す　二朱判1枚 → ${get}文（手数料${fee}文）`,
+      fn: '', action: () => doRyogae('toZeni', 'nishu')
+    });
+  }
+
+  // 一朱金 → 銭（1枚ずつ崩す）
+  if (state.isshukin >= 1) {
+    const fee = Math.floor(1500 * FEE_RATE); // 30文
+    const get = 1500 - fee;
+    choices.push({
+      label: `銭に崩す　一朱金1枚 → ${get}文（手数料${fee}文）`,
+      fn: '', action: () => doRyogae('toZeni', 'isshu')
+    });
+  }
+
+  // 一分金 → 銭（1枚ずつ崩す）
+  if (state.ichibukin >= 1) {
+    const fee = Math.floor(6000 * FEE_RATE); // 120文
+    const get = 6000 - fee;
+    choices.push({
+      label: `銭に崩す　一分金1枚 → ${get}文（手数料${fee}文）`,
+      fn: '', action: () => doRyogae('toZeni', 'ichibu')
+    });
+  }
+
+  // 選択肢がなければ両替不可メッセージ
+  if (choices.length === 0) {
+    document.getElementById('scene-text').innerHTML =
+      '両替商は宗吉の巾着を見た。<br><br>「替えるほどの銭がございませんな」<br><br>それだけ言って、また帳面に目を落とした。';
+    choices.push({
+      label: '立ち去る',
+      fn: '', action: () => showStageChoices()
+    });
+  } else {
+    choices.push({ label: '両替しない', fn: '', action: () => showStageChoices() });
+  }
+
+  showChoices(choices);
+}
+
+function doRyogae(type, kind) {
+  const stage = state.currentStage;
+  const rd = RYOGAE_DATA[stage];
+  let resultText = '';
+
+  if (type === 'toBankNote' && kind === 'nishu') {
+    // 銭 → 二朱判1枚
+    const fee = Math.floor(750 * FEE_RATE);
+    state.money -= (750 + fee);
+    state.nishuban += 1;
+    resultText = `「二朱判、お換えしました」`;
+
+  } else if (type === 'toIsshuFromZeni') {
+    // 銭 → 一朱金1枚（直接両替）
+    const fee = Math.floor(1500 * FEE_RATE);
+    state.money -= (1500 + fee);
+    state.isshukin += 1;
+    resultText = `「一朱金、お換えしました」`;
+
+  } else if (type === 'toIchibuFromZeni') {
+    // 銭 → 一分金1枚（直接両替）
+    const fee = Math.floor(6000 * FEE_RATE);
+    state.money -= (6000 + fee);
+    state.ichibukin += 1;
+    resultText = `「一分金、お換えしました」`;
+
+  } else if (type === 'toIsshu') {
+    // 二朱判2枚 → 一朱金1枚（手数料は銭から）
+    const fee = Math.floor(750 * FEE_RATE);
+    state.nishuban -= 2;
+    state.isshukin += 1;
+    state.money -= fee;
+    resultText = `「一朱金、お換えしました」`;
+
+  } else if (type === 'toIchibu') {
+    // 一朱金4枚 → 一分金1枚（手数料は銭から）
+    const fee = Math.floor(1500 * FEE_RATE);
+    state.isshukin -= 4;
+    state.ichibukin += 1;
+    state.money -= fee;
+    resultText = `「一分金、お換えしました」`;
+
+  } else if (type === 'toZeni' && kind === 'nishu') {
+    // 二朱判1枚 → 銭
+    const fee = Math.floor(750 * FEE_RATE);
+    state.nishuban -= 1;
+    state.money += (750 - fee);
+    resultText = `「${750 - fee}文、お渡しします」`;
+
+  } else if (type === 'toZeni' && kind === 'isshu') {
+    // 一朱金1枚 → 銭
+    const fee = Math.floor(1500 * FEE_RATE);
+    state.isshukin -= 1;
+    state.money += (1500 - fee);
+    resultText = `「${1500 - fee}文、お渡しします」`;
+
+  } else if (type === 'toZeni' && kind === 'ichibu') {
+    // 一分金1枚 → 銭
+    const fee = Math.floor(6000 * FEE_RATE);
+    state.ichibukin -= 1;
+    state.money += (6000 - fee);
+    resultText = `「${6000 - fee}文、お渡しします」`;
+  }
+
+  // 初回のみ街の情報を追加
+  if (!state.ryogaeVisited[stage]) {
+    state.ryogaeVisited[stage] = true;
+    resultText += `<br><br>${rd.info}`;
+  }
+
+  updateHeader();
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML = resultText;
+    buildRyogaeChoices();
+  });
+}
+
 // ── 宿の種類を選ぶ ──
 function selectInn() {
   const sd = currentStageData();
@@ -3105,6 +3417,64 @@ function selectInn() {
 }
 
 // ── 荷を広げる → 所持品一覧表示 ──
+// ── 荷ボタンで所持品を確認（モーダルパネル）──
+function viewCargo() {
+  const panel = document.getElementById('cargo-view-panel');
+  const content = document.getElementById('cargo-view-content');
+
+  const volUsed = currentVol();
+  const mVol = rawMoneyVol();
+  const totalUsed = volUsed + mVol;
+  const overWeight = totalUsed > state.maxVol;
+  const volLabel = mVol > 0
+    ? `${totalUsed} / ${state.maxVol}（銭${state.money.toLocaleString()}文分含む）${overWeight ? ' ⚠重い' : ''}`
+    : `${volUsed} / ${state.maxVol}`;
+
+  // 金貨行
+  const goldRows = [];
+  if (state.nishuban  > 0) goldRows.push(`<div class="cargo-sell-item"><span>二朱判</span><span>${state.nishuban}枚</span></div>`);
+  if (state.isshukin  > 0) goldRows.push(`<div class="cargo-sell-item"><span>一朱金</span><span>${state.isshukin}枚</span></div>`);
+  if (state.ichibukin > 0) goldRows.push(`<div class="cargo-sell-item"><span>一分金</span><span>${state.ichibukin}枚</span></div>`);
+
+  // 商品行
+  const cargoRows = state.cargo
+    .filter(item => item.qty > 0)
+    .map(item =>
+      `<div class="cargo-sell-item">
+         <span>${item.name}</span><span>${item.qty}${item.unit}</span>
+       </div>`
+    ).join('');
+
+  const emptyNote = (goldRows.length === 0 && cargoRows === '')
+    ? `<div class="cargo-sell-item" style="opacity:0.5;justify-content:center;">荷はからだ</div>`
+    : '';
+
+  content.innerHTML =
+    `<div class="cargo-sell-item" style="font-size:11px;opacity:0.6;">
+       <span>荷の嵩</span>
+       <span style="${overWeight ? 'color:#e85040;' : ''}">${volLabel}</span>
+     </div>` +
+    goldRows.join('') +
+    cargoRows +
+    emptyNote;
+
+  panel.style.display = 'flex';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { panel.classList.add('open'); });
+  });
+  document.getElementById('cargo-view-overlay').classList.add('open');
+  content.scrollTop = 0;
+}
+
+function closeCargoView() {
+  const panel = document.getElementById('cargo-view-panel');
+  panel.classList.remove('open');
+  document.getElementById('cargo-view-overlay').classList.remove('open');
+  panel.addEventListener('transitionend', () => {
+    if (!panel.classList.contains('open')) panel.style.display = 'none';
+  }, { once: true });
+}
+
 function openCargo() {
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
@@ -3130,9 +3500,15 @@ function openCargo() {
   const panel = document.getElementById('cargo-panel');
   const list  = document.getElementById('cargo-sell-list');
   const volUsed = currentVol();
+  const mVol = rawMoneyVol();
+  const totalUsed = volUsed + mVol;
+  const overWeight = totalUsed > state.maxVol;
+  const volLabel = mVol > 0
+    ? `${totalUsed} / ${state.maxVol}（銭${state.money.toLocaleString()}文分含む）${overWeight ? ' ⚠重い' : ''}`
+    : `${volUsed} / ${state.maxVol}`;
   list.innerHTML =
     `<div class="cargo-sell-item" style="font-size:11px;opacity:0.6;">
-      <span>荷の嵩</span><span>${volUsed} / ${state.maxVol}</span>
+      <span>荷の嵩</span><span>${volLabel}</span>
     </div>` +
     state.cargo
       .filter(item => item.qty > 0)
@@ -3332,7 +3708,7 @@ function doSell(idx, price, customer) {
       } else if (price === item.sell) {
         result = `「ちょうどよろしゅうございます」と主人は言って、${sold}${item.unit}買ってくれた。${income}文。`;
       } else {
-        result = `主人は少し考えてから「では、いただきましょう」と財布を出した。${item.name}${sold}${item.unit}、${income}文。`;
+        result = `主人は少し考えてから「では、いただきましょう」と巾着を出した。${item.name}${sold}${item.unit}、${income}文。`;
       }
     } else {
       // 通常客テキスト
@@ -3343,7 +3719,7 @@ function doSell(idx, price, customer) {
       } else if (price === item.sell) {
         result = `「ちょうどよかった」と${customerName}は言って、${sold}${item.unit}買ってくれた。${income}文。${firstSuffix}`;
       } else {
-        result = `少し考えてから、${customerName}は財布を出した。${item.name}${sold}${item.unit}、${income}文。${firstSuffix}`;
+        result = `少し考えてから、${customerName}は巾着を出した。${item.name}${sold}${item.unit}、${income}文。${firstSuffix}`;
       }
     }
   } else {
@@ -3375,9 +3751,9 @@ function doSell(idx, price, customer) {
         }
       } else if (probKey === 'mid') {
         if (ctype === 'A') {
-          introspection = '——値切るつもりの相手に標準で押した。応じるか考えるべきだった。';
+          introspection = '——値切るつもりの相手に相場値で押した。応じるか考えるべきだった。';
         } else {
-          introspection = '——標準で出た。今日の相手には、何か別の出し方があったかもしれない。';
+          introspection = '——相場値で出た。今日の相手には、何か別の出し方があったかもしれない。';
         }
       } else {
         introspection = '——安値で出ても去った。荷が合わなかったのか、それとも別の理由か。';
@@ -3812,7 +4188,14 @@ function openBuy() {
 
     // 仕入れ品あり → 一覧表示
     const free = freeVol();
-    const volInfo = free > 0 ? `荷の空き：${free} / ${state.maxVol}` : '<span style="color:#e85040;">荷が満杯だ</span>';
+    const mVol = rawMoneyVol();
+    const cargoNow = currentVol();
+    const volSuffix = mVol > 0 ? `（銭${state.money.toLocaleString()}文分含む）` : '';
+    const volInfo = free > 0
+      ? `荷の空き：${free} / ${state.maxVol}${volSuffix}`
+      : mVol > (state.maxVol - cargoNow)
+        ? `<span style="color:#e85040;">銭が重すぎて荷が組めない（両替して軽くしよう）</span>`
+        : '<span style="color:#e85040;">荷が満杯だ</span>';
 
     document.getElementById('scene-text').innerHTML =
       '宗吉は問屋を見て回った。気になるものがあった。<br><br>' +
@@ -3871,7 +4254,7 @@ function doBuy(itemIdx) {
 
     document.getElementById('scene-text').innerHTML =
       `${item.name}　${buyPrice}文/${item.unit}${discountNote}<br><br>` +
-      `所持金：${state.money.toLocaleString()}文　荷の空き：${freeVol()} / ${state.maxVol}<br><br>` +
+      `所持金：${state.money.toLocaleString()}文　荷の空き：${freeVol()} / ${state.maxVol}${rawMoneyVol() > 0 ? "（銭" + state.money.toLocaleString() + "文分含む）" : ""}<br><br>` +
       `何${item.unit}仕入れますか？`;
 
     // 1〜maxQtyの選択肢を生成（最大3択＋やめる）
@@ -3919,7 +4302,7 @@ function confirmBuy(itemIdx, qty) {
     document.body.scrollTop = 0;
     document.getElementById('scene-text').innerHTML =
       `${item.name}を${qty}${item.unit}仕入れた。${total}文。<br><br>` +
-      `荷の嵩：${currentVol()} / ${state.maxVol}`;
+      `荷の嵩：${currentVol() + rawMoneyVol()} / ${state.maxVol}${rawMoneyVol() > 0 ? "（銭" + state.money.toLocaleString() + "文分含む）" : ""}`;
     showChoices([
       { label: 'さらに仕入れる', fn: '', action: () => openBuy() },
       { label: '仕入れをやめる', fn: '', action: () => { document.getElementById('cargo-panel').style.display='none'; showStageChoices(); } },
@@ -3930,6 +4313,7 @@ function confirmBuy(itemIdx, qty) {
 // ── 仕入れパネルを閉じる ──
 function closeBuyPanel() {
   document.getElementById('cargo-panel').style.display = 'none';
+  document.getElementById('scene-text').innerHTML = '';
   showStageChoices();
 }
 
@@ -4539,9 +4923,15 @@ function openCargoForInn() {
   document.getElementById('cargo-panel-title').textContent = '◆ 所持品';
   const list = document.getElementById('cargo-sell-list');
   const volUsed = currentVol();
+  const mVol = rawMoneyVol();
+  const totalUsed = volUsed + mVol;
+  const overWeight = totalUsed > state.maxVol;
+  const volLabel = mVol > 0
+    ? `${totalUsed} / ${state.maxVol}（銭${state.money.toLocaleString()}文分含む）${overWeight ? ' ⚠重い' : ''}`
+    : `${volUsed} / ${state.maxVol}`;
   list.innerHTML =
     `<div class="cargo-sell-item" style="font-size:11px;opacity:0.6;">
-      <span>荷の嵩</span><span>${volUsed} / ${state.maxVol}</span>
+      <span>荷の嵩</span><span>${volLabel}</span>
     </div>` +
     state.cargo
       .filter(item => item.qty > 0)
@@ -6015,7 +6405,7 @@ const STAGE_DATA = {
   9: {
     name: '小田原', ji: '第九次', yomi: 'おだわら',
     next: '箱根', nextJi: '第十次',
-    arriveText: `小田原は城下町だ。<br><br>宿場の規模が違う。店が多く、人が多く、値段交渉も厳しい。大きな市が立っていた。<br><br>箱根越えの前に、ここで準備を整えたいところだ。`,
+    arriveText: `小田原は城下町だ。<br><br>宿場の規模が違う。店が多く、人が多く、値段交渉も厳しい。大きな市が立っていた。<br><br>箱根越えの前に、ここで準備を整えたいところだ。<br><br>伝馬町の通りに両替商の看板が出ていた。橋のたもとの店で、天秤が表に置いてある。`,
     travelText: `小田原宿を出た。<br><br>いよいよ箱根だ。街道が急に険しくなり始めた。`,
     innTextInn: `夕餉に小田原の蒲鉾が出た。弾力があって、旨かった。明日の箱根越えのことが頭にあるせいか、普段より多く食べた気がした。<br><br>小田原の旅籠に泊まった。明日は箱根越えだ。早めに横になった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を急いで食べた。箱根が待っている。旅籠の主人が「峠道は凍っているかもしれませんよ」と言った。宗吉は荷を締め直して立った。`,
@@ -6125,7 +6515,7 @@ const STAGE_DATA = {
   19: {
     name: '府中', ji: '第十九次', yomi: 'ふちゅう',
     next: '丸子', nextJi: '第二十次',
-    arriveText: `安倍川の川越え場に着いた。<br><br>川が広い。今日は水深が腰まであるという。川越え人足を二人雇って、肩につかまり渡った。冷たい流れが着物の裾を引いた。二十四文の川越え賃を払うと財布が少し軽くなった。<br><br>府中は駿河の大都市だ。駿府城の城下町で、街道が広く、店が多い。川越えを終えた旅人が、安倍川餅の茶屋に群がっていた。宗吉も一つ食べた。きな粉の甘みが疲れた体に沁みた。`,
+    arriveText: `安倍川の川越え場に着いた。<br><br>川が広い。今日は水深が腰まであるという。川越え人足を二人雇って、肩につかまり渡った。冷たい流れが着物の裾を引いた。川越え賃は二十四文。銭を数えて渡した。<br><br>府中は駿河の大都市だ。駿府城の城下町で、街道が広く、店が多い。川越えを終えた旅人が、安倍川餅の茶屋に群がっていた。宗吉も一つ食べた。きな粉の甘みが疲れた体に沁みた。<br><br>城下町らしく、伝馬町の通りに両替商が何軒か店を出している。`,
     travelText: `府中を後にした。<br><br>丸子まで一里半。宇津ノ谷峠への道に入っていく。城下町の賑わいが嘘のように、すぐ山が近くなった。`,
     innTextInn: `夕餉は一汁三菜だった。城下町らしく、膳が豊かだった。仕上げに安倍川餅が甘いものとして出た。<br><br>大きな旅籠だった。同じ部屋に、参勤交代の行列の外れにいるような武士の従者が二人泊まっていた。何も言葉を交わさなかった。府中の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯も丁寧な膳だった。旅籠の女中が「峠道は霜が降りていますよ」と言った。宗吉は飯を食い終え、荷を担いだ。宇津ノ谷峠が待っている。`,
@@ -6235,7 +6625,7 @@ const STAGE_DATA = {
   29: {
     name: '浜松', ji: '第廿九次', yomi: 'はままつ',
     next: '舞阪', nextJi: '第三十次',
-    arriveText: `浜松は遠州最大の城下町だ。<br><br>浜松城は家康公が若い頃に居城とした城だと聞いた。天守台から遠州灘が見渡せるという。宿場が広く、旅人が多い。<br><br>干し鰻が名物だ。遠州木綿の大きな問屋がある。城下町は品物が揃っていて、商人の仕入れにも向く。`,
+    arriveText: `浜松は遠州最大の城下町だ。<br><br>浜松城は家康公が若い頃に居城とした城だと聞いた。天守台から遠州灘が見渡せるという。宿場が広く、旅人が多い。<br><br>干し鰻が名物だ。遠州木綿の大きな問屋がある。城下町は品物が揃っていて、商人の仕入れにも向く。<br><br>遠州の中心だけあって、城下の鍛冶町あたりに両替商が構えている。`,
     travelText: `浜松を後にした。<br><br>舞阪まで二里ほど。浜名湖が近づいてくる。`,
     innTextInn: `夕餉に干し鰻の煮たものが出た。浜松の名物だ。濃い甘辛の味が飯によく合った。<br><br>隣の席で旅の商人が話していた。「浜松から先は伊勢参りの客が増えますよ。売り物が合えば捌けます」<br><br>浜松の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯も丁寧な膳だった。城下町の旅籠は朝から食事がしっかりしている。宗吉は腹を満たして立った。浜名湖が近い。`,
@@ -6335,7 +6725,7 @@ const STAGE_DATA = {
   38: {
     name: '岡崎', ji: '第三十八次', yomi: 'おかざき',
     next: '池鯉鮒', nextJi: '第三十九次',
-    arriveText: `矢作橋を渡った。<br><br>東海道で一番長い橋だという。橋の上を歩きながら、矢作川の流れを見た。川幅が広い。橋桁が何十も並んで川の向こうまで続いている。<br><br>岡崎は三河最大の城下町だ。橋を渡ると城下の賑わいが始まった。八丁味噌の産地で、大きな味噌蔵が街道沿いに並ぶ。独特の匂いが鼻に来た。`,
+    arriveText: `矢作橋を渡った。<br><br>東海道で一番長い橋だという。橋の上を歩きながら、矢作川の流れを見た。川幅が広い。橋桁が何十も並んで川の向こうまで続いている。<br><br>岡崎は三河最大の城下町だ。橋を渡ると城下の賑わいが始まった。八丁味噌の産地で、大きな味噌蔵が街道沿いに並ぶ。独特の匂いが鼻に来た。<br><br>矢作橋のたもとに両替商の店がある。店先に天秤が並んでいた。`,
     travelText: `岡崎を後にした。<br><br>池鯉鮒まで三里ほど。尾張へ向かう。`,
     innTextInn: `夕餉に八丁味噌を使った汁が出た。濃く、深い味だった。味噌の匂いが宿に染みついている。<br><br>「岡崎の味噌は二年寝かせるんですよ」と宿の主人が言った。「時間が旨さになるんです」<br><br>岡崎の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯にも八丁味噌の汁が出た。目が覚める味だった。宗吉は腹を満たして立った。`,
@@ -6368,7 +6758,7 @@ const STAGE_DATA = {
   41: {
     name: '宮', ji: '第四十一次', yomi: 'みや',
     next: '桑名', nextJi: '第四十二次',
-    arriveText: `宮宿は熱田神宮の門前町だ。<br><br>大きな鳥居が見える。神宮の杜が濃く茂っている。参拝者と旅人が混じり合って、宿場は賑やかだった。<br><br>七里の渡しの出発点でもある。波止場に船が並んでいた。海路で桑名まで七里——船に乗るのは久しぶりだ。多摩川の渡しとは規模が違う。尾張木綿の大きな問屋がある。`,
+    arriveText: `宮宿は熱田神宮の門前町だ。<br><br>大きな鳥居が見える。神宮の杜が濃く茂っている。参拝者と旅人が混じり合って、宿場は賑やかだった。<br><br>七里の渡しの出発点でもある。波止場に船が並んでいた。海路で桑名まで七里——船に乗るのは久しぶりだ。多摩川の渡しとは規模が違う。尾張木綿の大きな問屋がある。<br><br>七里の渡しの波止場近くに両替商が店を構えていた。ここから先は銀の国——桑名に渡る前に、銭を用意しておくのがよさそうだ。`,
     travelText: `七里の渡しの船に乗った。<br><br>伊勢湾を渡り、桑名へ向かう。`,
     innTextInn: `夕餉に熱田の干物の焼いたものが出た。神宮の門前町らしく、きちんとした膳だった。<br><br>七里の海を舟で渡ることになる。荷が濡れないよう、油紙で包み直した。宗吉は早めに横になった。<br><br>宮の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、今日の渡海を考えた。七里の海を舟で渡る。宗吉は荷を確かめた。`,
@@ -6434,7 +6824,7 @@ const STAGE_DATA = {
   47: {
     name: '関', ji: '第四十七次', yomi: 'せき',
     next: '坂下', nextJi: '第四十八次',
-    arriveText: `関宿に着いた。<br><br>古い宿場の面影が残る町だ。江戸の頃よりずっと前から街道が通っていたという。町並みが整然として、軒の高さが揃っている。<br><br>鍛冶屋の音が聞こえた。関の刃物の産地だ。切れ味がいいと評判の刃物が、店先に並んでいた。亀山ろうそくもここで買える。この先、坂下から鈴鹿峠を越えていく。`,
+    arriveText: `関宿に着いた。<br><br>古い宿場の面影が残る町だ。江戸の頃よりずっと前から街道が通っていたという。町並みが整然として、軒の高さが揃っている。<br><br>鍛冶屋の音が聞こえた。関の刃物の産地だ。切れ味がいいと評判の刃物が、店先に並んでいた。亀山ろうそくもここで買える。この先、坂下から鈴鹿峠を越えていく。<br><br>本陣の向かいに両替商があった。峠を控えた旅人が多いせいか、商いが繁盛している様子だった。`,
     travelText: `関を後にした。<br><br>坂下まで二里ほど。峠の麓が近い。`,
     innTextInn: `夕餉に一汁二菜、飯は多めだった。古い宿場は落ち着く。<br><br>宿の主人が刃物の話をした。「関の刃物は折れない、曲がらない、よく切れる。三拍子そろっている」<br><br>宗吉はその言葉を聞きながら、自分の商売を考えた。折れず、曲がらず、よく稼ぐ——そんな商人になれるだろうか。<br><br>関の旅籠に泊まった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べながら、今日の峠越えを考えた。鈴鹿越えは体力を使う。宗吉は腹いっぱい食べて立った。`,
@@ -6500,7 +6890,7 @@ const STAGE_DATA = {
   53: {
     name: '大津', ji: '第五十三次', yomi: 'おおつ',
     next: '京', nextJi: '終着',
-    arriveText: `大津宿に着いた。<br><br>琵琶湖が目に飛び込んだ。<br><br>湖というより、海のように広い。水の色が空の色に溶けて、どこまでが湖でどこからが空なのかわからなかった。江戸を出て以来、海を何度か見てきた。駿河湾も、遠州灘も、伊勢湾も。だが、これは湖だという。<br><br>大津は近江最大の宿場で、京の玄関口だ。大津絵が名物で、街道沿いの店に旅人の土産として並んでいた。福や縁起を描いた素朴な絵だ。<br><br>逢坂山を越えれば——京だ。`,
+    arriveText: `大津宿に着いた。<br><br>琵琶湖が目に飛び込んだ。<br><br>湖というより、海のように広い。水の色が空の色に溶けて、どこまでが湖でどこからが空なのかわからなかった。江戸を出て以来、海を何度か見てきた。駿河湾も、遠州灘も、伊勢湾も。だが、これは湖だという。<br><br>大津は近江最大の宿場で、京の玄関口だ。大津絵が名物で、街道沿いの店に旅人の土産として並んでいた。福や縁起を描いた素朴な絵だ。<br><br>逢坂山を越えれば——京だ。<br><br>琵琶湖の湊近く、札の辻のあたりに両替商が多い。旅の締めくくりに、銭の整理をしておくのもいい。`,
     travelText: `大津を後にした。<br><br>逢坂山を越えれば——京だ。`,
     innTextInn: `夕餉に近江米の飯と、琵琶湖で揚がった小魚の焼いたものが出た。<br><br>京を目の前にした最後の夜だった。宗吉は飯を食いながら、江戸を出た日のことを考えた。品川の橘屋。女将のおきく。針を買った女将。多摩川の渡し。<br><br>あれからずっと歩いてきた。<br><br>大津の旅籠に泊まった。京はもう目の前だ。おみつのことを考えたら、なかなか眠れなかった。`,
     morningTextInn: `夜が明けた。<br><br>朝飯を食べたが、味がよくわからなかった。心がもう先に行っていた。<br><br>宗吉は荷を担ぎ、外へ出た。`,
@@ -6559,6 +6949,11 @@ function startFromSave() {
   if (state.companionMet === undefined) state.companionMet = false;
   if (state.companionBag === undefined) state.companionBag = false;
   if (state.companionTalked === undefined) state.companionTalked = {};
+  // 両替システム（新規フィールド補完）
+  if (state.nishuban  === undefined) state.nishuban  = 0;
+  if (state.isshukin  === undefined) state.isshukin  = 0;
+  if (state.ichibukin === undefined) state.ichibukin = 0;
+  if (state.ryogaeVisited === undefined) state.ryogaeVisited = { 9: false, 19: false, 29: false, 38: false, 41: false, 47: false, 53: false };
   // 旧セーブ：salesCountがない場合はshobaiから販売分のみ推算
   if (state.salesCount === undefined) {
     state.salesCount = state.memos.shobai.filter(e => e.text && e.text.includes('販売')).length;
@@ -6627,7 +7022,12 @@ function checkSaveOnStart() {
   document.getElementById('start-save-info').innerHTML =
     dateStr + '<br>' +
     '第' + s.currentStage + '次　' + (STAGE_DATA[s.currentStage] ? STAGE_DATA[s.currentStage].name : '') + '<br>' +
-    '通過 ' + stagesCleared + ' 次　手元金 ' + s.money.toLocaleString() + ' 文';
+    '通過 ' + stagesCleared + ' 次　手元金 ' + (
+      s.money +
+      (s.nishuban  || 0) * 750 +
+      (s.isshukin  || 0) * 1500 +
+      (s.ichibukin || 0) * 6000
+    ).toLocaleString() + ' 文';
   document.getElementById('start-modal').classList.add('open');
   return true;
 }
