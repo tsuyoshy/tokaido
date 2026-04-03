@@ -37,10 +37,18 @@
   /* ── 挿絵＋ステージバー sticky コンテナ ── */
   #stage-container {
     position: sticky;
-    top: 52px;
+    top: 0;
     z-index: 90;
     background: #0a0900;
     pointer-events: none; /* Safari: headerボタンのヒットテストを妨げない */
+  }
+
+  #stage-container::before {
+    content: '';
+    display: block;
+    height: 4px;
+    background: #0a0900;
+    margin-top: -4px;
   }
 
   /* stage-container内の実際にタップが必要な子要素は個別に有効化 */
@@ -2610,6 +2618,9 @@ function updateHeader() {
   const rem = Math.max(0, 53 - state.currentStage);
   document.getElementById('stage-remaining').textContent = rem > 0 ? 'あと' + rem + '次' : '終点';
   applyWeatherEffect(state.weather);
+  // stage-containerのtopをヘッダー高さに合わせる
+  const hh = document.getElementById('header').getBoundingClientRect().height;
+  document.getElementById('stage-container').style.top = hh + 'px';
 }
 
 // 総所持金（銭換算）。エンディング条件・評価にのみ使用
@@ -2777,12 +2788,13 @@ function triggerEnding() {
 
   // ── 真のエンド追加シーン ──
   const trueEndScene = isTrueEnd
-    ? `<br><br>しばらくして、おみつが少し改まった顔をした。<br><br>「兄さんに、聞いてほしいことがあって」<br><br>宗吉は黙って待った。<br><br>「奉公先の旦那様がね、今度、出入りの商人を探しているって言ってて」<br><br>おみつは少し間を置いた。「兄さん、商売、うまくなったでしょ。旅の間に」<br><br>「……まあ」<br><br>おみつはまた少し黙った。それから顔を上げた。「紹介してみようか、と思って。もちろん、嫌なら言って」<br><br>宗吉は答えなかった。おみつの顔を見ていた。<br><br>おみつが、少し笑った。「考えといて」と言った。<br><br>宗吉はうなずいた。五十三次を歩いてきて、最後にこういう話になるとは思っていなかった。でも——悪くない、と思った。`
+    ? `<span id="true-end-trigger"></span><br><br>しばらくして、おみつが少し改まった顔をした。<br><br>「兄さんに、聞いてほしいことがあって」<br><br>宗吉は黙って待った。<br><br>「奉公先の旦那様がね、今度、出入りの商人を探しているって言ってて」<br><br>おみつは少し間を置いた。「兄さん、商売、うまくなったでしょ。旅の間に」<br><br>「……まあ」<br><br>おみつはまた少し黙った。それから顔を上げた。「紹介してみようか、と思って。もちろん、嫌なら言って」<br><br>宗吉は答えなかった。おみつの顔を見ていた。<br><br>おみつが、少し笑った。「考えといて」と言った。<br><br>宗吉はうなずいた。五十三次を歩いてきて、最後にこういう話になるとは思っていなかった。でも——悪くない、と思った。`
     : '';
 
-  // 挿絵を京都画像に切り替え
+  // 挿絵を京都画像に切り替え（真エンドも最初はkyo.png）
   const illusImgKyo = document.getElementById('illus-img');
   illusImgKyo.style.opacity = '0';
+  illusImgKyo.style.transition = 'opacity 1.2s ease';
   illusImgKyo.onload = () => { illusImgKyo.style.opacity = '0.9'; };
   illusImgKyo.onerror = () => { illusImgKyo.style.opacity = '0.9'; };
   illusImgKyo.src = `${SHUKUBA_BASE}54_kyo.png`;
@@ -2850,6 +2862,25 @@ function triggerEnding() {
 
   document.getElementById('scene-text').innerHTML = endText;
   document.getElementById('choices').classList.add('hidden');
+
+  // 真エンド：true-end-triggerが画面に入ったらkyo_trueへ切り替え
+  if (isTrueEnd) {
+    const trigger = document.getElementById('true-end-trigger');
+    if (trigger) {
+      const obs = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          obs.disconnect();
+          illusImgKyo.style.opacity = '0';
+          setTimeout(() => {
+            illusImgKyo.onload = () => { illusImgKyo.style.opacity = '0.9'; };
+            illusImgKyo.onerror = () => { illusImgKyo.style.opacity = '0.9'; };
+            illusImgKyo.src = `${SHUKUBA_BASE}54_kyo_true.png`;
+          }, 600);
+        }
+      }, { threshold: 0.1 });
+      obs.observe(trigger);
+    }
+  }
 }
 
 // ── フェード遷移 ──
