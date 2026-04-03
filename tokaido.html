@@ -2759,7 +2759,7 @@ function triggerEnding() {
     `大津を過ぎると、逢坂山が見えてきた。<br><br>` +
     `山を越えれば、京だ。<br><br>` +
     `宗吉は足を速めた。荷は軽くなっていた。頭の中はもう、おみつのことしかなかった。<br><br>` +
-    (state.companionBag ? `懐の守り袋を、そっと確かめた。矢作橋でもらった。まだそこにあった。<br><br>` : ``) +
+    (state.companionBag ? `懐の守り袋を、そっと確かめた。` + (state.flags.companionDeclined ? `新居でもらった。` : `矢作橋でもらった。`) + `まだそこにあった。<br><br>` : ``) +
     `——三条大橋が見えた。<br><br>`+
     `橋の向こうに、おみつが立っていた。<br><br>` +
     `笑っているのか泣いているのか、よくわからない顔をして、こちらを見ていた。<br><br>` +
@@ -4848,9 +4848,11 @@ function goToInn(selectedCost) {
       // ── 旅籠：夕食描写＋選択肢。帳面は眠る時に表示 ──
       state.innTradeCount = 0;
       document.getElementById('inn-area').classList.add('hidden');
-      const dinnerText = sd.innTextInn
-        ? sd.innTextInn + '<br><br>今日はこれからどうする？'
-        : '旅籠の中は暖かくて気持ちがいい。<br><br>今日はこれからどうする？';
+      const baseInnText = sd.innTextInn || '旅籠の中は暖かくて気持ちがいい。';
+      const companionRoomNote = (state.companionActive && !state.flags.companionInnDone)
+        ? '<br><br>帳場で宿の者に声をかけると、「女衆は奥の間にご案内しております」と言った。宿では男女は部屋が分かれる。'
+        : '';
+      const dinnerText = baseInnText + companionRoomNote + '<br><br>今日はこれからどうする？';
       document.getElementById('scene-text').innerHTML = dinnerText;
       showInnChoices();
     } else {
@@ -4865,7 +4867,7 @@ function showInnChoices() {
   const remaining = 2 - state.innTradeCount;
   if (remaining <= 0) {
     // 主人への話しかけは終わったが、おすず会話がまだなら出す
-    const companionChoiceEnd = getCompanionInnChoice(state.currentStage);
+    const companionChoiceEnd = getCompanionInnChoice(state.currentStage, null, true);
     if (companionChoiceEnd) {
       document.getElementById('scene-text').innerHTML = '旅籠の中は暖かくて気持ちがいい。';
       showChoices([
@@ -4888,7 +4890,7 @@ function showInnChoices() {
     choices.push({ label: bantouEv.choiceLabel, fn: '', action: () => triggerEncounterInnEvent(state.currentStage) });
   }
   // おすずとの旅籠会話
-  const companionChoice = getCompanionInnChoice(state.currentStage);
+  const companionChoice = getCompanionInnChoice(state.currentStage, null, true);
   if (companionChoice) choices.push(companionChoice);
   choices.push({ label: '今日はもう眠る', fn: '', action: () => sleepAtInn() });
   showChoices(choices);
@@ -5128,14 +5130,17 @@ function showCheapInnDinner(paid) {
   }
 
   // 夕食テキストを表示してからおすず会話チェック→帳面へ
+  const companionRoomNote = (state.companionActive && !state.flags.companionInnDone)
+    ? '<br><br>宿の者に確かめると、「女衆は奥にご案内しております」と言った。宿では男女は部屋が分かれる。'
+    : '';
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     document.getElementById('inn-area').classList.add('hidden');
-    document.getElementById('scene-text').innerHTML = dinnerText;
+    document.getElementById('scene-text').innerHTML = dinnerText + companionRoomNote;
 
     // おすずとの会話選択肢がある場合は帳面の前に挟む
-    const companionChoice = getCompanionInnChoice(state.currentStage, () => showInnLedgerAndSleep(paid, false));
+    const companionChoice = getCompanionInnChoice(state.currentStage, () => showInnLedgerAndSleep(paid, false), false);
     if (companionChoice) {
       showChoices([
         companionChoice,
@@ -5366,6 +5371,10 @@ const COMPANION_TRAVEL = {
 
 // 宿場ごとの旅籠会話テキスト
 const COMPANION_INN = {
+  31: {
+    label: 'おすずに声をかける',
+    text: `食事が終わって、しばらくしてからおすずと廊下で行き合った。<br><br>「今日は疲れましたか」<br><br>「少し」おすずは言った。「でも大丈夫です。ありがとうございます」<br><br>宗吉は軽くうなずいた。`,
+  },
   32: {
     label: 'おすずに声をかける',
     text: `食事が終わって、おすずが囲炉裏の前に座っていた。宗吉が近くに腰を下ろすと、すぐに話しかけてきた。<br><br>「宗吉さんって、毎晩こういう宿に泊まってるんですか」<br><br>「そうです」<br><br>「一人で、ずっと？」<br><br>「ずっとです」<br><br>おすずは少し考えた。「寂しくないんですか」<br><br>宗吉は少し黙った。「宿場ごとに人に会うので」<br><br>「でも、毎晩知らない人と泊まるんでしょ」<br><br>「そうですね」<br><br>おすずは囲炉裏の火を眺めた。「わたし、関所を一人で通るのは初めてで。あの関所で本当に焦りました。宗吉さんがいなかったら、どうなってたか」<br><br>「うまくいったと思います」<br><br>「そうかな」おすずはちょっと笑った。「ありがとうございます、改めて」`,
@@ -5420,7 +5429,7 @@ function getCompanionTravelNote(stageNum) {
 }
 
 // 旅籠の夜の選択肢を返す（showInnChoices内から呼ぶ）
-function getCompanionInnChoice(stageNum, returnCb) {
+function getCompanionInnChoice(stageNum, returnCb, isInn = true) {
   if (!state.companionActive) return null;
   if (state.companionTalked[stageNum]) return null;
 
@@ -5432,16 +5441,18 @@ function getCompanionInnChoice(stageNum, returnCb) {
     const text35 = skippedHakone
       ? `食事が終わって、おすずがぽつりと言った。<br><br>「宗吉さん、今日の松並木、怖かったですけど、良かったです」<br><br>「良かった、ですか」<br><br>「なんかこう、ちゃんと旅してる感じがして」おすずは少し恥ずかしそうにした。「変ですか」<br><br>「変じゃないと思います」<br><br>「宗吉さんって、怖かったことはないんですか、旅で」<br><br>宗吉は少し考えた。「……今のところ、あまり」<br><br>「うそ」おすずは言った。「絶対何かあるでしょ」<br><br>「荷が重いのは、少し怖いかもしれません」<br><br>おすずは少し笑った。「それは怖いって言わないです」<br><br>宗吉はそれを聞いて、少し笑った。おすずは気づいて、「笑いごとじゃないです」と言った。でも自分も少し笑っていた。`
       : `食事が終わって、おすずがぽつりと言った。<br><br>「宗吉さん、今日の松並木、怖かったですけど、良かったです」<br><br>「良かった、ですか」<br><br>「なんかこう、ちゃんと旅してる感じがして」おすずは少し恥ずかしそうにした。「変ですか」<br><br>「変じゃないと思います」<br><br>「宗吉さんって、怖かったことはないんですか、旅で」<br><br>宗吉は少し考えた。「箱根の関所で少し緊張しました」<br><br>「関所、やっぱり怖いですよね」おすずがうなずいた。「わたし新居で怖い思いをしたから、もう一生関所は通りたくないです」<br><br>「京へ行く機会があったら、また通ることになります」<br><br>「じゃあ行きません」おすずは断言した。<br><br>宗吉はそれを聞いて、少し笑った。おすずは気づいて、「笑いごとじゃないです」と言った。でも自分も少し笑っていた。`;
+    const innText35 = text35;
     const backAction35 = returnCb || (() => showInnChoices());
     return {
       label: 'おすずに声をかける',
       fn: '',
       action: () => {
         state.companionTalked[stageNum] = true;
+        state.flags.companionInnDone = true;
         fadeTransition(() => {
           document.documentElement.scrollTop = 0;
           document.body.scrollTop = 0;
-          document.getElementById('scene-text').innerHTML = text35;
+          document.getElementById('scene-text').innerHTML = innText35;
           showChoices([{ label: '戻る', fn: '', action: backAction35 }]);
         });
       },
@@ -5450,16 +5461,18 @@ function getCompanionInnChoice(stageNum, returnCb) {
 
   const ev = COMPANION_INN[stageNum];
   if (!ev) return null;
+  const innText = ev.text;
   const backAction = returnCb || (() => showInnChoices());
   return {
     label: ev.label,
     fn: '',
     action: () => {
       state.companionTalked[stageNum] = true;
+      state.flags.companionInnDone = true;
       fadeTransition(() => {
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-        document.getElementById('scene-text').innerHTML = ev.text;
+        document.getElementById('scene-text').innerHTML = innText;
         showChoices([{ label: '戻る', fn: '', action: backAction }]);
       });
     },
@@ -5489,13 +5502,45 @@ function checkCompanionEnd(stageNum, nextCb) {
   return true;
 }
 
-// おすずとの出会いシーン（31次・新居）
+// おすずとの出会いシーン：同行依頼まで（31次・新居）
 function showCompanionMeet() {
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     document.getElementById('scene-text').innerHTML =
-      `宗吉は荷を下ろして、女の傍らにしゃがんだ。<br><br>荷が地面に散らばっている。紐の端が切れていた。<br><br>「荷紐が切れましたか」<br><br>女は顔を上げた。「はい……急に、切れてしまって」<br><br>宗吉は自分の荷から予備の紐を取り出した。行商をしていると、こういうものが要る。<br><br>「使ってください」<br><br>女は少し驚いた顔をした。「よろしいんですか」<br><br>「余分に持っています」<br><br>二人で荷を縛り直した。女は立ち上がって、深く頭を下げた。<br><br>「ありがとうございます。お名前を聞いてもいいですか」<br><br>「宗吉といいます。江戸から来た行商人です」<br><br>「わたし、おすずといいます。江戸は……神田のほうで育ちまして」<br><br>宗吉は少し驚いた。「神田ですか。私も神田です」<br><br>おすずが顔を上げた。「どこの神田ですか」<br><br>しばらく話した。同じ町ではなかったが、近くだった。<br><br>「岡崎の糸問屋の奉公人で、主人の使いの帰りなんですが……」おすずは少し迷ってから、続けた。「岡崎の矢作橋のたもとまで、一緒に歩いていただけませんか。用心棒というか、道連れというか。一人では少し心細くて」<br><br>宗吉は少し考えた。方向は同じだ。<br><br>「岡崎までなら」<br><br>「ありがとうございます。ただ……」<br><br>「何ですか」<br><br>「道中、荷を広げて商売しながら歩きます。立ち止まることもあります。それでも構いませんか」<br><br>おすずは少し考えた。「あ、行商だから当然ですね」<br><br>「急ぐ旅ではないですか」<br><br>「急ぎません。使いは終わりましたので」とおすずは言った。「むしろ、見てみたいです」<br><br>「見ても面白くありません」<br><br>「面白そうです」<br><br>おすずは少し安堵したような顔をした。「ありがとうございます。あの、おいくつですか」<br><br>「二十です」<br><br>「あ、同い年だ」おすずは少し明るくなった。「じゃあ、宗吉さんって呼んでもいいですか」<br><br>「どうぞ」<br><br>「宗吉さんは、京に何しに行くんですか」<br><br>宗吉は少し歩いてから答えた。<br><br>「妹に会いに」<br><br>おすずは「そうですか」と言った。それから「いいですね」と、小さく言った。`;
+      `宗吉は荷を下ろして、女の傍らにしゃがんだ。<br><br>荷が地面に散らばっている。紐の端が切れていた。<br><br>「荷紐が切れましたか」<br><br>女は顔を上げた。「はい……急に、切れてしまって」<br><br>宗吉は自分の荷から予備の紐を取り出した。行商をしていると、こういうものが要る。<br><br>「使ってください」<br><br>女は少し驚いた顔をした。「よろしいんですか」<br><br>「余分に持っています」<br><br>二人で荷を縛り直した。女は立ち上がって、深く頭を下げた。<br><br>「ありがとうございます。お名前を聞いてもいいですか」<br><br>「宗吉といいます。江戸から来た行商人です」<br><br>「わたし、おすずといいます。江戸は……神田のほうで育ちまして」<br><br>宗吉は少し驚いた。「神田ですか。私も神田です」<br><br>おすずが顔を上げた。「どこの神田ですか」<br><br>しばらく話した。同じ町ではなかったが、近くだった。<br><br>「岡崎の糸問屋の奉公人で、主人の使いの帰りなんですが……」おすずは少し迷ってから、続けた。「岡崎の矢作橋のたもとまで、一緒に歩いていただけませんか。用心棒というか、道連れというか。一人では少し心細くて」`;
+    showChoices([
+      { label: '承知した', fn: '', action: () => showCompanionAccept() },
+      { label: '断る',     fn: '', action: () => showCompanionDecline() },
+    ]);
+  });
+}
+
+// おすずの同行を承諾
+function showCompanionAccept() {
+  state.companionMet = true;
+  state.companionActive = true;
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML =
+      `宗吉は少し考えた。方向は同じだ。<br><br>「岡崎までなら」<br><br>「ありがとうございます。ただ……」<br><br>「何ですか」<br><br>「道中、荷を広げて商売しながら歩きます。立ち止まることもあります。それでも構いませんか」<br><br>おすずは少し考えた。「あ、行商だから当然ですね」<br><br>「急ぐ旅ではないですか」<br><br>「急ぎません。使いは終わりましたので」とおすずは言った。「むしろ、見てみたいです」<br><br>「見ても面白くありません」<br><br>「面白そうです」<br><br>おすずは少し安堵したような顔をした。「ありがとうございます。あの、おいくつですか」<br><br>「二十です」<br><br>「あ、同い年だ」おすずは少し明るくなった。「じゃあ、宗吉さんって呼んでもいいですか」<br><br>「どうぞ」<br><br>「宗吉さんは、京に何しに行くんですか」<br><br>宗吉は少し歩いてから答えた。<br><br>「妹に会いに」<br><br>おすずは「そうですか」と言った。それから「いいですね」と、小さく言った。`;
+    showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
+  });
+}
+
+// おすずの同行を断る
+function showCompanionDecline() {
+  state.companionMet = true;
+  state.companionActive = false;
+  state.companionBag = true;
+  state.flags.companionDeclined = true;
+  fadeTransition(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.getElementById('scene-text').innerHTML =
+      `「申し訳ないが、急ぎの旅で」<br><br>おすずは少し間を置いてから、うなずいた。「そうですか。……助けていただいただけでも、ありがとうございました」<br><br>おすずは懐を探って、小さな布の袋を取り出した。<br><br>「これ、お守りです。奉公先に来たとき、主人の奥様がくれたもので。旅の安全を祈って作ったって。荷紐まで助けていただいたのに、これしかなくて」<br><br>「いただけません」<br><br>「もらってください」おすずは言った。「わたし、もう帰りだから。宗吉さんはまだ先があるから」<br><br>宗吉は受け取った。小さな守り袋だった。手に収まる大きさで、少し温かかった。<br><br>おすずは頭を下げて、先へ歩いていった。`;
+    showNotify('守り袋を受け取った');
     showChoices([{ label: '白須賀へ向かう', fn: '', action: () => showStageChoices() }]);
   });
 }
