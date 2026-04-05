@@ -3115,14 +3115,20 @@ function showStageChoices() {
     if (state.currentStage === 29 && !state.flags.hamamatsuSamurai) {
       choices.push({ label: '茶屋で休む', fn: '', action: () => {
         state.flags.hamamatsuSamurai = true;
+        const rank = getMerchantRank();
+        let sceneText;
+        if (rank === 'novice') {
+          sceneText = '茶屋の縁台に腰を下ろすと、隣に武士が一人座っていた。宗吉の荷にちらりと目をやった。<br><br>「地味な稼業だな」と武士は言った。<br><br>宗吉は何も言えなかった。ただ俯いて、湯飲みを両手で持った。<br><br>武士はそれきり何も言わず、やがて立ち上がって去った。';
+        } else if (rank === 'middle') {
+          sceneText = '茶屋の縁台に腰を下ろすと、隣に武士が一人座っていた。宗吉の荷にちらりと目をやった。<br><br>「地味な稼業だな」と武士は言った。<br><br>「さようでございます」と宗吉は言った。<br><br>武士は何も言わなかった。しばらくして、湯飲みを置いて立ち上がった。去り際に、ほんの少しだけ頷いた。';
+        } else {
+          sceneText = '茶屋の縁台に腰を下ろすと、隣に武士が一人座っていた。宗吉の荷にちらりと目をやった。<br><br>「地味な稼業だな」と武士は言った。<br><br>「では一つ、ご覧になりますか」と宗吉は言って、荷を開いた。<br><br>武士は一瞬きょとんとした。それから、「いらん」と言って、少し笑った。立ち上がって、そのまま行ってしまった。<br><br>宗吉も少し笑った。';
+        }
         fadeTransition(() => {
           document.documentElement.scrollTop = 0;
           document.body.scrollTop = 0;
-          document.getElementById('scene-text').innerHTML =
-            '茶屋の縁台に腰を下ろすと、隣に武士が一人座っていた。宗吉の荷にちらりと目をやった。<br><br>「地味な稼業だな」と武士は言った。<br><br>宗吉は一瞬黙った。以前ならそのまま頷いていた。<br><br>「旅人が困っているものを、持って歩いています」と宗吉は言った。「それだけです」<br><br>武士は何も言わなかった。しばらくして、湯飲みを置いて立ち上がった。去り際に、ほんの少しだけ頷いた。<br><br>宗吉には、その意味がよくわからなかった。';
-          showChoices([{ label: '', fn: '', action: () => {
-            showStageChoices();
-          }}]);
+          document.getElementById('scene-text').innerHTML = sceneText;
+          showChoices([{ label: '', fn: '', action: () => showStageChoices() }]);
         });
       }});
     }
