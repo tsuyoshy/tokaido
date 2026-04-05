@@ -2696,12 +2696,12 @@ function getMerchantRank() {
 // ── ランクアップ時の気づきテキスト ──
 function getRankUpText(newRank) {
   if (newRank === 'middle') {
-    return `しばらく荷を担いで歩きながら、宗吉はふと気づいた。<br><br>` +
-           `客の顔が、少し読めるようになってきた気がする。<br><br>` +
-           `——父が言っていた。客の様子をよく見ろ、と。そういうことか、と思った。`;
+    return `銭を受け取って、次の客を探した。<br><br>` +
+           `——父が言っていた。客の様子をよく見ろ、と。<br><br>` +
+           `少し、わかってきた気がした。`;
   }
   if (newRank === 'expert') {
-    return `その日の商売を終えて、宗吉は宿の縁側に腰を下ろした。<br><br>` +
+    return `銭を受け取りながら、宗吉は気づいた。<br><br>` +
            `いつの間にか、値段を言う前に相手の出方がわかるようになっていた。<br><br>` +
            `まだ完全ではない。でも、旅の前とは違う目で客を見ている自分がいた。`;
   }
@@ -3121,9 +3121,6 @@ function showStageChoices() {
           document.getElementById('scene-text').innerHTML =
             '茶屋の縁台に腰を下ろすと、隣に武士が一人座っていた。宗吉の荷にちらりと目をやった。<br><br>「地味な稼業だな」と武士は言った。<br><br>宗吉は一瞬黙った。以前ならそのまま頷いていた。<br><br>「旅人が困っているものを、持って歩いています」と宗吉は言った。「それだけです」<br><br>武士は何も言わなかった。しばらくして、湯飲みを置いて立ち上がった。去り際に、ほんの少しだけ頷いた。<br><br>宗吉には、その意味がよくわからなかった。';
           showChoices([{ label: '', fn: '', action: () => {
-            state.memos.koudou = state.memos.koudou || [];
-            state.memos.koudou.push({ stage: '浜松宿', text: '茶屋の武士に「地味な稼業だ」と言われた。返した。' });
-            showNotify('旅の手帳に記録された');
             showStageChoices();
           }}]);
         });
@@ -3152,9 +3149,6 @@ function showStageChoices() {
           document.getElementById('scene-text').innerHTML =
             '街道沿いの小さな商家が、暖簾を外していた。老人が一人、黙々と片付けをしている。<br><br>「閉めるんですか」と宗吉は声をかけた。<br><br>老人は振り返って、宗吉の荷を見た。「行商かね」「ええ」「どこまで」「京まで」<br><br>老人は少し目を細めた。「おれは五十年、この場所でやった。もう十分だ」<br><br>「やめて、後悔しませんか」<br><br>老人は少し黙った。「後悔はするだろうな」とやがて言った。「でも、十分やった後の後悔と、途中でやめた後悔は、重さが違う」<br><br>それだけ言って、老人はまた暖簾をたたみ始めた。<br><br>宗吉はしばらくその背中を見ていた。それから、先へ向かった。';
           showChoices([{ label: '', fn: '', action: () => {
-            state.memos.koudou = state.memos.koudou || [];
-            state.memos.koudou.push({ stage: '関宿', text: '五十年商いをした老人が店じまいをしていた。「十分やった後の後悔と、途中でやめた後悔は重さが違う」' });
-            showNotify('旅の手帳に記録された');
             showStageChoices();
           }}]);
         });
@@ -4625,8 +4619,6 @@ function confirmBuy(itemIdx, qty, overridePrice) {
     state.cargo.push({ name: item.name, unit: item.unit, qty, buy: buyPrice, sell: item.sell, vol: item.vol, cat: item.cat, origin: item.origin });
   }
 
-  state.memos.koudou = state.memos.koudou || [];
-  state.memos.koudou.push({ stage: stageName(), text: `${item.name}を${qty}${item.unit}、${total}文で仕入れた。` });
   recordVisit(state.currentStage, `${item.name}を仕入れた。`);
   showNotify(`仕入れた　${item.name} ${qty}${item.unit}`);
 
@@ -7575,7 +7567,6 @@ function startFromSave() {
   if (state.souvenirs === undefined) state.souvenirs = [];
   if (state.souvenirChosen === undefined) state.souvenirChosen = null;
   if (state.innEventDone === undefined) state.innEventDone = {};
-  if (!state.memos.koudou) state.memos.koudou = [];
   if (state.merchantMeetCount === undefined) state.merchantMeetCount = 0;
   if (state.companionActive === undefined) state.companionActive = false;
   if (state.companionMet === undefined) state.companionMet = false;
