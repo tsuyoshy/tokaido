@@ -41,6 +41,7 @@
     z-index: 90;
     background: #0a0900;
     pointer-events: none; /* Safari: headerボタンのヒットテストを妨げない */
+    will-change: transform; /* Safari: 独立した合成レイヤーに昇格させテキスト透過を防ぐ */
   }
 
   #stage-container::before {
@@ -131,6 +132,7 @@
     background: #1a1600;
     overflow: hidden;
     position: relative;
+    isolation: isolate; /* Safari: 背後のスクロールコンテンツが透けるのを防ぐ */
   }
 
   #illus-area img {
