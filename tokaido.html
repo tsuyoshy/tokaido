@@ -41,7 +41,9 @@
     z-index: 90;
     background: #0a0900;
     pointer-events: none; /* Safari: headerボタンのヒットテストを妨げない */
-    will-change: transform; /* Safari: 独立した合成レイヤーに昇格させテキスト透過を防ぐ */
+    will-change: transform; /* Safari: 独立した合成レイヤーに昇格 */
+    transform: translateZ(0); /* Safari: GPU合成レイヤーに強制昇格させテキスト透過を防ぐ */
+    -webkit-transform: translateZ(0);
   }
 
   #stage-container::before {
@@ -63,6 +65,8 @@
     top: 0;
     z-index: 100;
     isolation: isolate; /* Safari: stickyのスタッキングコンテキスト問題対策 */
+    transform: translateZ(0); /* Safari: GPU合成レイヤー強制昇格 */
+    -webkit-transform: translateZ(0);
     background: #0a0900;
     border-bottom: 1px solid rgba(200,160,40,.28);
     padding: 10px 16px 6px;
