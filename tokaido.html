@@ -41,8 +41,8 @@
     z-index: 90;
     background: #0a0900;
     pointer-events: none; /* Safari: headerボタンのヒットテストを妨げない */
-    will-change: transform; /* Safari: 独立した合成レイヤーに昇格 */
-    transform: translateZ(0); /* Safari: GPU合成レイヤーに強制昇格させテキスト透過を防ぐ */
+    will-change: transform;
+    transform: translateZ(0);
     -webkit-transform: translateZ(0);
   }
 
@@ -75,6 +75,18 @@
     align-items: center;
     justify-content: space-between;
     gap: 4px 8px;
+  }
+
+  /* Safari: headerとstage-containerの間の隙間を塞ぐ */
+  #header::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #0a0900;
+    z-index: 101;
   }
 
   #header-title {
@@ -132,12 +144,11 @@
   /* ── 挿絵エリア ── */
   #illus-area {
     width: 100%;
-    height: 222px; /* 2px増やして隙間を確実に覆う */
-    margin-top: -2px; /* Safari: ヘッダー下の計算誤差による隙間を消す */
+    height: 220px;
     background: #1a1600;
     overflow: hidden;
     position: relative;
-    isolation: isolate; /* Safari: 背後のスクロールコンテンツが透けるのを防ぐ */
+    isolation: isolate;
   }
 
   #illus-area img {
@@ -2055,7 +2066,7 @@ const SHRINE_DATA = [
 // wearFlag: 「身につけている」フラグ / rewardFlag: 土産解放済みフラグ
 // ── 旅籠限定イベントデータ ──
 const INN_EVENTS = {
-  38: {
+  39: {
     type: 'wasuremono', flag: 'netsukeEvent', deliverStage: 39,
     morningText: `朝飯を食べ終え、宗吉は荷を担いで立ち上がった。<br><br>女中が「あの、よろしければ」と声をかけてきた。「昨夜のお客さまが忘れ物を。池鯉鮒の馬問屋の主人でございます。お客さま、京へ向かわれると言っておりましたので——よろしければ、池鯉鮒の問屋までお届け願えませんか」<br><br>小さな包みを受け取った。`,
     deliverChoiceLabel: '忘れ物を届ける',
@@ -2063,7 +2074,7 @@ const INN_EVENTS = {
     skipText: `その日は急ぎの旅だった。包みは宿に預けて、池鯉鮒に向かった。`,
     souvenirId: 'netsuke',
   },
-  47: {
+  48: {
     type: 'wasuremono', flag: 'kumihimoEvent', deliverStage: 48,
     morningText: `朝飯を済ませ、荷を担もうとしたとき、番頭が「少々よろしいですか」と声をかけてきた。「昨夜のお客さまの忘れ物です。坂下の茶屋の主人でございます。お客さま、京へ向かわれると言っておりましたので——よろしければ、坂下の茶屋までお届け願えませんか」<br><br>布包みをひとつ受け取った。`,
     deliverChoiceLabel: '忘れ物を届ける',
@@ -2667,7 +2678,7 @@ function updateHeader() {
   applyWeatherEffect(state.weather);
   // stage-containerのtopをヘッダー高さに合わせる
   const hh = document.getElementById('header').getBoundingClientRect().height;
-  document.getElementById('stage-container').style.top = (hh - 2) + 'px'; // Safari: 小数点誤差による隙間を消す
+  document.getElementById('stage-container').style.top = hh + 'px';
 }
 
 // 総所持金（銭換算）。エンディング条件・評価にのみ使用
