@@ -132,7 +132,8 @@
   /* ── 挿絵エリア ── */
   #illus-area {
     width: 100%;
-    height: 220px;
+    height: 222px; /* 2px増やして隙間を確実に覆う */
+    margin-top: -2px; /* Safari: ヘッダー下の計算誤差による隙間を消す */
     background: #1a1600;
     overflow: hidden;
     position: relative;
@@ -2666,7 +2667,7 @@ function updateHeader() {
   applyWeatherEffect(state.weather);
   // stage-containerのtopをヘッダー高さに合わせる
   const hh = document.getElementById('header').getBoundingClientRect().height;
-  document.getElementById('stage-container').style.top = hh + 'px';
+  document.getElementById('stage-container').style.top = (hh - 2) + 'px'; // Safari: 小数点誤差による隙間を消す
 }
 
 // 総所持金（銭換算）。エンディング条件・評価にのみ使用
