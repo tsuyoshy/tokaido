@@ -3702,8 +3702,8 @@ function viewCargo() {
 
   // 金貨行
   const goldRows = [];
-  if (state.nishuban  > 0) goldRows.push(`<div class="cargo-sell-item"><span>二朱判</span><span>${state.nishuban}枚</span></div>`);
-  if (state.isshukin  > 0) goldRows.push(`<div class="cargo-sell-item"><span>一朱金</span><span>${state.isshukin}枚</span></div>`);
+  if (state.nishuban  > 0) goldRows.push(`<div class="cargo-sell-item"><span>二朱判</span><span>${state.nishuban}枚（${(state.nishuban * 750).toLocaleString()}文相当）</span></div>`);
+  if (state.isshukin  > 0) goldRows.push(`<div class="cargo-sell-item"><span>一朱金</span><span>${state.isshukin}枚（${(state.isshukin * 1500).toLocaleString()}文相当）</span></div>`);
   if (state.ichibukin > 0) goldRows.push(`<div class="cargo-sell-item"><span>一分金</span><span>${state.ichibukin}枚</span></div>`);
 
   // 商品行
