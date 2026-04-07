@@ -5070,7 +5070,7 @@ function getFootPainNote(stageNum) {
   if (FOOT_PAIN_EXCLUDE.has(stageNum)) return '';
   const hasMed = state.cargo.some(item => item.name === '膏薬' && item.qty > 0);
   if (hasMed) {
-    return '<br><br>足の裏が熱を持っていた。箱根で買った膏薬を塗ると、少し楽になった。';
+    return '<br><br>足の裏が熱を持っていた。持っていた膏薬を塗ると、少し楽になった。';
   }
   // 宿場番号でバリエーションを分ける（3種）
   const variants = [
