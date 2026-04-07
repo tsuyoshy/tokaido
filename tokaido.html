@@ -5530,8 +5530,7 @@ function triggerWasuremonoDeliver(fromStage) {
   const ev = INN_EVENTS[fromStage];
   if (!ev) return;
   state.innEventDone[ev.flag] = 'delivering';
-  document.getElementById('scene-text').innerHTML =
-    '忘れ物を持って、' + (STAGE_DATA[ev.deliverStage] ? STAGE_DATA[ev.deliverStage].name : '次の宿場') + 'へ向かった。';
+  document.getElementById('scene-text').innerHTML = '忘れ物を預かった。';
   showChoices([{ label: 'つづける', fn: '', action: () => showStageChoices() }]);
 }
 
