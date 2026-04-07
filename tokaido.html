@@ -4215,7 +4215,7 @@ function doSellImmediate(idx, price, customer) {
   showNotify('旅の手帳に記録された');
   const rankAfter = getMerchantRank();
   const rankUpText = (rankBefore !== rankAfter) ? getRankUpText(rankAfter) : null;
-  const result = `すぐに品を出した。${customerName}は迷わず受け取った。${income}文。` + getKuroCustomerComment(customer);
+  const result = `すぐに品を出した。${customerName}は迷わず受け取った。${item.name}${sold}${item.unit}、${income}文。` + getKuroCustomerComment(customer);
   fadeTransition(() => {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
